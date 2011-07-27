@@ -1,0 +1,315 @@
+%%
+%% This is file `svninfo.sty',
+%% generated with the docstrip utility.
+%%
+%% The original source files were:
+%%
+%% svninfo.dtx  (with options: `header,package')
+%% 
+%% IMPORTANT NOTICE:
+%% 
+%% For the copyright see the source file.
+%% 
+%% Any modified versions of this file must be renamed
+%% with new filenames distinct from svninfo.sty.
+%% 
+%% For distribution of the original source see the terms
+%% for copying and modification in the file svninfo.dtx.
+%% 
+%% This generated file may be distributed as long as the
+%% original source files, as listed above, are part of the
+%% same distribution. (The sources need not necessarily be
+%% in the same archive or directory.)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% `svninfo' package to use with LaTeX2e.
+%%
+%% This package is used to extract the revision and file information provided
+%% by the Subversion revision control system.
+%% A PERL-package supporting svninfo and LaTeX2HTML is provieded too.
+%%
+%% Copyright (C) 1995 Dr. Juergen Vollmer
+%% Copyright (C) 2003-2005 Achim D. Brucker
+%%
+%% License:
+%%   This program can be redistributed and/or modified under the terms
+%%   of the LaTeX Project Public License Distributed from CTAN
+%%   archives in directory macros/latex/base/lppl.txt; either
+%%   version 1 of the License, or any later version.
+%%
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% \CheckSum{345}
+%% \CharacterTable
+%%  {Upper-case    \A\B\C\D\E\F\G\H\I\J\K\L\M\N\O\P\Q\R\S\T\U\V\W\X\Y\Z
+%%   Lower-case    \a\b\c\d\e\f\g\h\i\j\k\l\m\n\o\p\q\r\s\t\u\v\w\x\y\z
+%%   Digits        \0\1\2\3\4\5\6\7\8\9
+%%   Exclamation   \!     Double quote  \"     Hash (number) \#
+%%   Dollar        \$     Percent       \%     Ampersand     \&
+%%   Acute accent  \'     Left paren    \(     Right paren   \)
+%%   Asterisk      \*     Plus          \+     Comma         \,
+%%   Minus         \-     Point         \.     Solidus       \/
+%%   Colon         \:     Semicolon     \;     Less than     \<
+%%   Equals        \=     Greater than  \>     Question mark \?
+%%   Commercial at \@     Left bracket  \[     Backslash     \\
+%%   Right bracket \]     Circumflex    \^     Underscore    \_
+%%   Grave accent  \`     Left brace    \{     Vertical bar  \|
+%%   Right brace   \}     Tilde         \~}
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{svninfo}[2005/11/07 v0.4]
+\newcount\@svnInfoDay
+\newcount\@svnInfoMonth
+\newcount\@svnInfoYear
+\newif\if@svnInfoToday@
+\DeclareOption{today}{
+  \@svnInfoToday@true
+}
+\DeclareOption{notoday}{
+  \@svnInfoToday@false
+}
+\newif\if@svnInfoDraft@
+\DeclareOption{final}{
+  \@svnInfoDraft@false
+}
+\DeclareOption{draft}{
+  \@svnInfoDraft@true
+}
+\newif\if@svnInfoUseFancy@
+\newif\if@svnInfoUseFancyhdr@
+\newif\if@svnInfoUseScrpage@
+\newif\if@svnInfoUseEsofoot@
+\DeclareOption{fancy}{
+  \@svnInfoUseFancy@true
+  \@svnInfoUseFancyhdr@false
+  \@svnInfoUseScrpage@false
+  \@svnInfoUseEsofoot@false
+}
+\DeclareOption{fancyhdr}{
+  \@svnInfoUseFancy@false
+  \@svnInfoUseFancyhdr@true
+  \@svnInfoUseScrpage@false
+  \@svnInfoUseEsofoot@false
+}
+\DeclareOption{scrpage}{
+  \@svnInfoUseFancy@false
+  \@svnInfoUseFancyhdr@false
+  \@svnInfoUseScrpage@true
+  \@svnInfoUseEsofoot@false
+}
+\DeclareOption{eso-foot}{
+  \@svnInfoUseFancy@false
+  \@svnInfoUseFancyhdr@false
+  \@svnInfoUseScrpage@false
+  \@svnInfoUseEsofoot@true
+}
+\DeclareOption{nofancy}{
+  \@svnInfoUseFancy@false
+  \@svnInfoUseFancyhdr@false
+  \@svnInfoUseScrpage@false
+  \@svnInfoUseEsofoot@false
+}
+\newif\if@svnInfoLong@
+\DeclareOption{long}{
+  \@svnInfoLong@true
+}
+\DeclareOption{short}{
+  \@svnInfoLong@false
+}
+\ExecuteOptions{draft,today,long}
+\IfFileExists{svninfo.cfg}{\input{svninfo.cfg}}{}
+\ProcessOptions*\relax
+\if@svnInfoDraft@
+    \if@svnInfoUseFancy@
+        \RequirePackage{fancyheadings}
+    \fi
+    \if@svnInfoUseFancyhdr@
+        \RequirePackage{fancyhdr}
+    \fi
+    \if@svnInfoUseScrpage@
+        \RequirePackage{scrpage2}
+    \fi
+    \if@svnInfoUseEsofoot@
+        \RequirePackage{eso-pic}
+    \fi
+\fi
+\def\svnToday{\ifcase\month\or
+  January\or February\or March\or April\or May\or June\or
+  July\or August\or September\or October\or November\or December\fi
+  \space\number\day, \number\year}
+
+
+\def\@svnBeginRead{\begingroup
+   \catcode`\_=13 %
+   \catcode`:=12 %
+}
+\def\@svnEndRead{\endgroup
+}
+
+\def\svnInfo {\@svnBeginRead
+   \@svnInfoReadArgs
+}
+
+
+\def\@svnInfoReadArgs #1Id#2 {\@svnEndRead
+  \@svnInfoDefaults
+  \if $#2 \expandafter\@svnInfoEat
+  \else   \@svnBeginRead
+          \expandafter\@svnInfoEatColon
+  \fi
+  $Id#2 %
+}
+
+\def\@svnInfoEat #1 {}
+
+\def\@svnInfoEatColon $Id:#1 {\@svnEndRead
+  \if $#1 \expandafter\@svnInfoEat
+  \else   \@svnBeginRead
+          \expandafter\@svnInfoCrackAndEat
+  \fi
+  #1 %
+}
+
+\def\@svnInfoCrackAndEat #1 #2 #3 #4 #5 #6 {\@svnEndRead
+  \@svnInfoCrackString #2 #3 #4 #5 #6 %
+}
+
+\def\@svnInfoCrackString #1 #2 #3 #4 #5 {%
+  \def\svnInfoFile{#1}%
+  \def\svnInfoRevision{#2}%
+  \def\svnInfoTime{#4}%
+  \if@filesw
+      \protected@write\@mainaux{}{\string\def\string\svnInfoFILE{#1}}%
+      \protected@write\@mainaux{}{\string\def\string\svnInfoREVISION{#2}}%
+      \protected@write\@mainaux{}{\string\def\string\svnInfoTIME{#4}}%
+      \protected@write\@mainaux{}{\string\def\string\svnInfoOWNER{#5}}%
+  \fi
+  \@svnInfoSplitDate x#3x%
+  \def\svnInfoLongDate{\@svnInfoToday}%
+  \if@svnInfoToday@
+    \year  =\@svnInfoYear
+    \month =\@svnInfoMonth
+    \day   =\@svnInfoDay
+  \fi
+  \if $#5 \def\svnInfoOwner{}%
+          \def\svnId{#1\ #2\ #3\ #4}%
+  \else
+    \def\svnInfoOwner{#5}%
+    \def\svnId{#1\ #2\ #3\ #4\ #5}%
+    \expandafter\@svnInfoEat
+  \fi
+}
+\def\@svnInfoSplitDate x#1-#2-#3x{%
+  \@svnInfoDay  =#3\relax
+  \@svnInfoMonth=#2\relax
+  \@svnInfoYear =#1\relax
+  \if@filesw
+      \protected@write\@mainaux{}{\string\def\string\svnInfoDAY{#3}}%
+      \protected@write\@mainaux{}{\string\def\string\svnInfoMONTH{#2}}%
+      \protected@write\@mainaux{}{\string\def\string\svnInfoYEAR{#1}}%
+  \fi
+}
+\def\@svnInfoToday {%
+ \begingroup
+   \year  =\@svnInfoYear
+   \month =\@svnInfoMonth
+   \day   =\@svnInfoDay
+   \svnToday
+ \endgroup
+}
+
+\def\@svnInfoDefaults {%
+  \@svnInfoYear  =\year
+  \@svnInfoMonth =\month
+  \@svnInfoDay   =\day
+  \def\svnInfoFile{--sourcefile--}%
+  \def\svnInfoDate{\the\@svnInfoYear-\two@digits\@svnInfoMonth-%
+                   \two@digits\@svnInfoDay}%
+  \def\svnInfoTime{--time--}%
+  \def\svnInfoRevision{--revision--}%
+  \def\svnInfoOwner{--owner--}%
+  \def\svnInfoYear{\the\@svnInfoYear}%
+  \def\svnInfoMonth{\the\@svnInfoMonth}%
+  \def\svnInfoDay{\the\@svnInfoDay}%
+  \def\svnInfoLongDate{\@svnInfoToday}%
+  \def\svnId{\svnInfoFile\ \svnInfoRevision\ \svnInfoTime\ \svnInfoOwner}%
+}
+
+\def\@svnInfoFancyFoot {%
+  \if@svnInfoLong@
+    \def\@svnInfoFancyInfo{{\footnotesize
+                           \emph{Rev: \svnInfoRevision, %
+              \svnInfoLongDate}}}%
+  \else
+    \def\@svnInfoFancyInfo{{\footnotesize
+                          \emph{Rev: \svnInfoRevision, %
+     \svnInfoDate}}}%
+  \fi
+  \def\@svnInfoFancyFile{{\footnotesize\emph{\svnInfoFile}}}%
+  \if@svnInfoDraft@
+  \if@svnInfoUseFancy@
+    \rfoot[\fancyplain{\@svnInfoFancyFile}{\@svnInfoFancyFile}]%
+          {\fancyplain{\@svnInfoFancyInfo}{\@svnInfoFancyInfo}}%
+    \lfoot[\fancyplain{\@svnInfoFancyInfo}{\@svnInfoFancyInfo}]%
+          {\fancyplain{\@svnInfoFancyFile}{\@svnInfoFancyFile}}%
+    \setlength{\footrulewidth}{0.4pt}%
+    \setlength{\plainfootrulewidth}{0.4pt}%
+  \fi
+  \fi
+ \if@svnInfoDraft@
+  \if@svnInfoUseFancyhdr@
+    \fancyfoot[LE,RO]{\@svnInfoFancyInfo}%
+    \fancyfoot[LO,RE]{\@svnInfoFancyFile}%
+    \fancyfoot[CO,CE]{\thepage}%
+    \renewcommand{\footrulewidth}{0.4pt}%
+    \fancypagestyle{plain}{%
+       \fancyfoot[LE,RO]{\@svnInfoFancyInfo}%
+       \fancyfoot[LO,RE]{\@svnInfoFancyFile}%
+       \fancyfoot[CO,CE]{\thepage}%
+       \renewcommand{\footrulewidth}{0.4pt}%
+    }
+  \fi
+  \fi
+ \if@svnInfoDraft@
+\if@svnInfoUseScrpage@
+    \clearscrheadfoot%
+    \ohead{\headmark}%
+    \cfoot[\emph{\@svnInfoFancyInfo}]{\emph{\@svnInfoFancyInfo}}%
+    \ifoot[\@svnInfoFancyFile]{\@svnInfoFancyFile}%
+    \ofoot[\pagemark]{\pagemark}%
+    \pagestyle{scrheadings}%
+  \fi
+\fi
+ \if@svnInfoDraft@
+ \if@svnInfoUseEsofoot@
+   \AddToShipoutPicture{%
+    \setlength{\unitlength}{1mm}%
+    \put(5,5){\tiny\svnInfoFile\quad\svnInfoRevision\quad\svnInfoDate%
+    \quad\svnInfoTime\quad\svnInfoOwner}%
+ }
+\fi
+\fi
+}
+\@svnInfoDefaults
+
+\AtBeginDocument{%
+ \if@svnInfoDraft@
+  \if@svnInfoUseFancy@
+    \@svnInfoFancyFoot
+  \fi
+  \if@svnInfoUseFancyhdr@
+    \@svnInfoFancyFoot
+  \fi
+  \if@svnInfoUseScrpage@
+    \@svnInfoFancyFoot
+  \fi
+  \if@svnInfoUseEsofoot@
+    \@svnInfoFancyFoot
+  \fi
+\fi
+}
+\endinput
+%%
+%% End of file `svninfo.sty'.

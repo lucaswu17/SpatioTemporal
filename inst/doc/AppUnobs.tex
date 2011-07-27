@@ -1,0 +1,251 @@
+\section{Prediction at Unobserved Locations} \label{app:pred_unobs}
+The following is an example of predictions at unobserved locations and times.
+
+\subsection{Load Data}
+Let us first load relevant libraries and data.
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+##Load the spatio-temporal package
+library(SpatioTemporal)
+##And additional packages for plotting
+library(plotrix) 
+
+##load data
+data(mesa.data)
+##...and optimisation results
+data(mesa.data.res)
+\end{verbatim}
+
+\subsection{Setup and Study the Data}
+Then we setup the data structures --- dropping some observations to simulate 
+a case with observed and unobserved locations --- and study the 
+available data.
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+##store the original data structure
+mesa.data.org <- mesa.data
+
+##keep only observations from the AQS sites
+##This gives us 5 "unobserved" sites at which to predict
+ID.AQS <- mesa.data$location$ID[mesa.data$location$type=="AQS"]
+mesa.data$obs <- mesa.data$obs[mesa.data$obs$ID %in% ID.AQS,]
+
+##Let us also expand the temporal trends to be every week
+##instead of every 2-weeks, giving us some unobserved 
+##time-points at which to predict.
+T <- seq(min(mesa.data$trend$date), max(mesa.data$trend$date),
+         by=7)
+mesa.data$trend <- data.frame(
+    V1=spline(x=mesa.data$trend$date, y=mesa.data$trend$V1, 
+              xout=T)$y, 
+    V2=spline(x=mesa.data$trend$date, y=mesa.data$trend$V2, 
+              xout=T)$y, date=T)
+
+##study the reduced data structure, we see 
+##that the 5 FIXED sites lack observations.
+printMesaDataNbrObs(mesa.data)
+##compate this to the original data.
+printMesaDataNbrObs(mesa.data.org)
+
+##create an object containing only the unmonitored sites
+mesa.unmon <- mesa.data
+ID.miss <- !(mesa.unmon$location$ID %in% 
+             unique(mesa.unmon$obs$ID))
+mesa.unmon$location <- mesa.unmon$location[ID.miss,]
+mesa.unmon$LUR <- mesa.unmon$LUR[mesa.unmon$location$ID,]
+mesa.unmon$SpatioTemp <- 
+    mesa.unmon$SpatioTemp[,mesa.unmon$location$ID,,drop=FALSE]
+##drop observations from the unmonitored data
+mesa.unmon$obs <- NULL
+
+##study the data structure for the unobserved locations
+printMesaDataNbrObs(mesa.unmon)
+
+##create a model object, dropping unobserved locations.
+##Dropping the unobserved locations will speed up the parameter 
+##estimations and is thus often a good idea.
+mesa.data.model <- create.data.model(mesa.data,
+    LUR = list(c("log10.m.to.a1", "km.to.coast", 
+      "s2000.pop.div.10000"), "km.to.coast","km.to.coast"),
+    ST.Ind = NULL)
+
+##create a model object containing all the sites (strip=FALSE)
+mesa.data.model.all <- create.data.model(mesa.data,
+    LUR = list(c("log10.m.to.a1", "km.to.coast", 
+      "s2000.pop.div.10000"), "km.to.coast","km.to.coast"),
+    ST.Ind = NULL, strip=FALSE)
+
+##note that this drops unobserved sites from the data structure
+printMesaDataNbrObs(mesa.data.model)
+printMesaDataNbrObs(mesa.data.model.all)
+\end{verbatim}
+
+\subsection{Predictions}
+Having created data structures that contain some unobserved locations 
+and time-points we are now ready to compute predictions at these unobserved 
+points.
+
+In a real world application we would probably use \ttt{fit.mesa.model} 
+to estimate parameters. However, here we will just use the parameters 
+previously estimated in \autoref{sec:par_estimation} using all available 
+data.
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+##Strictly we should now estimate the relevant parameters.
+##However since this is time consuming, we instead use the
+##parameters estimated for the model using all observations.
+x <- mesa.data.res$par.est$res.best$par
+
+##Now let's use these parameters to compute som predictions
+##Please note that the predictions take roughly 30s each on a 
+##decent laptop.
+
+##predict at times and locations in mesa.data.model (AQS-sites)
+E.AQS <- cond.expectation(x, mesa.data.model, 
+                          compute.beta = TRUE)
+
+##predict at times and locations in mesa.unmon (FIXED-sites)
+E.FIXED <- cond.expectation(x, mesa.data.model, 
+    mesa.data = mesa.unmon, compute.beta = TRUE)
+
+##predict at times in mesa.data.model and locations in both 
+##mesa.data.model and mesa.unmon (AQS + FIXED-sites)
+##using the "combine.data" option.
+E.ALL <- cond.expectation(x, mesa.data.model, 
+    mesa.data = mesa.unmon, compute.beta = TRUE, 
+    combine.data = TRUE)
+
+##predict at times and locations in mesa.data.model.all (the 
+##one with strip=FALSE), this gives predictions att all 
+##locations and *times*.
+E.ALL2 <- cond.expectation(x, mesa.data.model.all, 
+                           compute.beta = TRUE)
+
+##To predict at unmonitored sites for only 2000, we first 
+##pick out the relevant time points in mesa.unmon$trend
+mesa.unmon$trend <- mesa.data$trend
+mesa.unmon$trend <- 
+    mesa.unmon$trend[mesa.unmon$trend$date>="2000-01-01" &
+                     mesa.unmon$trend$date<"2001-01-01",]
+##and then predict at these locations
+E.2000 <- cond.expectation(x, mesa.data.model, 
+    mesa.data = mesa.unmon, compute.beta = TRUE)
+\end{verbatim}
+
+\subsection{Results}
+Having computed predictions in a number of different ways we 
+now want to investigate the results.
+\subsubsection{Studying the Results}
+We start by looking at the predictions produced for the five different cases.
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+##First look at the components of the prediction structure
+names(E.AQS)
+
+##Here E.AQS$EX is a matrix containing predictions at all 
+##relevant times and locations. The dimension of the matrix 
+dim(E.AQS$EX)
+colnames(E.AQS$EX)
+rownames(E.AQS$EX)[1:5]
+##And we see that E.AQS has predicted at the 20 locations 
+##and 280 time-points in mesa.data.model.
+
+##While E.FIXED contains predictions at the 5 locations 
+##and 559 time-points (weekly data) in mesa.unmon
+dim(E.FIXED$EX)
+
+##Using the "combine.data" option gives predictions at 
+##the 20+5=25 locations in mesa.data.model and mesa.unmon 
+##BUT this uses the temporal trends from mesa.data.model 
+##resulting in predictions at ONLY 280 time-points
+dim(E.ALL$EX)
+
+##If we instead use mesa.data.model.all which contains all 
+##the 25 locations as well as all the 559 time-points we 
+##obtain predictions at ALL locations and time-points.
+dim(E.ALL2$EX)
+
+##Finally we also see that restricting mesa.unmon$trend to 
+##only 2000 dates gives the expected 5 locations and 52 
+##(weekly trend in mesa.unmon) timepoints
+dim(E.2000$EX)
+\end{verbatim}
+%$
+
+\subsubsection{Plotting the Results}
+Having studied the number of locations and time-points at which we 
+have predictions we now investigate the actual predictions. 
+
+Recall that we dropped all observations for the {\sc fixed}-sites to simulate 
+a case where predictions are desired at some locations given observations 
+at other locations. However, we still have the observations at the 
+{\sc fixed}-sites in the \ttt{mesa.data.org} structure, this allows us to add 
+the known but {\emph unused} observations to the following plots, 
+providing a measure of how good the predictions are.
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+##Start by plotting predictions and observations 
+##for 3 observed locations
+par(mfrow=c(3,1),mar=c(2.5,2.5,2,.5))
+plotPrediction(E.AQS, "60371103", mesa.data.model)
+plotPrediction(E.AQS, "60371601", mesa.data.model)
+plotPrediction(E.AQS, "60590001", mesa.data.model)
+
+##Using the E.ALL strucutre that has predictions at 
+##all locations and on the 2-week time scale gives 
+##an identical result.
+par(mfrow=c(3,1),mar=c(2.5,2.5,2,.5))
+plotPrediction(E.ALL, "60371103", mesa.data.model.all)
+plotPrediction(E.ALL, "60371601", mesa.data.model.all)
+plotPrediction(E.ALL, "60590001", mesa.data.model.all)
+
+##Before plotting predictions for the unobserved 
+##locations we do a few minor things
+
+##studying the distance between the observed and 
+##unobserved locations
+apply(create.data.model(mesa.data.org)$dist[1:20,21:25],2,min)
+##we note that L001 is very close (0.083 km) to an AQS site.
+
+create.data.model(mesa.data.org)$dist[,"L001"]
+##Which on closer inspection turns out to be site 60371103.
+
+##Let's also extract the data matrix from the original 
+##data so that we can compare the predicted values with 
+##the known, LEFT OUT observations
+D <- create.data.matrix(mesa.data.org)
+
+##We are now ready to plot predictions for three unobserved 
+##locations along with the left out obserbations (and for L001 
+##the data from the colocated site). Plotting the left out 
+##observations allows us to investigate how well the
+##predictions are doing
+
+par(mfrow=c(3,1),mar=c(2.5,2.5,2,.5))
+#site L001
+plotPrediction(E.FIXED, "L001", mesa.unmon)
+##add the colocated data
+lines(as.Date(rownames(D)), D[,"60371103"], col="green")
+##also add the left out observations
+lines(as.Date(rownames(D)), D[,"L001"], col="red")
+
+##and the other two sites
+plotPrediction(E.FIXED, "LC002", mesa.unmon)
+lines(as.Date(rownames(D)), D[,"LC002"], col="red")
+plotPrediction(E.FIXED, "LC003", mesa.unmon)
+lines(as.Date(rownames(D)), D[,"LC003"], col="red")
+
+##Now plotting with the prediction structure that has computed 
+##predictions on the weekly time-scale. Since we now have 
+##observed only every other point standard usage of 
+##plotPreditcion will not show any observations (a line with 
+##only every other point...)
+par(mfrow=c(4,1),mar=c(2.5,2.5,2,.5))
+plotPrediction(E.ALL2, "60371103", mesa.data.model.all)
+plotPrediction(E.ALL2, "60590001", mesa.data.model.all)
+##Instead we need to plot the observations as points.
+plotPrediction(E.ALL2, "60371103", mesa.data.model.all,
+               lty=c(1,NA), pch=c(NA,19), cex=c(NA,.5))
+plotPrediction(E.ALL2, "60590001", mesa.data.model.all,
+               lty=c(1,NA), pch=c(NA,19), cex=c(NA,.5))
+\end{verbatim}

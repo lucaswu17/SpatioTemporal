@@ -1,0 +1,198 @@
+\section{Modelling with a Spatio-Temporal covariate}  
+\label{app:pred_ST_covar}
+The following is an example of modelling with a spatio\hyp{}temporal covariate.
+
+\subsection{Load Data}
+Let us first load relevant libraries and data.
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+##Load the spatio-temporal package
+library(SpatioTemporal)
+##And additional packages for plotting
+library(plotrix) 
+
+##load data
+data(mesa.data)
+data(mesa.data.model)
+##...and optimisation results
+data(mesa.data.res)
+\end{verbatim}
+
+\subsection{Setup and Study the Data}
+Then we setup the data structures, creating a new \ttt{mesa.data.model} 
+that contains the spatio\hyp{}temporal covariate.
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+##create model structure with ST-covariate
+mesa.data.model.ST <- create.data.model(mesa.data,
+    LUR = mesa.data.model$LUR.list, 
+    ST.Ind="lax.conc.1500")
+
+##An alternative is to seperate the spatio-temporal 
+##covariate into an average over time, and a mean-zero 
+##spatio-temporal covariate.
+##First we create a new data object
+mesa.data.mean0 <- remove.ST.mean(mesa.data)
+
+##with mean-zero spatio-temporal covariate.
+colMeans(mesa.data.mean0$SpatioTemp)
+
+##The mean has been added as a geographic covariate
+names(mesa.data.mean0$LUR)
+
+##create model structure with mean-zero ST-covariate
+mesa.data.model.ST.mean0 <- create.data.model(mesa.data.mean0,
+    LUR = list(c("log10.m.to.a1", "s2000.pop.div.10000",
+                 "km.to.coast", "mean.lax.conc.1500"),  
+               "km.to.coast", "km.to.coast"), 
+    ST.Ind="lax.conc.1500")
+
+##note that the models have different number of covariates
+dim <- loglike.dim(mesa.data.model)
+dim.ST <- loglike.dim(mesa.data.model.ST)
+dim.ST0 <- loglike.dim(mesa.data.model.ST.mean0)
+
+##number of spatio-temporal covariates
+c(dim$L, dim.ST$L, dim.ST0$L)
+
+##number of geogrpahic covariates for the 
+##two temporal trends+intercept
+cbind(dim$p, dim.ST$p, dim.ST0$p)
+
+##The models require the same number of log-covariance 
+##parameters (same number of beta-fields)
+c(dim$nparam.cov, dim.ST$nparam.cov, dim.ST0$nparam.cov)
+
+##... but different number of regression parameters
+c(dim$nparam, dim.ST$nparam, dim.ST0$nparam)
+\end{verbatim}
+%$
+
+\subsection{Parameter Estimation}
+Given the two models that contain spatio\hyp{}temporal covariates we estimate
+parameters for the models (or load precomputed results).
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+##create initial values
+dim <- loglike.dim(mesa.data.model.ST)
+x.init <- c(rep(c(1,-3),dim$m+1),-3)
+
+##estimate parameters
+if(FALSE){
+  ##This may take a while...
+  par.est.ST <- fit.mesa.model(x.init, mesa.data.model.ST,
+        hessian.all=TRUE, control=list(trace=3,maxit=1000))
+
+  par.est.ST.mean0 <- fit.mesa.model(x.init,
+        mesa.data.model.ST.mean0, hessian.all=TRUE,
+        control=list(trace=3,maxit=1000))
+}else{
+  ##Get the precomputed optimisation results instead.
+  par.est.ST <- mesa.data.res$par.est.ST
+  par.est.ST.mean0 <- mesa.data.res$par.est.ST.mean0
+}
+##and the reference model
+par.est <- mesa.data.res$par.est
+\end{verbatim}
+%$
+
+\subsection{Predictions}
+Having created two models and estimated parameters we are now ready 
+to compute some predictions for the models.
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+##extract the estimated parameters
+x.ST <- par.est.ST$res.best$par.all
+x.ST0 <- par.est.ST.mean0$res.best$par.all
+
+##as well as parameters for the model without a 
+##spatio-temporal covariate
+x <- par.est$res.best$par.all
+
+##compute some predictions for these three models
+EX <- cond.expectation(x, mesa.data.model, 
+                       compute.beta = TRUE)
+EX.ST <- cond.expectation(x.ST, mesa.data.model.ST,
+                          compute.beta = TRUE)
+EX.ST.0 <- cond.expectation(x.ST0, mesa.data.model.ST.mean0,
+                            compute.beta = TRUE)
+\end{verbatim}
+%$
+
+\subsection{Results}
+Having estimated the models and computed predictions we 
+now want to investigate the results.
+
+\subsubsection{Estimation Results }
+We start by looking at estimated parameters for the two different cases 
+with spatio\hyp{}temporal covariates, and compare to the model without
+spatio\hyp{}temporal covariates.
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+##first that both optimisations have converged
+par.est.ST$message
+par.est.ST.mean0$message
+
+##extract the estimated parameters
+x.ST <- par.est.ST$res.best$par.all
+x.ST0 <- par.est.ST.mean0$res.best$par.all
+x <- par.est$res.best$par.all
+
+##and parameter uncertainties
+x.ST.sd <- sqrt(diag(-solve(par.est.ST$res.best$hessian.all)))
+x.ST0.sd <- 
+  sqrt(diag(-solve(par.est.ST.mean0$res.best$hessian.all)))
+x.sd <- sqrt(diag(-solve(par.est$res.best$hessian.all)))
+
+##plot the estimated parameters
+par(mfrow=c(1,1),mar=c(13.5,2.5,.5,.5))
+plotCI(1:19, x.ST0, uiw=1.96*x.ST0.sd, 
+       ylab="", xlab="", xaxt="n")
+plotCI(c(1:5,7:19)-.2, x.ST, uiw=1.96*x.ST.sd, 
+       add=TRUE, col=2)
+plotCI(c(2:5,7:19)+.2, x, uiw=1.96*x.sd, 
+       add=TRUE, col=3)
+abline(h=0, col="grey")
+axis(1,1:length(x.ST0),names(x.ST0),las=2)
+legend("bottomleft", col = c(1,2,3), pch = 1, 
+       legend=c("par.est.ST","par.est.ST.mean0","par.est.ST"))
+\end{verbatim}
+In this case the including of a spatio\hyp{}temporal covariate hardly 
+affects the parameter estimates at all. It should be noted that
+this spatio\hyp{}temporal covariate has been included in the data
+{\em to provide an example} of how a covariate can be used by 
+the model.
+
+\subsubsection{Prediction Results}
+Having studied the estimated parameters we now 
+investigate the resulting predictions. 
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+##Start by plotting predictions and observations 
+##for 1 locations, for the three models
+par(mfrow=c(3,1),mar=c(2.5,2.5,2,.5))
+plotPrediction(EX, "60590001", mesa.data.model)
+plotPrediction(EX.ST, "60590001", mesa.data.model)
+plotPrediction(EX.ST.0, "60590001", mesa.data.model)
+
+\end{verbatim}
+
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+##Start by plotting predictions and observations 
+##for 3 observed locations
+par(mfrow=c(3,1),mar=c(2.5,2.5,2,.5))
+plotPrediction(E.AQS, "60371103", mesa.data.model)
+plotPrediction(E.AQS, "60371601", mesa.data.model)
+plotPrediction(E.AQS, "60590001", mesa.data.model)
+
+##Due to the minimal influence of the spatio-temporal 
+##covariate there is little difference between the 
+##different predictions, both for the observations
+range(EX$EX-EX.ST$EX)
+range(EX$EX-EX.ST.0$EX)
+
+##...and for the latent beta-fields
+range(EX$EX.beta-EX.ST$EX.beta)
+range(EX$EX.beta-EX.ST.0$EX.beta)
+\end{verbatim}

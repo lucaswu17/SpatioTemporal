@@ -1,0 +1,5 @@
+#dynamic load directives for external code
+useDynLib(SpatioTemporal, block_mult, calc_F_part_X, calc_tF_mat_F, calc_tF_times_mat, dot_prod, inv_chol_block, make_chol_block, make_sigma_b, make_sigma_b_full, make_sigma_nu, make_sigma_nu_cross_cov, norm2_c, solve_tri_block, sum_log_diag)
+
+#set directives that export functions from the namespace
+exportPattern("^[[:alpha:]]+")

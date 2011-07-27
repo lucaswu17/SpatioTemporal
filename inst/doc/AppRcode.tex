@@ -1,0 +1,585 @@
+\section{\ttt{R}--Code} \label{app:R_code}
+The following is all the \ttt{R}--code used in the tutorial:
+
+\refNumberName{sec:preliminaries}
+\begin{verbatim}
+##A qqplot for some N(0,1) random numbers
+qqnorm(rnorm(100))
+
+##Summary of 100 N(0,1) numbers.
+summary(rnorm(100))
+
+##Load the spatio-temporal package
+library(SpatioTemporal)
+
+##A package used for some plots in this tutorial (plotCI)
+library(plotrix) 
+###The maps to provide reference maps
+library(maps)
+
+##Load the data
+data(mesa.data)
+##...and the precomputed results
+data(mesa.data.res)
+\end{verbatim}
+\refNumberName{sec:examine_data}
+\begin{verbatim}
+names(mesa.data)
+\end{verbatim}
+\refNumberName{sec:mesa_data_frame}
+\begin{verbatim}
+head(mesa.data$location)
+\end{verbatim}
+\ttt{\#\#\#Plot the locations, see \autoref{fig:map}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfrow=c(1,1))
+plot(mesa.data$location$long,mesa.data$location$lat,
+     pch=24,bg=c("red","blue")[mesa.data$location$type],
+     xlab="Longitude",ylab="Latitude")
+
+###Add the map of LA
+map("county","california",col="#FFFF0055",fill=TRUE,add=TRUE)
+
+##Add a legend
+legend("bottomleft",c("AQS","FIXED"),pch=24,bty="n",
+       pt.bg=c("red","blue"))
+\end{verbatim}
+%$
+\refNumberName{sec:LUR_data_frame}
+\begin{verbatim}
+head(mesa.data$LUR)
+\end{verbatim}
+%$
+\refNumberName{sec:trend_data_frame}
+\begin{verbatim}
+head(mesa.data$trend)
+range(mesa.data$trend$date)
+\end{verbatim}
+%$
+\refNumberName{sec:mesa.data.obs}
+\begin{verbatim}
+head(mesa.data$obs)
+\end{verbatim}
+%$
+\refNumberName{sec:ST_array}
+\begin{verbatim}
+dim(mesa.data$SpatioTemp)
+mesa.data$SpatioTemp[1:5,1:5,]
+
+str(dimnames(mesa.data$SpatioTemp))
+as.character(sort(unique(c(mesa.data$obs$date,
+    mesa.data$trend$date))))
+dimnames(mesa.data$SpatioTemp)[[3]]
+\end{verbatim}
+%$
+\refNumberName{sec:data_summary}
+\begin{verbatim}
+printMesaDataNbrObs(mesa.data)
+\end{verbatim}
+\ttt{\#\#\#Plot when observations occurr, see \autoref{fig:time_space}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfcol=c(1,1),mar=c(4.3,4.3,1,1))
+plotMonitoringLoc(mesa.data)
+\end{verbatim}
+\refNumberName{sec:raw_data}
+\begin{verbatim}
+data(mesa.data.raw)
+names(mesa.data.raw)
+names(mesa.data)  ###Recall the data frames in mesa.data
+
+head(mesa.data.raw$X)
+
+mesa.data.raw$obs[1:6,1:5]
+
+mesa.data.raw$lax.conc.1500[1:6,1:5]
+\end{verbatim}
+%$
+\refNumberName{sec:creating_location}
+\begin{verbatim}
+##extract components from mesa.data.raw
+##to create the location data.frame
+location <- mesa.data.raw$X[,c("ID", "x", "y", "long",
+                               "lat", "type")]
+##ensure that it's a data.frame
+location <- as.data.frame(location)
+##ensure that ID and type are factors
+location$ID <- factor(as.character(location$ID))
+location$type <- factor(as.character(location$type))
+\end{verbatim}
+%$
+\refNumberName{sec:creating_LUR}
+\begin{verbatim}
+##create a covariate LUR matrix
+LUR <- mesa.data.raw$X
+##ensure that it's a data.frame
+LUR <- as.data.frame(LUR)
+##take rownames as the IDs and drop location information
+rownames(LUR) <- as.character(LUR$ID)
+LUR <- LUR[,!(names(LUR) %in% c("ID", "x", "y", "long",
+           "lat", "type"))]
+\end{verbatim}
+\refNumberName{sec:creating_obs}
+\begin{verbatim}
+##create a data.frame of observations
+T <- t(matrix(rownames(mesa.data.raw$obs),
+              nrow=dim(mesa.data.raw$obs)[2],
+              ncol=dim(mesa.data.raw$obs)[1],byrow=TRUE))
+ID <- matrix(colnames(mesa.data.raw$obs), 
+             nrow=dim(mesa.data.raw$obs)[1],
+             ncol=dim(mesa.data.raw$obs)[2],byrow=TRUE)
+obs <- data.frame(obs=c(mesa.data.raw$obs), date=c(as.Date(T)), 
+                  ID=c(ID))
+##drop unmonitored locations
+obs <- obs[!is.na(obs$obs),,drop=FALSE]
+##sort the locations (strictly not needed)
+obs <- obs[order(obs$date,obs$ID),,drop=FALSE]
+
+##examine the time and location matrices
+T[1:3,1:3]
+ID[1:3,1:3]
+\end{verbatim}
+\refNumberName{sec:creating_ST}
+\begin{verbatim}
+##create a 3D-array for the spatio-temporal covariate
+ST <- array(mesa.data.raw$lax.conc.1500, dim =
+            c(dim(mesa.data.raw$lax.conc.1500),1))
+##add names for time, location and spatio-temporal covariate
+dimnames(ST) <- list(rownames(mesa.data.raw$lax.conc),
+                     colnames(mesa.data.raw$lax.conc),
+                     "lax.conc.1500")
+\end{verbatim}
+\refNumberName{sec:creating_trend}
+\begin{verbatim}
+##compute the smooth trends
+trend <- calc.smooth.trends(obs=obs$obs, date=obs$date,
+                            ID=obs$ID, n.basis = 2)$svd
+
+##Combining all the elements
+mesa.data.alt <- list(location=location, LUR=LUR, trend=trend,
+                      obs=obs, SpatioTemp=ST)
+\end{verbatim}
+\refNumberName{sec:data_set_up}
+\begin{verbatim}
+##extract a data matrix
+D <- create.data.matrix(mesa.data)
+##and study the data
+dim(D)
+D[1:6,1:5]
+colnames(D)
+
+##subset the data
+ID.subset <-mesa.data$location[mesa.data$location$type ==
+                               "AQS",]$ID
+D2 <- create.data.matrix(mesa.data, subset=ID.subset)
+##and study the result
+dim(D2)
+colnames(D2)
+\end{verbatim}
+\refNumberName{sec:CV_trend_est}
+\begin{verbatim}
+##Run leave one out cross-validation to find smooth trends
+SVD.cv <- SVD.smooth.cv(D,1:5)
+\end{verbatim}
+\refNumberName{sec:evaluating_CV_smooth}
+\vspace*{\baselineskip}
+\\ \ttt{\#\#Plotting the smooth trends CV results, see \autoref{fig:svd_cv}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfcol=c(2,2),mar=c(4,4,.5,.5))
+plot(SVD.cv$CV.stat$RMSE, type="l", ylab="RMSE", xlab="")
+plot(SVD.cv$CV.stat$R2, type="l", ylab="R2", xlab="")
+plot(SVD.cv$CV.stat$BIC, type="l", ylab="BIC", xlab="")
+\end{verbatim}
+\ttt{\#\#Scatterplots of BIC values for different number of trends,}\\
+\ttt{\#\#see \autoref{fig:BIC_pairs}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfcol=c(1,1),mar=c(4,4,.5,.5))
+pairs(SVD.cv$BIC.all, pane = 
+      function(x,y){points(x,y);abline(0,1)})
+\end{verbatim}
+%$
+\refNumberName{sec:creating_and_investigating_trends}
+\begin{verbatim}
+##compute new temporal smooths
+F <- calc.smooth.trends(mesa.data, n.basis=2)
+##and add the new trends to the data structure
+mesa.data$trend <- F$svd
+\end{verbatim}
+\ttt{\#\#plot the observations at two of the locations along} \\
+\ttt{\#\#with the fitted smooth trends, see \autoref{fig:smooth_trends}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfrow=c(4,1),mar=c(2.5,2.5,2,.5))
+plotMesaData(mesa.data, 5, type="obs")
+plotMesaData(mesa.data, 18, type="obs")
+
+##also plot the residuals
+plotMesaData(mesa.data, 5, type="res")
+plotMesaData(mesa.data, 18, type="res")
+\end{verbatim}
+\ttt{\#\#Autocorrelation of the residuals at four locations,}\\
+\ttt{\#\#see \autoref{fig:autocorr}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfcol=c(2,2),mar=c(2.5,2.5,3,.5))
+plotMesaData(mesa.data, 1, type="acf")
+plotMesaData(mesa.data, 5, type="acf")
+plotMesaData(mesa.data, 13, type="acf")
+plotMesaData(mesa.data, 18, type="acf")
+\end{verbatim}
+\refNumberName{sec:beta_fields}
+\begin{verbatim}
+##create data matrix
+D <- create.data.matrix(mesa.data)
+beta <- matrix(NA,dim(D)[2], dim(mesa.data$trend)[2])
+beta.std <- beta
+##extact the temporal trends
+F <- mesa.data$trend
+##drop the date column
+F$date <- NULL
+
+##estimate the beta-coeficients at each location
+for(i in 1:dim(D)[2]){
+  tmp <- summary(lm(D[,i] ~ as.matrix(F)))
+  beta[i,] <- tmp$coefficients[,1]
+  beta.std[i,] <- tmp$coefficients[,2]
+}
+
+##Add names to the estimated betas
+colnames(beta) <- c("const",colnames(F))
+rownames(beta) <- colnames(D)
+dimnames(beta.std) <- dimnames(beta)
+
+##examine the beta fields
+head(beta)
+head(beta.std)
+\end{verbatim}
+\refNumberName{sec:par_estimation}
+\begin{verbatim}
+##Examine available spatial, ...
+names(mesa.data$LUR)
+##... and spatio-temporal covariates
+dimnames(mesa.data$SpatioTemp)[[3]]
+
+##specify the model
+mesa.data.model <- create.data.model(mesa.data, LUR = 
+    list(c("log10.m.to.a1", "s2000.pop.div.10000", 
+           "km.to.coast"), "km.to.coast", "km.to.coast"), 
+    ST.Ind=NULL)
+
+##examine the model
+names(mesa.data.model)
+mesa.data.model$LUR.list
+mesa.data.model$ST.Ind
+
+##covariates for the temporal intercept
+head(mesa.data.model$X$const)
+##...and the two smooth temporal trends
+head(mesa.data.model$X$V1)
+head(mesa.data.model$X$V2)
+
+##Some important dimensions of the model
+dim <- loglike.dim(mesa.data.model)
+print(dim)
+
+##Setting up the initial parameter values for optimization
+x.init <- cbind(rep(2,dim$nparam.cov), 
+                c(rep(c(1,-3),dim$m+1),-3))
+
+##Names of the covariance parameters
+loglike.var.names(mesa.data.model,all=FALSE)
+
+##Add names to the initial values
+rownames(x.init) <- loglike.var.names(mesa.data.model,
+                                      all=FALSE)
+x.init
+
+##estimate parameters
+if(FALSE){
+  ##This may take a while...
+  par.est <- fit.mesa.model(x.init, mesa.data.model, type="p",
+      hessian.all=TRUE, control=list(trace=3,maxit=1000))
+}else{
+  ##Get the precomputed optimisation results instead.
+  par.est <- mesa.data.res$par.est
+}
+
+##compare function values
+loglike(par.est$res.best$par, mesa.data.model)
+par.est$res.best$value
+\end{verbatim}
+%$
+\refNumberName{sec:evaluating_results}
+\begin{verbatim}
+##Optimisation status message
+par.est$message
+
+##the optimisation results
+names(par.est)
+
+##examine optimisation results
+names(par.est$res.best)
+names(par.est$res.all[[1]])
+names(par.est$res.all[[2]])
+
+##lets compare the estimated parameters
+cbind(par.est$res.all[[1]]$par.all,
+      par.est$res.all[[2]]$par.all)
+##and values of the likelihood
+cbind(par.est$res.all[[1]]$value,
+      par.est$res.all[[2]]$value)
+
+##extract the estimated parameters
+x <- par.est$res.best$par.all
+
+##and approximate uncertainties from the hessian
+x.sd <- sqrt(diag(-solve(par.est$res.best$hessian.all)))
+names(x.sd) <- names(x)
+\end{verbatim}
+\ttt{\#\#Plot the estimated parameters with uncertainties, see \autoref{fig:conf_int}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfrow=c(1,1),mar=c(13.5,2.5,.5,.5))
+plotCI(x,uiw=1.96*x.sd,ylab="",xlab="",xaxt="n")
+points(par.est$res.all[[2]]$par.all, col=2, pch=4)
+abline(h=0, col="grey")
+axis(1,1:length(x),names(x),las=2)
+\end{verbatim}
+%$
+\refNumberName{sec:predictions}
+\begin{verbatim}
+##compute conditional expectations (takes roughly 1 min)
+EX <- cond.expectation(par.est$res.best$par, mesa.data.model,
+                       compute.beta = TRUE)
+
+##study the results
+names(EX)
+\end{verbatim}
+\ttt{\#\#Plot that compares two estimated beta-fields, see \autoref{fig:betafields}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfcol=c(1,1), mar=c(4.5,4.5,2,.5), pty="s")
+plotCI(x=beta[,1], y=EX$EX.beta[,1],
+       uiw=1.96*beta.std[,1], err="x",
+       main="Intercept", pch=NA, sfrac=0.005,
+       xlab="Empirical estimate",
+       ylab="Spatio-Temporal Model")
+plotCI(x=beta[,1],y=EX$EX.beta[,1],
+       uiw=1.96*sqrt(EX$VX.beta[,1]),
+       add=TRUE, pch=NA, sfrac=0.005)
+abline(0,1,col="grey")
+\end{verbatim}
+\ttt{\#\#...and the other two beta-fields, see \autoref{fig:betafields2}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfcol=c(1,2), mar=c(4.5,4.5,2,.5), pty="s")
+for(i in 2:3){
+  plotCI(x=beta[,i], y=EX$EX.beta[,i],
+         uiw=1.96*beta.std[,i], err="x",
+         main=colnames(beta)[i], pch=NA, sfrac=0.005,
+         xlab="Empirical estimate",
+         ylab="Spatio-Temporal Model")
+  plotCI(x=beta[,i],y=EX$EX.beta[,i],
+         uiw=1.96*sqrt(EX$VX.beta[,i]),
+         add=TRUE, pch=NA, sfrac=0.005)
+  abline(0,1,col="grey")
+}
+\end{verbatim}
+\ttt{\#\#plot predictions and observations for 4 locations, see \autoref{fig:pred_TS}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfrow=c(4,1),mar=c(2.5,2.5,2,.5))
+plotPrediction(EX,  1, mesa.data.model)
+lines(as.Date(rownames(EX$EX.mu)),EX$EX.mu[,1],col=3)
+lines(as.Date(rownames(EX$EX.mu.beta)),
+      EX$EX.mu.beta[,1],col=4)
+plotPrediction(EX, 10, mesa.data.model)
+lines(as.Date(rownames(EX$EX.mu)),EX$EX.mu[,10],col=3)
+lines(as.Date(rownames(EX$EX.mu.beta)),
+      EX$EX.mu.beta[,10],col=4)
+plotPrediction(EX, 17, mesa.data.model)
+lines(as.Date(rownames(EX$EX.mu)),EX$EX.mu[,17],col=3)
+lines(as.Date(rownames(EX$EX.mu.beta)),
+      EX$EX.mu.beta[,17],col=4)
+plotPrediction(EX, 22, mesa.data.model)
+lines(as.Date(rownames(EX$EX.mu)),EX$EX.mu[,22],col=3)
+lines(as.Date(rownames(EX$EX.mu.beta)),
+      EX$EX.mu.beta[,22],col=4)
+\end{verbatim}
+\refNumberName{sec:CV}
+\begin{verbatim}
+##create the CV structure defining 10 different CV-groups
+Ind.cv <- createCV(mesa.data.model, groups=10, min.dist=.1)
+head(Ind.cv)
+
+##number of observations in each CV-group
+colSums(Ind.cv)
+
+##Which sites belong to which groups?
+ID.cv <- lapply(apply(Ind.cv,2,list),function(x) 
+                unique(mesa.data.model$obs$ID[x[[1]]]))
+ID.cv
+
+##Distances between the sites in the 10th CV-group
+##Note that the sites with distance 0.084<min.dist 
+##are grouped together.
+mesa.data.model$dist[ID.cv[[10]],ID.cv[[10]]]
+
+##Find out which location belongs to which cv group
+I.col <- apply(sapply(ID.cv,
+    function(x) mesa.data.model$location$ID %in% x),1,
+    function(x) if(sum(x)==1) which(x) else 0)
+names(I.col) <- mesa.data.model$location$ID
+I.col
+\end{verbatim}
+\ttt{\#\#Plot the locations, colour coded by CV-grouping, see \autoref{fig:mapCV}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfrow=c(1,1))
+plot(mesa.data$location$long,mesa.data$location$lat,
+     pch=23+floor(I.col/max(I.col)+.5), bg=I.col, 
+     xlab="Longitude",ylab="Latitude")
+
+##Add the map of LA
+map("county","california",col="#FFFF0055",fill=TRUE,add=TRUE)
+\end{verbatim}
+%$
+\refNumberName{sec:CV_estimations}
+\begin{verbatim}
+if(FALSE){
+  ##estimate different parameters for each CV-group
+  dim <- loglike.dim(mesa.data.model)
+  x.init <- cbind(rep(2,dim$nparam.cov),
+                  c(rep(c(1,-3),dim$m+1),-3))
+  ##This may take a while...
+  par.est.cv <- estimateCV(x.init, mesa.data.model, Ind.cv)
+}else{
+  ##Get the precomputed results instead.
+  par.est.cv <- mesa.data.res$par.est.cv
+}
+
+##lets examine the results
+names(par.est.cv)
+par.est.cv$par
+
+##res.all contains a list with the optimisation results 
+##for each CV-group
+str(par.est.cv$res.all[[1]])
+
+##Studying the conv-field of all the groups
+sapply(par.est.cv$res.all,function(x) x$conv)
+##we see that all optimisations have converged.
+
+##We can also see that different starting values
+##where best for different cv-groups 
+sapply(par.est.cv$res.all,function(x) x$par.init)
+\end{verbatim}
+\ttt{\#\#Boxplot of the different estimates from the CV, see \autoref{fig:CVparest}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfrow=c(1,1), mar=c(7,2.5,2,.5), las=2)
+boxplot(t(par.est.cv$par))
+points(par.est$res.best$par, pch=4, col=2)
+\end{verbatim}
+%$
+\refNumberName{sec:CV_predictions}
+\begin{verbatim}
+##Do cross-validated predictions using the newly 
+##estimated paremeters (takes roughly 1 minute)
+pred.cv <- predictCV(par.est.cv$par, mesa.data.model,
+                     Ind.cv, silent = FALSE)
+
+##examine the results
+names(pred.cv)
+head(pred.cv$pred.obs)
+str(pred.cv$pred.all[[1]])
+
+##compute CV-statistics (see also predictNaive)
+##this uses compute.ltaCV internally to compute the
+##long term averages if we want just lta:s then use 
+##compute.ltaCV directly.
+pred.cv.stats <- summaryStatsCV(pred.cv, lta=TRUE, trans=0)
+names(pred.cv.stats)
+pred.cv.stats$Stats
+\end{verbatim}
+\ttt{\#\#Plot observations with CV-predictions and}\\
+\ttt{\#\#95\% prediction intervals, see \autoref{fig:pred_cv_ci}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfcol=c(4,1),mar=c(2.5,2.5,2,.5))
+plotCV(pred.cv,  1, mesa.data.model)
+plotCV(pred.cv, 10, mesa.data.model)
+plotCV(pred.cv, 17, mesa.data.model)
+plotCV(pred.cv, 22, mesa.data.model)
+\end{verbatim}
+\ttt{\#\#Plot predicted vs. observed, see \autoref{fig:pred_obs}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfcol=c(1,1),mar=c(4.5,4.5,2,2))
+plot(pred.cv$pred.obs[,"obs"], pred.cv$pred.obs[,"pred"],
+     xlab="Observations", ylab="Predictions", pch=19,
+     cex=.1, col=mesa.data.model$obs$idx)
+abline(0,1,col="grey")
+\end{verbatim}
+\ttt{\#\#Predicted long term average against observations} \\
+\ttt{\#\#(on the natural scale), see \autoref{fig:pred_lta}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfcol=c(1,1),mar=c(4.5,4.5,3.5,2))
+plot(pred.cv.stats$lta[,"obs"], pred.cv.stats$lta[,"pred"],
+     xlab="Observations", ylab="Predictions", main="Averages",
+     ylim=c(25,95), xlim=c(25,95))
+abline(0,1,col="grey")
+\end{verbatim}
+\refNumberName{sec:CV_residuals}
+\begin{verbatim}
+##create a vector dividing data into four seasons
+I.season <- matrix(NA,length(mesa.data.model$obs$date),1)
+I.season[months(mesa.data.model$obs$date) %in%
+         c("December","January","February"),1] <- "DJF"
+I.season[months(mesa.data.model$obs$date) %in%
+         c("March","April","May"),1] <- "MAM"
+I.season[months(mesa.data.model$obs$date) %in%
+         c("June","July","August"),1] <- "JJA"
+I.season[months(mesa.data.model$obs$date) %in%
+         c("September","October","November"),1] <- "SON"
+I.season <- factor(I.season,levels=c("DJF","MAM","JJA","SON"))
+
+##No. observations in each season
+table(I.season)
+\end{verbatim}
+\ttt{\#\#Residual QQ-plots, see \autoref{fig:qqplots}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfrow=c(1,2),mar=c(3,2,1,1),pty="s")
+##Raw Residual QQ-plot
+CVresiduals.qqnorm(pred.cv.stats$res, I.season=I.season)
+##Normalized Residual QQ-plot
+CVresiduals.qqnorm(pred.cv.stats$res.norm, norm=TRUE,
+                   I.season=I.season)
+\end{verbatim}
+\ttt{\#\#Residual Scatter Plots, see \autoref{fig:resid_scatter}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfcol=c(2,1),mar=c(4.5,4.5,2,2))
+CVresiduals.scatter(pred.cv.stats$res, mesa.data.model$F[,2],
+     I.season=I.season, xlab="First temporal smooth",
+     main="CV Residuals - All data")
+CVresiduals.scatter(pred.cv.stats$res, 
+     mesa.data.model$X[[1]][ mesa.data.model$obs$idx, 2],
+     I.season=I.season, main="CV Residuals - All data",
+     xlab=colnames(mesa.data.model$X[[1]])[2])
+\end{verbatim}
+\ttt{\#\#Residual Scatter Plots by type of site, see \autoref{fig:resid_scatter_by_type}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfcol=c(2,2),mar=c(4.5,4.5,2,2))
+CVresiduals.scatter(pred.cv.stats$res, 
+  mesa.data.model$X[[1]][ mesa.data.model$obs$idx, 2], I.type=
+  mesa.data.model$location$type[mesa.data.model$obs$idx],
+  I.season=I.season, xlab=colnames(mesa.data.model$X[[1]])[2], 
+  main="CV Residuals - ")
+\end{verbatim}
