@@ -17,7 +17,7 @@ estimateCV(par.init = 3, mesa.data.model, Ind.cv, type = "p",
            hessian.all = FALSE, control =
            list(trace = 3, maxit = 1000))
 
-predictCV(par, mesa.data.model, Ind.cv, type = "p", Nmax = 1000,
+predictCV(par, mesa.data.model, Ind.cv, type = "p",express=FALSE, Nmax = 1000,
           silent = TRUE)
 }
 \arguments{
@@ -48,6 +48,10 @@ predictCV(par, mesa.data.model, Ind.cv, type = "p", Nmax = 1000,
     use. Valid options are "f", "p", and "r", for \emph{full},
     \emph{profile} or \emph{restricted maximum likelihood}
     (REML).
+  }
+  \item{express}{
+	logical: should an ``express'' version of predictions be returned as a single data frame, without variances? 
+	For more datails see under ``Value'' (defaults to \code{FALSE}). 
   }
   \item{h, diff.type}{
     Step length and type of finite difference to use when computing
@@ -118,7 +122,7 @@ predictCV(par, mesa.data.model, Ind.cv, type = "p", Nmax = 1000,
     e.g. \code{fit.mesa.model(...)$res.best}.
   }
 
-  \code{predictCV} returns a list containing:
+  If ``express''=\code{FALSE} (default), \code{predictCV} returns a list containing:
   \item{pred.obs}{
     A data.frame with the observations, predictions and prediction
     variances. The elements in this data.frame are in the same order as
@@ -146,9 +150,19 @@ predictCV(par, mesa.data.model, Ind.cv, type = "p", Nmax = 1000,
     prediction variances for the locations in each each cross-validation
     group.
   }
+  
+  If ``express''=\code{TRUE}, \code{predictCV} returns a data frame with information pertaining only to 
+  observations predicted during the CV cycle (i.e., observations left out and predicted upon at least once).
+  That data frame has vectors:
+  
+  \item{ID}{The location ID, as it appears in the ``location'' component of ``mesa.data.model''}
+  \item{date}{The observation's date}
+  \item{raw}{The actual observation as it appears in the ``obs'' component of ``mesa.data.model''}
+  \item{lur}{The prediction (on the model scale) without any spatial smoothing: see ``EX.mu'' under \code{cond.expectation}}
+  \item{krig}{The prediction (on the model scale) of the full model including spatial smoothing: see ``EX'' under \code{cond.expectation}}
 }
 \author{
-  \enc{Johan Lindström}{Johan Lindstrom}
+  \enc{Johan Lindström}{Johan Lindstrom} (\code{predictCV} ``express'' option by Assaf Oron)
 }
 \seealso{
   See \code{\link{createCV}} for creating CV-schemes.
@@ -166,14 +180,13 @@ and \code{\link{summaryStatsCV}}.
 data(mesa.data.model)
 data(mesa.data.res)
 
-\dontrun{
 ##create the CV structure defining 10 different CV-groups
 Ind.cv <- createCV(mesa.data.model, groups=10, min.dist=.1)
 
+\dontrun{
 ##estimate different parameters for each CV-group
-dim <- loglike.dim(mesa.data.model)
-x.init <- cbind(rep(2,dim$nparam.cov),
-                c(rep(c(1,-3),dim$m+1),-3))
+dimm <- loglike.dim(mesa.data.model)
+x.init <- as.matrix(cbind(rep(2,dimm$nparam.cov),c(rep(c(1,-3),dimm$m+1),-3)))
 ##This may take a while...
 par.est.cv <- estimateCV(par.est$res.best$par, 
       mesa.data.model, Ind.cv)
@@ -181,7 +194,7 @@ par.est.cv <- estimateCV(par.est$res.best$par,
 ##Get the pre-computed results instead.
 par.est.cv <- mesa.data.res$par.est.cv
 
-##lets examine estimation the results
+##let's examine estimation of the results
 names(par.est.cv)
 ##estimated parameters for each CV-group
 par.est.cv$par
@@ -201,9 +214,15 @@ pred.cv <- predictCV(par.est.cv$par, mesa.data.model,
 }
 ##Get the pre-computed results instead.
 pred.cv <- mesa.data.res$pred.cv
-
 ##examine the results
 names(pred.cv)
+
+##Alternatively, one can use the ``express'' option which should be faster and returns a compact dataset:
+pred0.cv <- predictCV(par.est.cv$par, mesa.data.model,Ind.cv, silent = FALSE,express=TRUE)
+#Instead of a list, a single data frame is returned:
+head(pred0.cv)
+
+
 
 ##compute CV-statistics
 pred.cv.stats <- summaryStatsCV(pred.cv, lta=TRUE, trans=0)

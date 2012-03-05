@@ -18,8 +18,8 @@
   \tabular{ll}{
     Package: \tab SpatioTemporal\cr
     Type: \tab Package\cr
-    Version: \tab 0.9.0\cr
-    Date: \tab 2011-07-27\cr
+    Version: \tab 0.9.2\cr
+    Date: \tab 2012-03-05\cr
     License: \tab GPL version 2 or newer\cr
     LazyLoad: \tab yes\cr
   }

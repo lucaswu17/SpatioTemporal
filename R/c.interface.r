@@ -19,7 +19,7 @@ make.sigma.B <- function(sill, range, dists){
   if(dim(dists)[1] != dim(dists)[2])
     stop("In 'make.sigma.B': 'dists' not a square matrix")
   ##call the c-function
-  .Call("make_sigma_b", as.integer(length(sill)),
+  .Call(.C_make_sigma_b, as.integer(length(sill)),
         as.integer(dim(dists)[1]), sill, range, dists)
 }
 
@@ -56,7 +56,7 @@ make.sigma.B.full <- function(sill, range, loc.ind1,
     stop("In 'make.sigma.B.full': inconsistent number of components in 'F1', 'F2', 'sill', and/or 'range'")
   
   ##call the c-function
-  .Call("make_sigma_b_full", as.integer(dim(F1)[1]),
+  .Call(.C_make_sigma_b_full, as.integer(dim(F1)[1]),
         as.integer(dim(F2)[1]), as.integer(dim(F1)[2]),
         as.integer(dim(dists)[1]), as.integer(dim(dists)[2]),
         as.integer(loc.ind1), as.integer(loc.ind2), sill, range,
@@ -89,7 +89,7 @@ make.sigma.nu <- function(sill, nugget, range, block.sizes, loc.index, dists){
   if(sum(block.sizes) != n.tot)
     stop("In 'make.sigma.nu': sum(block.sizes) != length(loc.index)")
   ##call the c-function
-  .Call("make_sigma_nu", sill, nugget, range, as.integer(n.tot),
+  .Call(.C_make_sigma_nu, sill, nugget, range, as.integer(n.tot),
         as.integer(n.blocks), as.integer(block.sizes),
         as.integer(loc.index), as.integer(n.dist), dists)
 }
@@ -129,7 +129,7 @@ make.sigma.nu.cross.cov <- function(sill, nugget, range,
   if(max(loc.ind2) > length(loc.ind2.to.1))
     stop("In 'make.sigma.nu.cross.cov': max(loc.ind2) > length(loc.ind2.to.1)")
   ##call the c-function
-  .Call("make_sigma_nu_cross_cov", sill, nugget, range,
+  .Call(.C_make_sigma_nu_cross_cov, sill, nugget, range,
         as.integer(length(loc.ind1)), as.integer(length(loc.ind2)),
         as.integer(dim(dists)[1]),as.integer(dim(dists)[2]),
         as.integer(loc.ind1), as.integer(loc.ind2),
@@ -158,7 +158,7 @@ calc.tF.times.mat <- function(X, F, loc.ind, n.x=dim(X)[2],
   if(max(loc.ind) > n.loc)
     stop("In 'calc.tF.mat.F': max(loc.ind) > n.loc")
   ##call the c-function
-  .Call("calc_tF_times_mat", X, F, as.integer(n.loc), as.integer(n.x),
+  .Call(.C_calc_tF_times_mat, X, F, as.integer(n.loc), as.integer(n.x),
         as.integer(loc.ind), as.integer(dim(F)[1]), as.integer(dim(F)[2]))
 }
 
@@ -187,7 +187,7 @@ calc.F.times.X <- function(LUR, F, loc.ind){
   FX <- matrix(0, n.obs, sum(p))
   Ind <- 0
   for(i in 1:m){
-    tmp <- .Call("calc_F_part_X", LUR[[i]], F[,i],
+    tmp <- .Call(.C_calc_F_part_X, LUR[[i]], F[,i],
                  as.integer(n.loc), as.integer(loc.ind),
                  as.integer(n.obs), as.integer(p[i]))
     FX[,(Ind+1):(Ind+p[i])] <- tmp
@@ -223,7 +223,7 @@ calc.tF.mat.F <- function(mat, F, loc.ind, n.blocks=1,
   if(max(loc.ind) > n.loc)
     stop("In 'calc.tF.mat.F': max(loc.ind) > n.loc")
   ##call the c-function
-  .Call("calc_tF_mat_F", mat, F, as.integer(n.loc),
+  .Call(.C_calc_tF_mat_F, mat, F, as.integer(n.loc),
         as.integer(loc.ind), as.integer(n.blocks),
         as.integer(block.sizes), as.integer(n.obs),
         as.integer(dim(F)[2]))
@@ -252,7 +252,7 @@ makeCholBlock <- function(mat, n.blocks=1,
       tmp <- -1
   }else{
     ##call the c-function
-    tmp <- .Call("make_chol_block", as.integer(dim(mat)[1]), as.integer(n.blocks),
+    tmp <- .Call(.C_make_chol_block, as.integer(dim(mat)[1]), as.integer(n.blocks),
                  as.integer(block.sizes), as.integer(max.size), mat)
   }
   ##check if matrix is pos.def
@@ -281,7 +281,7 @@ invCholBlock <- function(R, n.blocks=1,
     return( chol2inv(R) )
   }else{
     ##call the c-function
-    .Call("inv_chol_block", as.integer(dim(R)[1]), as.integer(n.blocks),
+    .Call(.C_inv_chol_block, as.integer(dim(R)[1]), as.integer(n.blocks),
           as.integer(block.sizes), as.integer(max.size), R)
   }
 }
@@ -312,7 +312,7 @@ solveTriBlock <- function(R, B, n.x=dim(B)[2], n.blocks=1,
     return( backsolve(R,as.matrix(B,block.sizes,n.x),transpose=transpose) )
   }else{
     ##call the c-function
-    .Call("solve_tri_block", as.integer(dim(R)[1]), as.integer(n.blocks),
+    .Call(.C_solve_tri_block, as.integer(dim(R)[1]), as.integer(n.blocks),
           as.integer(block.sizes), as.integer(max.size), as.integer(n.x),
           as.integer(transpose), R, B)
   }
@@ -338,7 +338,7 @@ block.mult <- function(mat, X, n.x=dim(X)[2], n.blocks=1,
   if(length(X) != (n.x*dim(mat)[1]))
     stop("In 'block.mult': length(X) != (n.x*dim(mat)[1])")
   ##call the c-function
-  .Call("block_mult", as.integer(dim(mat)[1]), as.integer(n.x),
+  .Call(.C_block_mult, as.integer(dim(mat)[1]), as.integer(n.x),
         as.integer(n.blocks), as.integer(block.sizes), mat, X)
 }
 
@@ -350,13 +350,13 @@ sumLogDiag <- function(mat){
   if(dim(mat)[1] != dim(mat)[2])
     stop("In 'sumLogDiag': 'mat' not a square matrix")
   ##call the c-function
-  .Call("sum_log_diag",as.integer(dim(mat)[1]),mat)
+  .Call(.C_sum_log_diag,as.integer(dim(mat)[1]),mat)
 }
 ##calculate sum of the squared elements of a vector (or matrix) (|x|^2)
 ##input vector and vector size
 norm2 <- function(v1){
   ##no need to check dimensions
-  .Call("norm2_c",as.integer(length(v1)),v1)
+  .Call(.C_norm2_c,as.integer(length(v1)),v1)
 }
 ##calculate dot product of two vectors
 ##input vectors and vector length
@@ -364,5 +364,5 @@ dot.prod <- function(v1,v2){
   if(length(v1)!=length(v2))
     warning("In 'dot.prod': vectors of unequal length, truncating the longer vector")
   ##no need to check dimensions
-  .Call("dot_prod",as.integer(min(length(v1),length(v2))),v1,v2)
+  .Call(.C_dot_prod,as.integer(min(length(v1),length(v2))),v1,v2)
 }

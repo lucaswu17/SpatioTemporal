@@ -3,7 +3,7 @@
 \Rdversion{1.1}
 \alias{create.data.model}
 \title{
-  Creates the mesa.data.model structure; selection of model covarites
+  Creates the mesa.data.model structure; selection of model covariates
 }
 \description{
   Creates the auxiliary data structure \code{\link{mesa.data.model}};

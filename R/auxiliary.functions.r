@@ -1,6 +1,105 @@
 ############################
 # ALL AUXILIRARY FUNCTIONS #
 ############################
+
+### Create the basic data structure, from which 'create.data.model' works
+
+setupSTdataset=function(rawobs,covardat,covarnames,trendf,varnames=list(yraw="lac",date="intended_wednesday",idobs="site_id",idcov="site.id",xcoord="lambert.x",ycoord="lambert.y",long="longitude",lat="latitude"),x.to.km=1000,transform=log,scale=TRUE,mesa=TRUE)
+
+# rawobs: data frame with the raw observations to be modeled. Should include columns with location ID and date
+# covardat: data frame with model covariates. Should also include location ID, coordinates, and (preferably) lat/long. 
+# covarnames: character vector with the names of the covariates in `covardat' that might potentially be used in the model.
+# trendf: matrix with the ``skeleton'' time trends used in the model in columns. Row names should be dates.
+# varnames: list with the variable names to identify locations, observations, date, coordinates, etc.
+# x.to.km: conversion factor from the x coordinates to km. Set to 1 to skip any conversion.
+# transform: link function to transform the raw observations to the modeling scale. Note that `trendf' is already assumed to be in the modeling scale.
+# scale: logical, should the covariate matrix be scaled s.t. each covariate has mean 0 and variance 1? Recommended when building the model.
+# mesa: logical, do site IDs follow the MESA-Air naming conventions? If true, a `type' column will be created in the location data frame. 
+{
+
+# Our location and LUR data frames only include locations with observations
+covardat=covardat[covardat[,varnames$idcov] %in% rawobs[,varnames$idobs],]
+
+lout=list(location=data.frame(ID=covardat[,varnames$idcov],x=covardat[,varnames$xcoord]/x.to.km,y=covardat[,varnames$ycoord]/x.to.km,long=covardat[,varnames$long],lat=covardat[,varnames$lat]))
+
+if (mesa)
+{
+	lout$location$type=rep("HOME",dim(lout$location)[1])
+	lout$location$type[grep("[-]",lout$location$ID)]="COMCO"
+	lout$location$type[grep("^[0-9]",lout$location$ID)]="AQS"
+	lout$location$type[grep("[A-Z]00",lout$location$ID)]="FIXED"
+}
+lout$LUR=covardat[,covarnames]
+row.names(lout$LUR)=covardat[,varnames$idcov]
+if(scale) lout$LUR=as.data.frame(scale(lout$LUR))
+
+lout$obs=data.frame(ID=rawobs[,varnames$idobs],date=rawobs[,varnames$date],obs=transform(rawobs[,varnames$yraw]))
+
+lout$trend=as.data.frame(trendf)
+trendim=dim(lout$trend)
+
+names(lout$trend)=paste("V",1:(trendim[2]),sep="")
+lout$trend$date=as.Date(row.names(lout$trend))
+
+### If there are dates in data that don't have SEOF values, we will interpolate them:
+if(any(!(lout$obs$date %in% lout$trend$date)))
+{
+   addates=unique(lout$obs$date[!(lout$obs$date %in% lout$trend$date)])
+
+   cat(length(addates)," data dates don't have trend curves! Interpolating...\n")
+   if (min(addates)<min(lout$trend$date) || max(addates)>max(lout$trend$date)) cat("Unmatched dates start/end beyond Trend-Function range!\n")
+
+   newtrend=as.data.frame(matrix(NA,nrow=length(addates),ncol=trendim[2]))
+   for (a in 1:(trendim[2]))
+   {
+       newtrend[,a]=predict(smooth.spline(as.numeric(lout$trend$date),lout$trend[,a]),x=as.numeric(addates))$y
+   }
+   newtrend$date=addates
+   names(newtrend)=names(lout$trend)
+	row.names(newtrend)=addates
+   lout$trend=rbind(lout$trend,newtrend)
+}
+
+lout
+} #### \end{setupSTdataset}
+
+
+#########################################
+
+###### Convert a 'mesa.data' data structure to a similar structure with the observations detrended, using the ###### structure's "trend" component. The returned structure has no trend component.
+detrend.data=function(mesa.data,subregion=NA,method="rlm")
+
+{
+require(MASS)
+
+
+nt=dim(mesa.data$trend)[2]-1
+obsdim=dim(mesa.data$obs)
+dout=mesa.data
+
+trendmatch=as.matrix(mesa.data$trend[match(mesa.data$obs$date,mesa.data$trend$date),1:nt])
+
+if (method=="rlm")
+{
+	trendfit=rlm(mesa.data$obs$obs~trendmatch)
+
+	if(!is.na(subregion[1]))
+	{
+		if (length(subregion)!=length(mesa.data$location$ID)) stop("Subregion IDs should be a vector of same length and order as # of locations.")
+		obsregion=subregion[match(mesa.data$obs$ID,mesa.data$location$ID)]
+		trendfit=rlm(mesa.data$obs$obs~trendmatch*factor(obsregion))
+	}
+	dout$obs$obs=mesa.data$obs$obs-predict(trendfit)
+}
+
+dout$trend=data.frame(date=dout$trend$date)
+dout$oldtrend=mesa.data$trend
+dout$obs$removedtrend=predict(trendfit)
+
+return(dout)
+}  ############## /detrend.data
+
+
 ## Set up data for optimisation, precomputes model data
 create.data.model <- function(mesa.data, LUR=NA, ST.Ind=NA, strip=TRUE,
                               strip.loc=strip, strip.time=strip){
@@ -438,7 +537,7 @@ combineMesaData <- function(mesa.data.model, mesa.data){
       mesa.data$SpatioTemp[rownames(mesa.data.model$SpatioTemp.all),
                            model.tmp$location$ID, dimnames(tmp)[[3]]]
     if( any(is.na(tmp)) )
-      stop("In 'combineMesaData': Some SpatioTemporal valus missing, probably from mesa.data. Ensure that mesa.data$SpatioTemp has all dates and locations needed.")
+      stop("In 'combineMesaData': Some SpatioTemporal values missing, probably from mesa.data. Ensure that mesa.data$SpatioTemp has all dates and locations needed.")
     mesa.data.model$SpatioTemp.all <- tmp
   }
   return(mesa.data.model)

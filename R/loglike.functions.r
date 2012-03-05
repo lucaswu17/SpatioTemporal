@@ -129,15 +129,15 @@ loglike <- function(x=NA, mesa.data.model, type="p"){
                                             mesa.data.model$obs$idx,
                                             n.loc=dimensions$n)
     ##calculate inv(R)'*mu.B.Y
-    mu.B.Y <- solveTriBlock(sigma.B.Y, mu.B.Y, tr=TRUE)
+    mu.B.Y <- solveTriBlock(sigma.B.Y, mu.B.Y, transpose=TRUE)
     ##+1/2 mu.B.Y * inv(i.sigma.B.Y) * mu.B.Y
     l <- l + norm2(mu.B.Y)/2
   }else{
     ##chol(inv(sigma.B.Y))^-T * F' * inv(sigma.nu) * Y
-    Y.hat <- solveTriBlock(sigma.B.Y, F.i.sR.Y, tr=TRUE)
+    Y.hat <- solveTriBlock(sigma.B.Y, F.i.sR.Y, transpose=TRUE)
     ##chol(inv(sigma.B.Y))^-T * F' * inv(sigma.nu) * M
     if(dimensions$L!=0)
-      M.hat <- solveTriBlock(sigma.B.Y, F.i.sR.M, tr=TRUE)
+      M.hat <- solveTriBlock(sigma.B.Y, F.i.sR.M, transpose=TRUE)
     ##calculate inverse of inv(sigma.B|Y) (keep in place)
     sigma.B.Y <- invCholBlock(sigma.B.Y, n.blocks=1)
     ##sigma.B.Y * inv(sigma.B) * X
@@ -156,7 +156,7 @@ loglike <- function(x=NA, mesa.data.model, type="p"){
     ## X' * inv(sigma.B) * sigma.B.Y * F' * inv(sigma.nu) * Y
     Y.hat.2 <- t(sigma.B.Y.iS.X) %*% F.i.sR.Y
     ## chol(inv(sigma.alpha.Y))^-T * Y.hat.2
-    Y.hat.2 <- solveTriBlock(i.sigma.alpha.Y, Y.hat.2, tr=TRUE)
+    Y.hat.2 <- solveTriBlock(i.sigma.alpha.Y, Y.hat.2, transpose=TRUE)
     ##Y'*sigma_hat*Y
     Y.sigma.hat.Y <- dot.prod(Y,i.sR.Y) -
       norm2(Y.hat) - norm2(Y.hat.2)
@@ -167,7 +167,7 @@ loglike <- function(x=NA, mesa.data.model, type="p"){
       ## X' * inv(sigma.B) * sigma.B.Y * F' * inv(sigma.nu) * M
       M.hat.2 <- t(sigma.B.Y.iS.X) %*% F.i.sR.M
       ## chol(inv(sigma.alpha.Y))^-T * M.hat.2
-      M.hat.2 <- solveTriBlock(i.sigma.alpha.Y, M.hat.2, tr=TRUE)
+      M.hat.2 <- solveTriBlock(i.sigma.alpha.Y, M.hat.2, transpose=TRUE)
     
       Y.sigma.hat.M <- t(Y) %*% i.sR.M -
         t(Y.hat) %*% M.hat - t(Y.hat.2) %*% M.hat.2
@@ -183,7 +183,7 @@ loglike <- function(x=NA, mesa.data.model, type="p"){
         l <- l - sumLogDiag( M.sigma.hat.M )
 
       ## chol(inv(sigma.alpha.Y))^-T * Y.hat.2
-      Y.sigma.hat.M <- solveTriBlock(M.sigma.hat.M, Y.sigma.hat.M, tr=TRUE)
+      Y.sigma.hat.M <- solveTriBlock(M.sigma.hat.M, Y.sigma.hat.M, transpose=TRUE)
       l <- l + norm2(Y.sigma.hat.M)/2
     }##if(dimensions$L!=0)
   }##if(type=="f") ... else ...
@@ -270,7 +270,7 @@ loglike.naive <- function(x=NA, mesa.data.model, type="p"){
   ##-log(det(sigma.nu)^.5)
   l <- -sumLogDiag( sigma.nu )
   ##calculate if(type=="f") inv(R)'*(Y-mean.val) else inv(R)'*Y
-  Y <- solveTriBlock(sigma.nu, Y, n.x=1,tr=TRUE)
+  Y <- solveTriBlock(sigma.nu, Y, n.x=1, transpose=TRUE)
   ##if(type=="f")  -1/2 (Y-mean)' * inv(sigma.nu) * (Y-mean)
   ##     else      -1/2 Y' * inv(sigma.nu) * Y
   l <- l - norm2(Y)/2
@@ -283,7 +283,7 @@ loglike.naive <- function(x=NA, mesa.data.model, type="p"){
       Ftmp <- cbind(Ftmp,mesa.data.model$SpatioTemp)
   
     ##calculate inv(R)'*Ftmp
-    Ftmp <- solveTriBlock(sigma.nu, Ftmp, tr=TRUE)
+    Ftmp <- solveTriBlock(sigma.nu, Ftmp, transpose=TRUE)
     ##calculate Ftmp'*inv(Sigma)*Y
     FY <- t(Ftmp) %*% Y
     ##calculate [FX M]*invSigma*[FX M]'
@@ -298,7 +298,7 @@ loglike.naive <- function(x=NA, mesa.data.model, type="p"){
       l <- l - sumLogDiag( sigma.alt )
     }
     ##calculate inv(R)'*Y
-    FY <- solveTriBlock(sigma.alt, FY, n.x=1,tr=TRUE)
+    FY <- solveTriBlock(sigma.alt, FY, n.x=1,transpose=TRUE)
     ##+1/2 FY' * inv(sigma.alt) * FY
     l <- l + norm2(FY)/2
   }##if(type!="f")

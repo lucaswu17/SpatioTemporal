@@ -157,9 +157,12 @@ createCV <- function(mesa.data.model, groups=10, min.dist=.1, random=FALSE,
   return(Ind.cv)
 }##createCV
 
+####################################
+
 ###Function that does the prediction part of the cross validation
-predictCV <- function(par, mesa.data.model, Ind.cv, type="p",
-                      Nmax=1000, silent=TRUE){
+
+####################################
+predictCV <- function(par, mesa.data.model, Ind.cv, type="p",express=FALSE,Nmax=1000, silent=TRUE){
   ##ensure lower case
   type <- tolower(type) 
   ##first check that type is valid
@@ -183,6 +186,35 @@ predictCV <- function(par, mesa.data.model, Ind.cv, type="p",
   if(dim(par)[2] != N.CV.sets)
     stop("In 'predictCV': Number of parameters does not match the number of cv-sets")
 
+	
+if (express) { # "express" version producing only a data frame with pred-obs pairs
+
+	dout=NULL
+	for (a in 1:N.CV.sets)
+	{
+	    if( dim(Ind.cv)[2]==1 ){
+      Ind.current <- Ind.cv==a
+    }else{
+      Ind.current <- Ind.cv[,a]
+    }
+    ##create data matrices that contains observed
+    mesa.data.obs <- drop.observations(mesa.data.model, Ind.current)
+    ##and locations to be predicted (the "LUR" component needs to be modified)
+    mesa.data.pred <- drop.observations(mesa.data.model, !Ind.current)	 
+		LUR <- mesa.data.pred$X[[1]]
+		if( length(mesa.data.pred$X) > 1){
+		  for(j in 2:length(mesa.data.pred$X)) LUR <- cbind(LUR,mesa.data.pred$X[[j]])
+		}
+		mesa.data.pred$LUR=as.data.frame(LUR)
+
+		tmpred=cond.expectation(par[,a],mesa.data.obs,mesa.data.pred,no.nugget=TRUE,only.obs=TRUE,pred.var=FALSE)
+
+		dout=rbind(dout,data.frame(ID=mesa.data.pred$obs$ID,date=mesa.data.pred$obs$date,raw=mesa.data.pred$obs$obs,lur=tmpred$EX.mu,krig=tmpred$EX))
+	}
+	return(dout)  
+
+} ############# /express	
+	
   pred <- list()
   for(i in 1:N.CV.sets){
     if(!silent)

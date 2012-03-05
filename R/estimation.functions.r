@@ -269,9 +269,9 @@ cond.expectation <- function(x, mesa.data.model, mesa.data=NA, Nmax=1000,
                                     n.loc=dimensions$n)
     ##compute inv(sigma.B|Y)*F'*iSigma.nu*Xtilde
     iSBY.tF.iS.X <- solveTriBlock(sigma.B.Y, tF.iS.nu.X,
-                                  n.blocks=1, tr=TRUE)
+                                  n.blocks=1, transpose=TRUE)
     iSBY.tF.iS.X <- solveTriBlock(sigma.B.Y, iSBY.tF.iS.X,
-                                  n.blocks=1, tr=FALSE)
+                                  n.blocks=1, transpose=FALSE)
     ##compute inv(Xtilde'*Sigma^-1*Xtilde)
     i.XSX <- t(Xtilde) %*% iS.nu.X
     i.XSX <- i.XSX - t(tF.iS.nu.X) %*% iSBY.tF.iS.X
@@ -362,8 +362,8 @@ cond.expectation <- function(x, mesa.data.model, mesa.data=NA, Nmax=1000,
     E.beta.mu <- calc.mu.B(dimensions, mesa.data.model$X, alpha)
     Y <- sigma.B %*% c(E.beta.mu) + Y
     ##compute Sigma.B.Y %*% (the above)
-    E.beta <- solveTriBlock(sigma.B.Y, Y, n.blocks=1, tr=TRUE)
-    E.beta <- solveTriBlock(sigma.B.Y, E.beta, n.blocks=1, tr=FALSE)
+    E.beta <- solveTriBlock(sigma.B.Y, Y, n.blocks=1, transpose=TRUE)
+    E.beta <- solveTriBlock(sigma.B.Y, E.beta, n.blocks=1, transpose=FALSE)
     ##reshape result and extract the relevant parts
     E.beta <- matrix(E.beta,ncol=dimensions$m)
     colnames(E.beta.mu) <- colnames(E.beta) <- colnames(mesa.data.model$F)
@@ -411,9 +411,9 @@ cond.expectation <- function(x, mesa.data.model, mesa.data=NA, Nmax=1000,
                                   n.loc=dimensions$n)
   ##compute inv(sigma.B|Y)*F'*iSigma.nu*(C-mu)
   iSBY.tF.iS.C <- solveTriBlock(sigma.B.Y, tF.iS.nu.C,
-                                n.blocks=1, tr=TRUE)
+                                n.blocks=1, transpose=TRUE)
   iSBY.tF.iS.C <- solveTriBlock(sigma.B.Y, iSBY.tF.iS.C,
-                                n.blocks=1, tr=FALSE)
+                                n.blocks=1, transpose=FALSE)
   ##compute F'*iSigma.nu
   tF.iS <- calc.tF.times.mat(sigma.nu, mesa.data.model$F, 
                              mesa.data.model$obs$idx,
@@ -581,7 +581,7 @@ cond.expectation <- function(x, mesa.data.model, mesa.data=NA, Nmax=1000,
       ##compute F'*iSigma.nu*Sigma.ou
       tF.iS.Sou <- tF.iS %*% t(sigma.nu.C)
       ##compute chol(inv(sigma.B.Y))' * (F'*iSigma.nu*Sigma.ou)
-      Sby.tF.iS.Sou <- solveTriBlock(sigma.B.Y, tF.iS.Sou, tr=TRUE)
+      Sby.tF.iS.Sou <- solveTriBlock(sigma.B.Y, tF.iS.Sou, transpose=TRUE)
       if(pred.covar){
         ##full matrix
         V.cond <- V.uu - sigma.nu.C %*% iS.Sou +
