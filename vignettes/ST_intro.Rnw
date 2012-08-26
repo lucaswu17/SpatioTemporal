@@ -1,0 +1,544 @@
+\documentclass[10pt,a4paper]{report}
+\usepackage[latin1]{inputenc}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+\usepackage{url}
+\usepackage{verbatim}
+
+\usepackage[compact]{titlesec}
+\titlespacing{\section}{0pt}{5mm}{0mm}
+\titlespacing{\subsection}{0pt}{3mm}{0mm}
+\titlespacing{\subsubsection}{0pt}{*0}{*0}
+
+%Formating for sweave stuff
+\usepackage{Sweave}
+% testing
+\DefineVerbatimEnvironment{Sinput}{Verbatim}{xleftmargin=1em}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{xleftmargin=1em}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{xleftmargin=1em}
+\fvset{listparameters={\setlength{\topsep}{0pt}}}
+\renewenvironment{Schunk}{\vspace{\topsep}}{\vspace{\topsep}}
+%\SweaveOpts{keep.source=TRUE}
+
+%\VignetteIndexEntry{Brief Introduction to the Spatio-Temporal R-package}
+
+\newcommand{\no}[1]{\ensuremath{\text{NO}_\text{#1}}}
+%\addtolength{\textheight}{20mm}
+\setlength{\parindent}{0mm}
+\setlength{\parskip}{3mm}
+
+\lhead[\fancyplain{}{\thepage}]{\fancyplain{}{Brief Introduction to the Spatio-Temporal R-package}}
+\chead[\fancyplain{}{}]{\fancyplain{}{}}
+\rhead[\fancyplain{}{}]{\fancyplain{}{\thepage}}
+\begin{document}
+
+%background Sweave commands that format the output
+<<echo=false>>=
+options(width=60, continue="  ")
+@
+
+\section*{Brief Introduction to the Spatio-Temporal R-package}
+\subsection*{Initialisation}
+Load the package (along with other packages needed for the introduction):
+<<>>=
+library(SpatioTemporal)
+library(plotrix)
+library(maps)
+library(fields)
+@ 
+
+Define plot functions that will be used to illustrate the data.%
+<<>>=
+##create colour-scheme
+jet.colors <- colorRampPalette(c("#00007F", "blue", "#007FFF", 
+  "cyan", "#7FFF7F", "yellow", "#FF7F00", "red", "#7F0000"))
+
+##Function that plots coloured points
+scatter <- function(x, y=NULL, value, colramp=jet.colors, 
+    legend=TRUE, clim=range(value,na.rm=TRUE), cres=256,
+    add=FALSE, truncate=TRUE, ...){
+  if( missing(y) || is.null(y) ){
+    y <- x[,2]; x <- x[,1];
+  }
+  ##Compute colour scales.
+  Ind <- round((cres-1)*(value-clim[1]) / (clim[2]-clim[1])+1)
+  if(truncate){
+    Ind[Ind<1] <- 1
+    Ind[Ind>cres] <- cres
+  }else{
+    Ind[Ind<1 | Ind>cres] <- NA
+  }
+  ##match length to the x and y data.
+    Ind <- c(Ind,rep(NA,length(x)-length(Ind)))
+  ##Do the plots
+  if(add){
+    points(x, y, col=jet.colors(cres)[Ind], ...)
+  }else{
+    plot(x, y, col=jet.colors(cres)[Ind], ...)
+  }
+  if(legend){
+    image.plot(legend.only=TRUE, zlim=clim, 
+               col=jet.colors(cres))
+  }
+}
+@ 
+
+\subsection*{Loading the data}
+As an example we'll study \no{x} data from Los Angeles, first we load
+the raw data
+<<>>=
+data(mesa.data.raw)
+names(mesa.data.raw)
+@ 
+The data consists of observations ($\log$ of \no{x} concentrations), in a
+time-by-location matrix with missing 
+values marked as \Sexpr{NA},
+<<>>=
+head(mesa.data.raw$obs)
+@
+as well as location and covariate information for the 25 sites
+<<>>=
+head(mesa.data.raw$X)
+@
+and a spatio-temporal covariate (not used here).
+
+\subsection*{Creating an \texttt{STdata}-object}
+Our first step is now to collect the available data into a suitable data structure.
+<<>>=
+##extract observations and covariates
+obs <- mesa.data.raw$obs
+covars <- mesa.data.raw$X
+##create STdata object
+mesa.data <- createSTdata(obs, covars)
+@ 
+The resulting structure contains information about the monitoring sites
+(location and covariates) as well as the observations. 
+<<>>=
+print(mesa.data)
+@ 
+We can, for example, study the times and locations at which observations where
+obtained (Fig.~\ref{fig:space_time}),
+<<label=figTimeSpace, eval=FALSE>>=
+plot(mesa.data, "loc")
+@ 
+as well as the spatial locations of the observations (Fig.~\ref{fig:map}).
+<<label=figMap, eval=FALSE>>=
+plot(mesa.data$covars$long, mesa.data$covars$lat,
+     pch=c(24,25)[mesa.data$covars$type], 
+     bg=c("red","blue")[mesa.data$covars$type],
+     xlab="Longitude", ylab="Latitude")
+##Add the map of LA
+map("county", "california", col="#FFFF0055", fill=TRUE, 
+    add=TRUE)
+##Add a legend
+legend("bottomleft", c("AQS","FIXED"), pch=c(24,25), bty="n",
+       pt.bg=c("red","blue"))
+@ 
+
+\begin{figure}[!htb]
+\centering
+<<fig=TRUE, echo=FALSE>>=
+<<figTimeSpace>>
+@
+\caption{Space-time location of all our observations. Note that the FIXED,
+  i.e. MESA specific monitors, only sampled during the second half of the
+  period.}
+\label{fig:space_time}
+\end{figure}
+
+\begin{figure}[!htb]
+\centering
+<<fig=TRUE, echo=FALSE>>=
+<<figMap>>
+@
+\caption{Location of monitors in the Los Angeles area.}
+\label{fig:map}
+\end{figure}
+
+\subsection*{Smooth temporal trends}
+The first step in analysing the data is to determine how many smooth
+trends are needed to capture the seasonal variability
+(Fig.~\ref{fig:smoothCV}).
+<<>>=
+##extract a data matrix
+D <- createDataMatrix(mesa.data)
+##Run leave one out cross-validation to find smooth trends
+SVD.cv <- SVDsmoothCV(D,1:5)
+##Study the results
+print(SVD.cv)
+@
+<<label=figSmoothCV, eval=FALSE>>=
+##plot the cv-results
+plot(SVD.cv)
+@
+However just looking at overall statistics might be misleading.
+We can also do scatter plots of BIC for different number of trends
+at all the sites (Fig.~\ref{fig:smoothCV_scatter}).
+<<label=figSmoothCVScatter, eval=FALSE>>=
+plot(SVD.cv,pairs=TRUE)
+@ 
+
+\begin{figure}[!htb]
+\centering
+<<fig=TRUE, echo=FALSE>>=
+<<figSmoothCV>>
+@
+\caption{Cross-validation results for different numbers of smooth temporal trends.}
+\label{fig:smoothCV}
+\end{figure}
+
+\begin{figure}[!htb]
+\centering
+<<fig=TRUE, echo=FALSE>>=
+<<figSmoothCVScatter>>
+@
+\caption{BIC at all sites for different numbers of temporal trends. Note that as
+  we increase the number of trends all sites don't behave equally. Some sites
+  require many trends and some few.}
+\label{fig:smoothCV_scatter}
+\end{figure}
+
+We now add two smooth temporal trends to the data structure.
+<<>>=
+mesa.data <- updateSTdataTrend(mesa.data, n.basis = 2)
+print(mesa.data)
+@ 
+Given smooth trends we fit the observations to the trends at each site,
+and study the residuals (Fig.~\ref{fig:temporal_trends}).
+<<label=figTemporalTrends, eval=FALSE>>=
+##plot observations at some of the locations with the
+##fitted smooth trends
+par(mfcol=c(4,1),mar=c(2.5,2.5,2,.5))
+plot(mesa.data, "obs", ID=5)
+plot(mesa.data, "res", ID=5)
+plot(mesa.data, "obs", ID=18)
+plot(mesa.data, "res", ID=18)
+@ 
+Since we want the temporal trends to capture the temporal variability
+we also study the auto correlation function of the residuals to determine
+how much temporal dependence remains after fitting the temporal trends
+(Fig.~\ref{fig:temporal_acf}).
+<<label=figTemporalACF, eval=FALSE>>=
+par(mfcol=c(2,2),mar=c(2.5,2.5,3,.5))
+plot(mesa.data, "acf", ID=1)
+plot(mesa.data, "acf", ID=5)
+plot(mesa.data, "acf", ID=13)
+plot(mesa.data, "acf", ID=18)
+@
+
+\begin{figure}[!htb]
+\centering
+<<fig=TRUE, echo=FALSE>>=
+<<figTemporalTrends>>
+@
+\caption{Smooth temporal trends and residuals for two locations.}
+\label{fig:temporal_trends}
+\end{figure}
+
+\begin{figure}[!htb]
+\centering
+<<fig=TRUE, echo=FALSE>>=
+<<figTemporalACF>>
+@
+\caption{Auto-correlation functions for four locations.}
+\label{fig:temporal_acf}
+\end{figure}
+
+\subsection*{$\beta$--fields}
+Given smooth temporal trends we fit each of the times series of
+observations to the smooth trends and extract the regression
+coefficients
+<<>>=
+##extract data
+D <- createDataMatrix(mesa.data)
+##create matrix that holds estimated beta:s
+beta <- matrix(NA, dim(D)[2], dim(mesa.data$trend)[2])
+beta.std <- beta
+##get the trends
+F <- mesa.data$trend
+##this includes a data column, that we drop
+F$date <- NULL
+##linear regression of observations on the trends
+for(i in 1:dim(D)[2]){
+  tmp <- lm(D[,i] ~ as.matrix(F))
+  beta[i,] <- coef(tmp)
+  beta.std[i,] <- sqrt(diag(vcov(tmp)))
+}
+##Add names to the estimated betas
+colnames(beta) <- c("beta.0","beta.1","beta.2")
+rownames(beta) <- colnames(D)
+@ 
+In the full spatio-temporal model these $\beta$--fields are modelled using 
+geographic covariates. Selection of covariates is done by comparing these fields
+to the available covariates. However this is outside the scope of this
+introduction. For now we look at the spatial distribution of the regression
+coefficients (Fig.~\ref{fig:betaMap}) and keep the values so that we can
+(eventually) compare them to the results from the full model.
+<<label=betaMap, eval=FALSE>>=
+par(mfcol=c(2,2))
+for(i in 1:3){
+  scatter(mesa.data$covars$long, mesa.data$covars$lat, 
+          beta[,i], pch=19)
+  map("county","california",add=TRUE)
+}
+@ 
+\begin{figure}[!htb]
+\centering
+<<fig=TRUE, echo=FALSE>>=
+<<betaMap>>
+@
+\caption{Spatial distribution of the $\beta$:s.}
+\label{fig:betaMap}
+\end{figure}
+
+\subsection*{Estimating the model}
+Given the available covariates 
+<<>>=
+names(mesa.data$covars)
+@ 
+we create a model with three covariates for the temporal intercept,
+one covariate for the two temporal trends, and no spatio-temporal 
+covariates; exponential covariances for the $\beta$ and $\nu$-fields; we also specify
+which covariates to use as locations for our observations.
+<<>>=
+##define land-use covariates
+LUR <-  list(c("log10.m.to.a1", "s2000.pop.div.10000", 
+               "km.to.coast"), "km.to.coast", "km.to.coast")
+##and covariance model
+cov.beta <- list(covf="exp", nugget=FALSE)
+cov.nu <- list(covf="exp", nugget=TRUE, random.effect=FALSE)
+##which locations to use
+locations <- list(coords=c("x","y"), long.lat=c("long","lat"), 
+                  others="type")
+##create object
+mesa.model <- createSTmodel(mesa.data, LUR=LUR, ST=NULL,
+                            cov.beta=cov.beta, cov.nu=cov.nu, 
+                            locations=locations)
+##inspect the resulting model
+print(mesa.model)
+@ 
+Given the model we setup initial values for the optimisation. Here we're using
+two different starting points
+<<>>=
+##Some important dimensions of the model
+dim <- loglikeSTdim(mesa.model)
+x.init<-cbind(rep(2,dim$nparam.cov), 
+              c(rep(c(1,-3),dim$m+1),-3))
+@ 
+We are now ready to estimate the model.
+
+\subsubsection*{DO NOT RUN!!!}
+However this takes a rather long time
+<<eval=FALSE>>=
+##estimate parameters
+est.mesa.model <- estimate(mesa.model, x.init, 
+                           hessian.all=TRUE)
+@ 
+
+\subsubsection*{Run this instead}
+Instead we load the precomputed results
+<<>>=
+data(est.mesa.model)
+@ 
+
+\subsection*{Evaluating the results}
+Having estimated the model we studying the results, taking special note of the
+status message that indicates if the optimisation has converged.
+<<>>=
+print(est.mesa.model)
+@
+We then plot the estimated parameters (Fig.~\ref{fig:est_par}), along with
+approximate confidence intervals from the observed information matrix.
+<<label=figEstPar, eval=FALSE>>=
+par <- est.mesa.model$res.best$par.all
+par(mfrow=c(1,1),mar=c(13,2.5,.5,.5))
+plotCI(par$par, uiw=1.96*par$sd, ylab="", xlab="", xaxt="n")
+axis(1, 1:dim(par)[1], rownames(par), las=2)
+@ 
+
+\begin{figure}[!htb]
+\centering
+<<fig=TRUE, echo=FALSE>>=
+<<figEstPar>>
+@
+\caption{Estimated parameters and their 95\% confidence intervals from the first
+starting point. Note which parameters have the smallest confidence intervals,
+any idea why?}
+\label{fig:est_par}
+\end{figure}
+
+Having estimate the model parameters we can now compute the conditional 
+expectations of the observed locations and latent 
+$\beta$-fields
+<<eval=FALSE>>=
+EX <- predict(mesa.model, est.mesa.model$res.best$par, pred.var = TRUE)
+@ 
+<<echo=FALSE>>=
+data(pred.mesa.model)
+EX <- pred.mesa.model
+@ 
+The predictions can be used to extend the shorter time-series to
+predictions covering the entire period. To illustrate we plot predictions 
+and observations for 4 different locations (Fig.~\ref{fig:pred}).
+<<label=figPred, eval=FALSE>>=
+par(mfrow=c(4,1),mar=c(2.5,2.5,2,.5))
+plot(EX, ID=1, STmodel=mesa.model, pred.var=TRUE)
+plot(EX, ID=10, STmodel=mesa.model, pred.var=TRUE)
+plot(EX, ID=17, STmodel=mesa.model, pred.var=TRUE)
+@ 
+Alternatively we can also study the predictions due to different parts of the model
+<<label=figPred2, eval=FALSE>>=
+plot(EX, ID=17, STmodel=mesa.model, pred.var=TRUE, lwd=2)
+plot(EX, ID=17, pred.type="EX.mu", col="green", add=TRUE, lwd=2)
+plot(EX, ID=17, pred.type="EX.mu.beta", col="blue", add=TRUE, lwd=2)
+@ 
+e.g. just the linear regression (mean value part) for the $\beta$-fields, the
+universall kriging for the $\beta$-fields, or the full model including the
+$\nu$-fields.
+\begin{figure}[!htb]
+\centering
+<<fig=TRUE, echo=FALSE>>=
+<<figPred>>
+<<figPred2>>
+@
+\caption{Predictions at 3 different locations, and the contributions from each
+  part of the model.}
+\label{fig:pred}
+\end{figure}
+
+We also compare the $\beta$-fields obtained from the full model 
+with those previously computed by individually fitting each times series 
+of observations to the smooth trends (Fig.~\ref{fig:beta_comp}).
+<<label=betaComp, eval=FALSE>>=
+par(mfcol=c(2,2),mar=c(4.5,4.5,2,.5))
+for(i in 1:3){
+  plotCI(x=beta[,i], y=EX$beta$EX[,i], pch=NA,
+         uiw=1.96*sqrt( diag(EX$beta$VX[,i]) ),
+         main=colnames(EX$beta$EX)[i],
+         xlab="Empirical estimate",
+         ylab="Spatio-Temporal Model")
+  plotCI(x=beta[,i], y=EX$beta$EX[,i], pch=NA,
+         uiw=1.96*beta.std[,i], err="x", add=TRUE)
+  points(beta[,i], EX$beta$EX[,i], pch=19, cex=1, col="red")
+  abline(0,1)
+}
+@ 
+
+\begin{figure}[!htb]
+\centering
+<<fig=TRUE, echo=FALSE>>=
+<<betaComp>>
+@
+\caption{Comparisson of the two different estimates for the $\beta$-fields.}
+\label{fig:beta_comp}
+\end{figure}
+
+\subsection*{Cross-validation}
+A cross-validation (CV) study is a simple but good way of evaluating model 
+performance. First we define 10 CV groups, and study the number of observations
+in each group
+<<>>=
+Ind.cv <- createCV(mesa.model, groups=10, min.dist=.1)
+table(Ind.cv)
+@ 
+And illustrate the location of sites that belong to the same 
+CV groups (Fig.~\ref{fig:CV_map})
+<<label=CVmap,eval=FALSE>>=
+I.col <- sapply(split(mesa.model$obs$ID, Ind.cv), unique)
+I.col <- apply(sapply(I.col, function(x) mesa.model$locations$ID
+               %in% x), 1, function(x) if(sum(x)==1) which(x) else 0)
+plot(mesa.model$locations$long, mesa.model$locations$lat,
+     pch=23+floor(I.col/max(I.col)+.5), bg=I.col)
+map("county","california",add=TRUE)
+@ 
+\begin{figure}[!htb]
+\centering
+<<fig=TRUE, echo=FALSE>>=
+<<CVmap>>
+@
+\caption{Locations of the CV-groups, sites that share the same symbol and colour
+  belong to the same group.}
+\label{fig:CV_map}
+\end{figure}
+
+The CV functions, \texttt{estimateCV} and \texttt{predictCV}, will leave out
+observations marked by the current CV-groups number in the vector
+\texttt{Ind.cv}. For the first CV-groupd only observations such that
+\texttt{Ind.cv!=1} are used for parameter estimation, predictions are then done
+for the observations with \texttt{Ind.cv==1} given observations in
+\texttt{Ind.cv!=1} and the estimated parameters.
+
+\subsubsection*{DO NOT RUN!!!}
+Estimated parameters and predictions for the 10-fold CV are obtained using:
+<<eval=FALSE>>=
+##estimate different parameters for each CV-group
+est.cv.mesa <- estimateCV(mesa.model, x.init, Ind.cv)
+##compute predictions at the different sites,
+##given the estimated parameters
+pred.cv.mesa <- predictCV(mesa.model, est.cv.mesa$par.cov, 
+                          est.cv.mesa$Ind.cv)
+@ 
+
+\subsubsection*{Run this instead}
+However this takes a rather long time, so we load the precomputed 
+results instead
+<<>>=
+data(CV.mesa.model)
+@ 
+
+\subsection*{Evaluating the results}
+First we examine the parmeter estimates,
+<<>>=
+print(est.cv.mesa)
+@ 
+noting that the estimates for all 10 CV-groups have converged. We then compare
+the parameter estimates with those obtained when using all the data to fit the
+model (Fig.~\ref{fig:CV_par}).
+<<label=figCVpar,eval=FALSE>>=
+par(mfrow=c(1,1), mar=c(13,2.5,.5,.5), las=2)
+boxplot(est.cv.mesa, plot.type="all")
+##we've previously extracted the estimated parameters
+points(par$par, col=2, pch=19)
+@
+\begin{figure}[!htb]
+\centering
+<<fig=TRUE, echo=FALSE>>=
+<<figCVpar>>
+@
+\caption{Parameters estimated from CV, compared with parameter estimates based
+  on the full data-set.}
+\label{fig:CV_par}
+\end{figure}
+
+To assess the models predictive ability we plot a couple of predicted 
+timeseries (with $95\%$ confidence intervals), and the left out observations 
+(Fig.~\ref{fig:CV_pred}).
+<<eval=FALSE>>=
+##look at the predictions at 4 sites
+par(mfcol=c(4,1),mar=c(2.5,2.5,2,.5))
+plotCV(pred.cv, 1, mesa.data.model)
+plotCV(pred.cv, 5, mesa.data.model)
+plotCV(pred.cv, 13, mesa.data.model)
+plotCV(pred.cv, 18, mesa.data.model)
+@ 
+We can also compute the root mean squared error, $R^2$, and coverage of
+$95\%$ confidence intervals for the predictions.
+<<>>=
+summary(pred.cv.mesa)
+@ 
+
+Another option is to do a scatter plot of the left out
+data against the predicted (points colour-coded by 
+site)
+<<eval=FALSE>>=
+par(mfcol=c(1,1),mar=c(4.5,4.5,2,.5))
+plot(pred.cv$pred.obs[,"obs"], pred.cv$pred.obs[,"pred"], 
+     xlab="observations",ylab="predictions",pch=19,cex=.1,
+     col=mesa.data.model$obs$idx)
+abline(0,1)
+@ 
+
+\vfill
+The end!
+
+\end{document}

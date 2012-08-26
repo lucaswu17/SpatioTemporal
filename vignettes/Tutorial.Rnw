@@ -1,0 +1,2117 @@
+\documentclass[12pt,twoside,a4paper]{article}
+%pacakges
+\usepackage[british]{babel}
+\usepackage[latin1]{inputenc}
+\usepackage{verbatim}
+\usepackage{amsmath,amssymb,amsthm,amsfonts,amsbsy}
+%\usepackage{pstricks,pst-node,psfrag}
+\usepackage{fancyhdr}
+\usepackage{url}
+\usepackage{graphicx}
+\usepackage{hyphenat}
+\usepackage[unicode,linktocpage=true,bookmarksnumbered=true]{hyperref}
+\usepackage[round,comma,authoryear]{natbib}
+\usepackage[nofancy]{svninfo}
+
+%General style stuff and formating (headers etc)
+\input{tutorial.sty}
+
+%Formating for sweave stuff
+\usepackage{Sweave}
+% testing
+\DefineVerbatimEnvironment{Sinput}{Verbatim}{xleftmargin=1em,commandchars=\\\&;}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{xleftmargin=1em}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{xleftmargin=1em}
+\fvset{listparameters={\setlength{\topsep}{0pt}}}
+\renewenvironment{Schunk}{\vspace{\topsep}}{\vspace{\topsep}}
+%\SweaveOpts{keep.source=TRUE}
+
+%\VignetteIndexEntry{Comprehensive Tutorial for the Spatio-Temporal R-package}
+
+\title{Comprehensive Tutorial for the Spatio-Temporal R-package}
+\author{Silas Bergen \\ University of Washington \and 
+ Johan Lindstr{\"o}m \\ University of Washington \\ Lund University}
+
+\begin{document}
+%figurewidth
+\setkeys{Gin}{width=0.9\textwidth}
+
+%Title page
+\maketitle
+\thispagestyle{empty}
+\cleardoublepage
+
+%TOC
+\pagenumbering{Roman}
+ \rhead[]{\fancyplain{}{Contents}}%to avoid uppercase header
+  \tableofcontents \cleardoublepage
+ \rhead[]{\fancyplain{}{\rightmark}}
+\pagenumbering{arabic}
+
+%background Sweave commands that format the output
+<<echo=false>>=
+options(width=60, continue="  ")
+@
+
+%Lets start the document
+\section{Introduction}
+A complex spatio\hyp{}temporal modelling framework has been developed 
+for the air pollution data collected by the Multi-Ethnic Study of 
+Atherosclerosis and Air Pollution (MESA Air)
+\citep{Sampson09,Szpiro10a,Lindstrom11}. The framework provides a
+spatio-temporal model that can accommodate arbitrarily missing
+observations and allows for a complex spatio-temporal correlation
+structure. To allow for a more wide spread use of the models 
+an R-package, \ttt{SpatioTemporal}, has been developed. 
+
+The goal of this tutorial is to provide an introduction to the 
+\ttt{SpatioTemporal}-package. The tutorial is broadly organised in
+a theoretical part giving a brief overview of the model and theory
+(Sections~\ref{sec:data}-\ref{sec:theory}), followed by a practical 
+part that describes how to use the package for parameter estimation
+and prediction. 
+
+To allow for more realistic examples some real data have been included
+in the package, these data are described in \autoref{sec:data}, with
+\autoref{sec:theory} providing a brief presentation of the theory.
+Following this background the actual R-tutorial begins in
+\autoref{sec:preliminaries} with an overview of the available 
+data and instructions on how to create the data structures needed 
+for the model fitting. Estimation and evaluation of smooth temporal 
+trends are described in \autoref{sec:trends}, and \autoref{sec:beta_fields}
+provides some empirical estimates that, eventually, are compared to
+corresponding results for the full model.
+Functions that do parameter estimation and prediction are
+introduced in \autoref{sec:estimation}, along with tools for
+illustration of the results. The last part of the R-tutorial 
+is a cross-validation example in \autoref{sec:CV}.
+
+All the code used in this tutorial has been collected in 
+\autoref{app:R_code}. The Appendices also contain commented code for
+some additional examples: \autoref{app:pred_unobs} gives an example of 
+predictions at unobserved locations, a case with a spatio\hyp{}temporal 
+covariate is demonstrated in \autoref{app:pred_ST_covar}, 
+\autoref{app:simulation} provides the outlines of a simulation study, and
+an MCMC example is given in \autoref{app:MCMC}.
+
+Before starting with the full tutorial it seems prudent to discuss some 
+of the key assumptions in the model along with some common problems that 
+might arise when using the model.
+
+\subsection{Key Assumptions}
+The following two sections provide lists of key assumptions and 
+common problems. The lists are presented here for reference and
+might be more understandable {\em after reading} the tutorial than 
+before.
+
+Some of the key assumptions in the model are:
+\begin{itemize}
+\item Any temporal structure is captured by the smooth temporal trends
+\item The resulting residuals are {\em temporally independent}.
+\item The spatial dependencies can be described using
+      {\em stationary, exponential} covariance functions.
+\item No {\em colocated observations}.
+\end{itemize}
+
+\subsection{Common Problems --- Troubleshooting}
+The following gives some common problems that might arise when using 
+the package, and possible solutions.
+
+If the parameter estimation fails consider:
+\begin{itemize}
+\item Covariate scaling: avoid having covariates with
+      {\em extremely different ranges}; this may cause numerical 
+      instabilities.
+\item The meaning of the parameters, compare the starting values to 
+      what occurrs in the actual data.
+\item Try multiple starting values in the optimisation.
+\item Changing location coordinates from kilometres to metres will
+      {\em drastically change the reasonable values of the range}.
+\item An {\em over parameterised} (too many covariates) model may cause
+      numerical problems.
+\end{itemize}
+
+Other common problems are:
+\begin{itemize}
+\item Ensure that geographic covariates are provided for {\em all locations}.
+\item Ensure that spatio\hyp{}temporal covariates are provided
+      for {\em all time\hyp{}points and locations}.
+\item The spatio\hyp{}temporal covariate(s) {\em must be in a 3D-array}.
+\item The model does not handle {\em colocated observations}, however
+      predictions at multiple, unobserved, colocated sites work.
+\end{itemize}
+
+\section{Data} \label{sec:data}
+The data used in this tutorial consists of a subset of the \no{x} 
+measurements from coastal Los Angeles available to the MESA Air study; as 
+well as a few (geographic) covariates. A detailed description of the full 
+dataset can be found in \citet{Cohen09,Szpiro10a,Lindstrom11}; short 
+descriptions of the AQS and MESA monitoring can be found in 
+\autoref{sec:AQS_data} and \ref{sec:mesa_data} below, while 
+\autoref{sec:GIS} and \ref{sec:caline} describes the covariates.
+
+\subsection{\texorpdfstring{\no{x}}{NOx} Observations} \label{sec:nox_data}
+The data consists of measurements from the national AQS network of regulatory monitors as well as
+supplementary MESA Air monitoring. The data has been aggregated to {\em 2-week averages}.
+Since the distribution of the resulting 2-week average \no{x} concentrations (ppb) is skewed,
+the data has also been {\em log-transformed}.
+
+\subsubsection{Air Quality System (AQS) data} \label{sec:AQS_data}
+The national AQS network of regulatory monitors consists of
+a modest number of fixed sites that measure ambient concentrations of several 
+different air pollutants including \no{x} and \PM{2.5}. Many AQS sites provide
+hourly averages for \no{x}, while monitoring of \PM{2.5} is less frequent. The data in
+this tutorial includes \no{x} data from 20 AQS sites in and around Los Angeles.
+
+\subsubsection{MESA Air data} \label{sec:mesa_data}
+The AQS monitors provide data with excellent temporal resolution, but only at
+relatively few locations. As pointed out in \citet{Szpiro10a}, potential problems with basing
+exposure estimates entirely on data from the AQS network are: 1) the number of locations sampled
+is limited; 2) the AQS network is designed for regulatory rather than epidemiology purposes and
+does not resolve small scale spatial variability; and 3) the network has siting restrictions that
+limit its ability to resolve near-road effects. To address these restrictions the MESA Air
+supplementary monitoring campaign was designed to provide increased diversity in geographic
+monitoring locations, with specific importance placed on proximity to traffic.
+
+The MESA Air supplementary monitoring consists of three sub-campaigns,
+\citet[see][for details]{Cohen09}: ``fixed sites'', ``home outdoor'', and ``community snapshot''.
+Only data from the ``fixed sites'' have been included in this tutorial; this campaign consisted of
+a few fixed site monitors that provided 2-week averages during the entire MESA Air monitoring period.
+To allow for comparison of the different monitoring protocols, one of the MESA fixed sites in coastal
+Los Angeles was colocated with an existing AQS monitor.
+
+\subsection{Geographic Information System (GIS)} \label{sec:GIS}
+To predict ambient air pollution at times and locations where we have no measurements MESA Air
+uses a complex spatio\hyp{}temporal model that includes regression on geographic covariates
+(see \autoref{sec:theory} for a brief overview). The covariates used in this tutorial are:
+1) distance to a major road, i.e.,\ census feature class code A1--A3
+ (distances truncated to be $\geq\! 10$m and log-transformed) and the minimum of these distances,
+2) distance to coast (truncated to be $\leq\! 15$km), and
+3) average population density in a 2 km buffer.
+For details on the variable selection process that lead to these covariates as well as a more complete
+list of the covariates available to MESA Air the reader is referred to \citet{Mercer11}.
+\begin{comment}
+These are all derived using the ArcGIS (ESRI, Redlands, CA) software package.  The
+distance to coast and roadway variables were obtained from Tele Atlas Dynamap 2000
+(Lebanon, NH), and the population density was calculated from publicly available 
+Census Bureau data.
+\end{comment}
+
+\subsection{Caline Dispersion Model for Air Pollution} \label{sec:caline}
+The geographic covariates described above are fixed in time and provide only spatial
+information. To aid in the spatio\hyp{}temporal modelling, covariates that vary in
+both space and time would be valuable. One option is to integrate output from
+deterministic air pollution models into the spatio\hyp{}temporal model.
+The example in this tutorial contains output from a slightly modified version of
+Caline3QHC \citep{EPAcaline92,Wilton10,MESAcaline10}.
+
+Caline is a line dispersion model for air pollution. Given locations
+of major (road) sources and local meteorology Caline uses a Gaussian model dispersion to predict
+how nonreactive pollutants travel with the wind away from sources; providing hourly estimates
+of air pollution at distinct points. The hourly contributions from Caline have then been
+averaged to produce a 2-week average spatio\hyp{}temporal covariate.
+It should be noted that the Caline predictions in this tutorial only includes air
+pollution due to traffic on major roads (A1, A2, and large A3).
+
+\section{Model and Theory}\label{sec:theory}
+The R-package described here implements the model developed by \citet{Szpiro10a,
+Lindstrom11}, and the reader is referred to those papers for extensive model details.
+Here we will give a brief description, which hopefully suffices for the purpose of this
+tutorial.
+
+Denoting the quantity to be modelled (in this example ambient 2-week 
+average $\lno{x}$ concentrations) by $y(s,t)$, we write the spatio\hyp{}temporal
+field as
+\begin{equation}
+ y(s,t) = \mu(s,t) + \nu(s,t),
+ \label{eqn:model_decomp}
+\end{equation}
+where $\mu(s,t)$ is the predictable mean field and $\nu(s,t)$ is the essentially
+random space\hyp{}time residual field. The mean field is modelled as
+\begin{equation}
+ \mu(s,t) = \sum_{l=1}^L \gamma_l \M_l(s,t) + \sum_{i=1}^{m} \beta_i(s) f_i(t),
+ \label{eqn:mean_model}
+\end{equation}
+where the $\M_l(s,t)$ are spatio\hyp{}temporal covariates; $\gamma_l$ are coefficients
+for the spatio\hyp{}temporal covariates; $\{f_i(t)\}_{i=1}^m$ is a set of smooth basis
+functions, with $f_1(t)\equiv 1$; and the $\beta_i(s)$ are spatially varying coefficients
+for the temporal trends.
+
+In \eqref{eqn:mean_model} the term, $\sum_{i=1}^{m} \beta_i(s) f_i(t)$, is a linear
+combination of temporal basis functions weighted by coefficients that
+vary between locations. Typically the number of basis functions will be small.
+
+We model the spatial fields of $\beta_i$-coefficients using
+universal kriging \citep{Cressie93}. The trend in the kriging is constructed as
+a linear regression on geographical covariates; following \citet{Jerrett05} we call this
+component a ``land use'' regression (LUR). The spatial dependence is assumed to
+be exponential with {\em no nugget}. The resulting models for the $\beta$-fields are
+\begin{equation}
+ \beta_i(s) \in \Normal{X_i \alpha_i}{\Sigma_{\beta_i}(\theta_i)} \quad \text{for }
+  i=1,\ldots,m ,
+\label{eqn:beta_fields}
+\end{equation}
+where $X_i$ are $n\,\times\,p_i$ design matrices, $\alpha_i$ are $p_i\,\times\,1$
+matrices of regression coefficients, and $\Sigma_{\beta_i}(\theta_i)$ are
+$n\,\times\,n$ covariance matrices. Note that the design matrices, $X_i$, can
+incorporate different geographical covariates for the different spatial fields.
+The $\beta_i(s)$ fields are assumed to be independent of each other.
+
+Finally  the model for the residual space\hyp{}time field, $\nu(s,t)$, is assumed to
+be independent in time and have exponential covariance given by
+\begin{align*}
+ \nu(s,t) &\in \Normal{0}{\Sigma_\nu ^t(\theta_\nu)} \quad \text{for } t=1,\ldots,T, 
+\end{align*}
+where the size of the exponential covariance matrices, $\Sigma_\nu^t(\theta_\nu)$,
+is the number of observations, $n_t$, at each time-point. The temporal independence
+is based on the assumption that the mean model, $\mu(s,t)$, accounts for most of the
+temporal correlation.
+
+\subsection{Model parameters} \label{sec:parameters}
+The parameters of the model consist of the regression parameters for the geographical,
+and spatio\hyp{}temporal covariates, respectively
+\begin{align}
+\mv{\alpha} &= (\alpha_1^\trsp,\ldots,\alpha_m^\trsp)^\trsp; &
+\mv{\gamma} &= (\gamma_1,\ldots,\gamma_L)^\trsp,
+\label{eqn:regression_par}
+\end{align}
+spatial covariance parameters for the $\beta_i$-fields,
+\begin{align}
+\theta_B = (\theta_1,\ldots,\theta_m) \quad \text{where} \quad
+\theta_i = (\phi_i,\sigma^2_i),
+\label{eqn:covar_beta_par}
+\end{align}
+and covariance parameters of the spatio\hyp{}temporal residuals,
+\begin{align}
+\theta_\nu=(\phi_\nu, \sigma^2_\nu, \tau^2_\nu).
+\label{eqn:covar_nu_par}
+\end{align}
+The model assumes exponential covariance functions with range $\phi$,
+partial sill $\sigma^2$, and nugget $\tau^2$. The nuggets  of the
+$\beta_i$-fields are set to zero.
+
+Other covariance functions are {\em not currently supported}, but this may change in
+future versions.
+
+To simplify notation we collect the covariance parameters into $\Psi$,
+\begin{align*}
+\Psi = (\theta_1,\ldots,\theta_m,\theta_\nu).
+\end{align*}
+
+Combining \eqref{eqn:model_decomp} and \eqref{eqn:mean_model} our model is
+\begin{equation}
+ y(s,t) = \sum_{l=1}^L \gamma_l \M_l(s,t) + \sum_{i=1}^{m} \beta_i(s) f_i(t)
+  + \nu(s,t).
+\label{eqn:model_full}
+\end{equation}
+
+\section{Preliminaries} \label{sec:preliminaries}
+In this tutorial \ttt{typewrite text} denotes R-commands or variables,
+lines prefixed by \ttt{\#\#} are comments. To exemplify
+<<eval=FALSE>>=
+##A qqplot for some N(0,1) random numbers
+qqnorm(rnorm(100))
+@
+In some cases both function calls and output is provided; the call(s) are 
+prefixed by  \ttt{>} while rows without a prefix represent function output, e.g.
+<<>>=
+##Summary of 100 N(0,1) numbers.
+summary(rnorm(100))
+@
+
+Some of the code in this tutorial takes considerable time to run, in these 
+cases precomputed results have been included in package data-files. The 
+tutorial marks time consuming code with the following warning/alternative 
+statements:
+\warnCode
+\begin{Schunk}
+\begin{Sinput}
+> Some time consuming code
+\end{Sinput}
+\end{Schunk}
+\altCode
+\begin{Schunk}
+\begin{Sinput}
+> An option to load precomputed results.
+\end{Sinput}
+\end{Schunk}
+\altEnd
+
+%need to silently load data for descriptives below
+<<echo=FALSE>>=
+library(SpatioTemporal)
+data(mesa.data)
+@ 
+
+Here we will study \no{x} data from Los Angeles. The data are described
+in \autoref{sec:data} and consist of $\Sexpr{dim(mesa.data$covars)[1]}$ 
+different monitor locations, with 2-week average \lno{x} concentrations 
+measured for $\Sexpr{dim(mesa.data$trend)[1]}$ 2-week periods.
+
+First load the package, along with a few additional packages need by the tutorial:
+<<>>=
+##Load the SpatioTemporal package
+library(SpatioTemporal)
+##A package used for some plots in this tutorial (plotCI)
+library(plotrix) 
+###The maps to provide reference maps
+library(maps)
+@ 
+
+
+
+The sample data are contained in \ttt{mesa.data}, which is included in the 
+package and can be loaded as follows:
+<<>>=
+###Load the data
+data(mesa.data)
+@ 
+
+\subsection{The \ttt{STdata} object} \label{sec:examine_data}
+The object \ttt{mesa.data} is an \ttt{STdata} object, which is the necessary input
+for other functions in the \ttt{SpatioTemporal} package that perform the spatio-temporal 
+modeling.  Section \ref{sec:raw_data}
+contains details on how to create an \ttt{STdata} object from raw data, but first we
+investigate this data structure in detail.
+
+ First lets examine the class and components of \ttt{mesa.data}.
+<<>>=
+class(mesa.data)
+names(mesa.data)
+@
+
+The object \ttt{mesa.data} contains a list, where each element of the
+list is a data frame. We will now take a closer look at each one of these
+data frames.
+
+\subsubsection{The \ttt{mesa.data\$covars} Data Frame} \label{sec:mesa_data_frame}
+We begin our examination of the data by investigating \ttt{mesa.data\$covars}:
+<<>>=
+head(mesa.data$covars)
+@
+
+The \ttt{covars} data frame is a $\Sexpr{dim(mesa.data$covars)[1]} \times \Sexpr{dim(mesa.data$covars)[2]}$ data frame.  The first column contains the ID names for each of the $\Sexpr{dim(mesa.data$covars)[1]}$ air pollution monitoring sites in the data set as factors or strings; the second and third columns contain x- and y-coordinates, which are used to calculate distances between sites.  The fourth and fifth columns contain longitude and latitude coordinates.  These coordinates are optional --- not required for modelling --- but can be included in the data structure to simplify plotting the locations on a map.
+For this dataset the x- and y-coordinates (given in km) are actually computed from the
+longitude and latitude as
+\begin{align*}
+x &= 111.13 \cdot \text{long} \cdot \cos(34.021\cdot \pi/180) &
+y &= 111.13 \cdot \text{lat}.
+\end{align*}
+The sixth column describes the type of monitoring system to which that site belongs.
+In this example, we have two types: \ttt{AQS} refers to the EPA's regulatory monitors that are part of the Air Quality System, while \ttt{FIXED} refers to the MESA Air fixed site locations (see \autoref{sec:mesa_data}).  If included, this column should contain factors or characters.  As with the longitude and latitude coordinates, it too is optional; it can be used in some routines to subset data.  
+Although we have observations at all the locations in this example, 
+one could also include data for locations in \ttt{mesa.data\$covars} that don't have observations in order to predict at those locations 
+(see \autoref{app:pred_unobs} for a prediction example). 
+The last columns contain LUR covariates. In this example, the LUR covariates are $\mathrm{log}_{10}$ meters to A1, A2, A3 
+roads and the minimum of these three measurements; kilometres to the coast; and average population density in a 2 km buffer (divided by 10,000).
+  
+The following code plots these locations on a map, shown in \autoref{fig:map}; the code uses the optional longitude and latitude coordinates.
+
+<<label=figMap, eval=FALSE>>=
+###Plot the locations, see \autoref&fig:map;
+par(mfrow=c(1,1))
+plot(mesa.data$covars$long, mesa.data$covars$lat,
+     pch=24, bg=c("red","blue")[mesa.data$covars$type],
+     xlab="Longitude", ylab="Latitude")
+
+###Add the map of LA
+map("county", "california", col="#FFFF0055", fill=TRUE, 
+    add=TRUE)
+
+##Add a legend
+legend("bottomleft", c("AQS","FIXED"), pch=24, bty="n",
+       pt.bg=c("red","blue"))
+@
+
+\begin{figure}[!htb]
+\centering
+<<fig=TRUE, echo=FALSE>>=
+<<figMap>>
+@
+\caption{Location of monitors in the Los Angeles area.}
+\label{fig:map}
+\end{figure}
+
+
+\subsubsection{The \ttt{mesa.data\$trend} Data Frame} \label{sec:trend_data_frame}
+Next, look at \ttt{mesa.data\$trend}:
+<<>>=
+head(mesa.data$trend)
+@
+
+The \ttt{trend} data frame consists of $\Sexpr{dim(mesa.data$trend)[2]-1}$ smooth
+temporal basis functions computed using singular value decomposition (SVD), see
+\autoref{sec:trends} for details. These temporal trends corresponds to the 
+$f_i(t)$:s in \eqref{eqn:mean_model}. The spatio\hyp{}temporal model also 
+includes an intercept, i.e.\ a vector of 1's; the intercept is added 
+automatically and {\em should not be included} in \ttt{trend}. 
+ 
+The \ttt{mesa.data\$trend} data frame is $\Sexpr{dim(mesa.data$trend)[1]} \times 
+\Sexpr{dim(mesa.data$trend)[2]}$, where $\Sexpr{dim(mesa.data$trend)[1]}$ is the 
+number of time points for which we have \no{x} concentration measurements. Here, 
+the first two columns contain smooth temporal trends, and the last column contains
+dates in the \ttt{R date} format.  In general, {\em one of the columns} in 
+\ttt{mesa.data\$trend} \textit{must} be called \ttt{date} and have dates in the
+ \ttt{R date} format; the names of the other columns are arbitrary.
+Studying the \ttt{date} component,
+<<>>=
+range(mesa.data$trend$date)
+@
+we see that measurements are made over a period of about 10 years, 
+from January 13, 1999 until September 23, 2009.
+ 
+\subsubsection{The \ttt{mesa.data\$obs} Data Frame} \label{sec:mesa.data.obs}
+The observations are stored in \ttt{mesa.data\$obs}:
+<<>>=
+head(mesa.data$obs)
+@
+   
+The data frame, \ttt{mesa.data\$obs}, consists of observations, over time, for each
+of the $\Sexpr{dim(mesa.data$covars)[1]}$ locations.  The data frame contains three variables: \ttt{obs} --- the 
+measured \lno{x} concentrations (as 2-week averages); \ttt{date} --- the date
+ of each observation (here the middle Wednesday of each 2-week period); and \ttt{ID}
+ --- labels indicating at which monitoring site each measurement was taken.
+Details regarding the monitoring can be found in \citet{Cohen09}, and
+a brief introduction is given in \autoref{sec:nox_data}.
+
+The ID values should correspond to the ID of the monitoring locations given in
+\ttt{mesa.data\$location\$ID}. The dates in \ttt{mesa.data\$obs} do
+{\em not} need to correspond exactly to the dates in \ttt{mesa.data\$trend\$date};
+however they {\em have to be in the range} of 
+\ttt{mesa.data\$trend\$date} (in this case, 
+\Sexpr{range(mesa.data$trend$date)[1]} through 
+\Sexpr{range(mesa.data$trend$date)[2]}).  
+
+Note that the number of rows in \ttt{mesa.data\$obs} is 
+$\Sexpr{dim(mesa.data$obs)[1]}$, far fewer than the
+$\Sexpr{dim(mesa.data$trend)[1]} \times \Sexpr{dim(mesa.data$covars)[1]} = 
+\Sexpr{dim(mesa.data$trend)[1] * dim(mesa.data$covars)[1]}$ observations 
+there would be if each location had a complete time series of observations.  
+
+\subsubsection{The \ttt{mesa.data\$SpatioTemporal} Array} \label{sec:ST_array}
+Finally, examine the \ttt{mesa.data\$SpatioTemporal} data:
+<<>>=
+dim(mesa.data$SpatioTemp)
+mesa.data$SpatioTemp[1:5,1:5,]
+@
+
+The \ttt{mesa.data\$SpatioTemp} element should be a {\em three dimensional 
+array} containing spatio\hyp{}temporal covariates. In this example dataset we 
+have only one covariate, which is the output from the Caline3QHC model 
+(see \autoref{sec:caline} for a brief overview; more details can be found 
+in \citet{EPAcaline92,MESAcaline10}) If {\em no} spatio\hyp{}temporal covariates 
+are used/needed \ttt{mesa.data\$SpatioTemp} should be set to \ttt{NULL}.
+
+Of the three dimensions of \ttt{mesa.data\$SpatioTemp}, the first 
+$(\Sexpr{dim(mesa.data$SpatioTemp)[1]})$
+refers to the number of time points where we have spatio\hyp{}temporal covariate 
+measurements, the second $(\Sexpr{dim(mesa.data$SpatioTemp)[2]})$ refers to
+ the number of locations, and the third $(\Sexpr{dim(mesa.data$SpatioTemp)[3]})$ 
+refers to the number of different spatio\hyp{}temporal covariates.
+Though the entire array is not shown here, it should be noted that values of
+the spatio\hyp{}temporal covariate are specified for all 
+$\Sexpr{dim(mesa.data$SpatioTemp)[1]}$-by-$\Sexpr{dim(mesa.data$SpatioTemp)[2]}$ 
+space\hyp{}time locations. Again, this array could contain values of the 
+spatio\hyp{}temporal covariate(s) at times and/or locations that do not have 
+observations, in order to predict at those times/locations.
+
+The names of of the \ttt{SpatioTemp} array are used to match covariates 
+with observations
+<<>>=
+str(dimnames(mesa.data$SpatioTemp))
+@
+The rownames should match the dates of observations and the temporal trends, 
+i.e. they should be given by
+<<eval=FALSE>>=
+as.character(sort(unique(c(mesa.data$obs$date,
+    mesa.data$trend$date))))
+@
+the column names should match the location ID's in \\
+\ttt{mesa.data\$location\$ID}, and the names of the third dimension 
+<<>>=
+dimnames(mesa.data$SpatioTemp)[[3]]
+@
+identifies the different spatio\hyp{}temporal covariates.
+
+To simplify, the main model fitted in this tutorial 
+{\em does not} include any spatio\hyp{}temporal covariate. However, 
+\autoref{app:pred_ST_covar} demonstrates predictions with a 
+spatio\hyp{}temporal covariate.
+
+\subsection{Summaries of \ttt{mesa.data}} \label{sec:data_summary}
+Now that we have gone over a detailed description of what is in the 
+\ttt{mesa.data} object, we can use the following function to examine a 
+summary of the observations:
+<<>>=
+print(mesa.data)
+@
+
+Here we can see the number of AQS and MESA FIXED sites in the \ttt{mesa.data} 
+structure.  There are $\Sexpr{sum(mesa.data$covars$type=="AQS")}$
+AQS sites, which correspond to the number of locations 
+marked as AQS in \ttt{mesa.data\$covars\$type}, and 
+$\Sexpr{sum(mesa.data$covars$type=="FIXED")}$ FIXED sites, which 
+correspond to the $\Sexpr{sum(mesa.data$covars$type=="FIXED")}$
+ sites flagged as FIXED in \\
+\ttt{mesa.data\$covars\$type}. We can also see that the observations are made
+over the same range of time as the temporal trends; this is appropriate, as
+discussed above. The summary also indicates the total number of sites 
+(and time points) as well as how many of these that have been observed, 
+\ttt{Nbr locations: $\Sexpr{dim(mesa.data$covars)[1]}$ 
+(observed: $\Sexpr{dim(mesa.data$covars)[1]}$)}.
+In this example all of our locations have been observed; \autoref{app:pred_unobs}
+provides an example with unobserved locations.
+
+To graphically depict where and when our observation occurred we plot 
+the monitor locations in time and space.
+
+<<label=figTimeSpace, eval=FALSE>>=
+###Plot when observations occurr, see \autoref&fig:time_space;
+par(mfcol=c(1,1),mar=c(4.3,4.3,1,1))
+plot(mesa.data, "loc")
+@
+
+From \autoref{fig:time_space} we see that the MESA monitors only 
+sampled during the second half of the period. We also note that the 
+number of observations vary greatly for different locations.
+
+\begin{figure}[!htb]
+ \centering
+<<fig=TRUE, echo=FALSE>>=
+<<figTimeSpace>>
+@
+ \caption{Space-time location of all our observations.}
+ \label{fig:time_space}
+\end{figure}
+
+\subsection{Creating an \ttt{STdata} object from raw data} \label{sec:raw_data}
+Section \ref{sec:examine_data} gave a detailed description of the \ttt{STdata} object.  
+This section gives instructions for getting raw data
+into this format.  The SpatioTemporal 
+package contains an example of a raw data structure, which we now load and examine.
+<<>>=
+data(mesa.data.raw)
+names(mesa.data.raw)
+@
+As we can see, the raw data contains a list of three data sets:
+\ttt{"X"}, \ttt{"obs"}, and \ttt{"lax.conc.1500"}. 
+
+
+We will use the \ttt{createSTdata()} function to create  the \ttt{STdata} object.
+The \ttt{createSTdata()} function requires two arguments: \ttt{obs} and \ttt{covars}.
+If one wants to supply spatio-temporal covariates, one must supply input to the 
+\ttt{SpatioTemporal} argument as well.
+An example of possible input for the \ttt{covars} argument is given by the \ttt{X}
+data frame of \ttt{mesa.data.raw}:
+
+<<>>=
+head(mesa.data.raw$X)
+@
+Above we can see an excerpt of \ttt{mesa.data.raw\$X}.  In this example, \\
+\ttt{mesa.data.raw\$X} contains information about the monitoring locations, including: names (or ID's), x- and y-coordinates, 
+and covariates from a GIS to be used in the LUR.  It also includes latitudes 
+and longitudes, and monitor type.  To satisfy the \ttt{covars} argument of
+\ttt{createSTdata()}, this data frame requires, {\em at the minimum}, coordinates,
+LUR covariates, and and ID column.  The latitude and longitude, as well as the 
+monitor type, are optional columns.  
+
+
+Next, examine the \ttt{\$obs} part of the raw data.
+<<>>=
+mesa.data.raw$obs[1:6,1:5]
+@
+In this example the observations are stored as a (number of time\hyp{}points)-by-(number
+of locations) matrix with missing observations denote by \ttt{NA}, the row- 
+and columnames identify the location and time point of each observation.
+Alternatively, one could have the observations as a data frame with three
+columns: \ttt{date}, 
+\ttt{location ID} and \ttt{observations}.
+This format of \ttt{mesa.data.raw\$obs} is more likely for data with only a few
+ missing observations.
+
+The final element is a spatio\hyp{}temporal covariate, i.e. the output from 
+the Caline3QHC model (see \autoref{sec:caline}),
+<<>>=
+mesa.data.raw$lax.conc.1500[1:6,1:5]
+@
+This matrix contains spatio\hyp{}temporal covariate values for all locations 
+and times.  Similar to 
+the \ttt{mesa.data.raw\$obs} matrix, the row- and column names of the 
+\ttt{mesa.data.raw\$lax.conc.1500} matrix contain the dates and location ID's 
+of the spatio\hyp{}temporal covariate.
+
+The measurement locations, LUR information, observations and 
+spatio\hyp{}temporal
+covariates (optional) above constitute the basic raw data needed by the 
+\ttt{createSTdata()} function.  Given these minimal elements, creation of the
+\ttt{STdata} structure is easy:
+
+<<>>=
+obs <- mesa.data.raw$obs
+covars <- mesa.data.raw$X
+##list with the spatio-temporal covariates
+ST.list <- list(lax.conc.1500=mesa.data.raw$lax.conc.1500)
+
+##create STdata object
+mesa.data.scratch <- createSTdata(obs, covars, 
+  SpatioTemporal=ST.list,n.basis=2)
+names(mesa.data.scratch)
+@
+
+A few things to note here: we must first convert the \ttt{mesa.data.raw\$lax.conc.1500}
+spatio-temporal covariate matrix to a list; the length of this list equals the number of
+spatio-temporal covariates we want to use (in this case, just 1).  We also specified \ttt{n.basis=2}, which
+indicates we want to compute 2 temporal trends: these will then be included in the 
+\ttt{mesa.data\$trend} object we saw in the previous section.  If we leave this
+argument unspecified, no temporal trends will be computed.
+
+Finally, make sure we created the right object:
+
+<<>>=
+class(mesa.data.scratch)
+@
+...and we're good!
+
+
+\section{Estimating the Smooth Temporal Trends} \label{sec:trends}
+The first step in analysing the data is to determine, using cross-validation,
+how many smooth temporal trends we need to capture the seasonal variability.
+
+\subsection{Data Set-Up for Trend Estimation} \label{sec:data_set_up}
+In order to estimate the smooth trends, we need a data matrix that is (number of time\hyp{}points)-by-(number of locations) in dimension. Here, the dimensions refer to time\hyp{}points and locations where we have observations. Since our \ttt{mesa.data\$obs} data frame has a single column for the dates, locations, and observations, we use the \ttt{createDataMatrix()} function to get the data into the format needed for trend estimation:
+<<>>=
+##extract a data matrix
+D <- createDataMatrix(mesa.data)
+##and study the data
+dim(D)
+D[1:6,1:5]
+colnames(D)
+@
+\ttt{D} is now a $\Sexpr{dim(D)[1]} \times \Sexpr{dim(D)[2]}$ matrix where each column represents observations 
+at one location, and the rows represents points in time.  Note that we supplied the 
+\ttt{createDataMatrix()} function with an \ttt{STdata} object; alternatively 
+we could supply the arguments \ttt{obs}, \ttt{date}, and \ttt{ID} individually.
+The matrix elements marked
+as \ttt{NA} indicate that there are no observation for those locations and times.
+
+As a brief aside, note that we can also subset locations in the \\
+\ttt{createDataMatrix()} function. As an example, we create a data matrix
+for only the AQS monitoring locations:
+<<>>=
+##subset the data
+ID.subset <-mesa.data$covars[mesa.data$covars$type ==
+                               "AQS",]$ID
+D2 <- createDataMatrix(mesa.data, subset=ID.subset)
+##and study the result
+dim(D2)
+colnames(D2)
+@
+Note that \ttt{D2} is now a $\Sexpr{dim(D2)[1]} \times \Sexpr{dim(D2)[2]}$ 
+matrix: we have created a data matrix for only the AQS locations, dropping the 
+\Sexpr{dim(D)[2]-dim(D2)[2]} Mesa FIXED locations.  
+
+\subsection{Cross-Validated Trend Estimations} \label{sec:CV_trend_est}
+The displayed portion of the data matrix \ttt{D} shows what we have already seen
+in \autoref{fig:time_space}: not every location has a complete time series, and
+the times at which observations are made are not consistent across location.  
+When determining the best number of smooth temporal trends and computing these
+trends we need to address the missing data. 
+\citet{Fuentes06} outlines a procedure for computing smooth temporal trends
+from incomplete data matrices, a brief description is given in Sections 
+\ref{sec:completing_data}--\ref{sec:smoothing_CV} below. The procedure, including 
+a cross validation to determine the best number of trends, is implemented by calling:
+<<>>=
+##Run leave one out cross-validation to find smooth trends
+SVD.cv <- SVDsmoothCV(D,1:5)
+@
+
+The function \ttt{SVDsmoothCV} performs a sequence of procedures, the end 
+goal of which is to assist the user in choosing the optimal number of smooth 
+temporal trends that describe the seasonal variations in the data. \\
+\ttt{SVDsmoothCV} relies on two other functions: \ttt{SVDmiss}, that
+completes the data matrix, and \ttt{SVDsmooth}, that computes smooth temporal
+trends from the completed data matrix. In this example, we will evaluate 1 
+through \Sexpr{length(SVD.cv$smoothSVD)} smooth trends in \textit{each}, 
+as specified by \ttt{1:\Sexpr{length(SVD.cv$smoothSVD)}} in
+\ttt{SVDsmoothCV(D,1:\Sexpr{length(SVD.cv$smoothSVD)})}.
+
+\textbf{To clarify}:  It is important to understand that the following procedures (filling in the data matrix, finding the $m$ smooth temporal trends, and running the leave one out cross-validation) are done for \textit{each} of the values 
+$m=(1,\,2,\,\ldots,\,\Sexpr{length(SVD.cv$smoothSVD)})$.
+
+\subsubsection{\ttt{SVDmiss}: Completing the Data Matrix} \label{sec:completing_data}
+The function \ttt{SVDmiss} completes a data matrix by iterating over the 
+following steps \citep[See][for details.]{Fuentes06}:
+\begin{enumerate}
+\item[Step 0.] Regression through the origin of the columns of the data matrix \ttt{D} (with the NA's replaced by zeroes) on a length \Sexpr{dim(D)[1]} vector, $u_1$, consisting of the mean concentration at each time point taken across all locations that are not \ttt{NA}.  The missing observations are then replaced by the fitted values of that regression.  For example, \ttt{D[i,j]} would be replaced by multiplying the $i^\text{th}$ element of $u_1$ with the regression coefficient obtained by regressing the $j^\text{th}$ column of \ttt[D] on $u_1$; missing values are ignored in the regression.
+
+For this step to be well defined the data matrix must have {\em at least one} observation in each {\em row and column}.
+
+\item[Step 1.] Compute the SVD of the new data matrix with the missing values imputed.
+
+\item [Step 2.] Do regression of each column of the new data matrix on the first $m$ orthogonal basis functions found in Step 1.  The  missing values are then replaced by the fitted values of this regression.
+ 
+\item [Step 3.] Repeat from Step 1 until convergence; convergence being 
+measured by the change in the imputed values between iterations.
+\end{enumerate}   
+
+\subsubsection{\ttt{SVDsmooth}: Smoothing}\label{sec:smoothing}
+To obtain $m$ smooth temporal trends, \ttt{SVDsmooth} first standardises the data
+matrix so that each column is mean zero and variance one. The function then 
+uses \ttt{SVDmiss} to complete the data matrix. Finally the function uses
+\ttt{smooth.spline} to smooth the $m$ first orthogonal basis functions 
+of the competed data matrix; as computed by \ttt{SVDmiss}.
+
+\subsubsection{\ttt{SVDsmoothCV}: Cross-Validating}\label{sec:smoothing_CV}
+Finally, the function \ttt{SVDsmoothCV} does leave-one-column-out (i.e.\ leave-one-site-out) cross-validation, and computes cross-validated statistics. These statistics are given in order to provide user guidance in choosing the number of temporal trends that are needed to describe the seasonal variations.  The cross-validation procedure is carried out thus:
+\begin{enumerate}
+\item Leave out one column of \ttt{D}, call the reduced matrix 
+      $\mathtt{\widetilde D}$
+
+\item Impute the missing values and obtain $m$ smooth temporal trends for
+      $\mathtt{\widetilde D}$ by calling \ttt{SVDsmooth}.
+
+\item Do regression of the left-out column of \ttt{D} on the set of $m$ smooth 
+      basis functions; use the residuals from the regression to compute 
+      cross-validation statistics
+\end{enumerate} 
+
+An important thing to keep in mind is that the value of $m$ is fixed across the functions that are calling each other.  That is, \ttt{SVDsmoothCV} first does a cross-validation for $m$=1 (and hence calls \ttt{SVDsmooth} with $m=1$, which calls \ttt{SVDmiss} with $m$=1) and calculates cross-validation statistics; then it does a new cross-validation for $m=2$ (which in turn calls \ttt{SVDsmooth} with $m=2$, etc.). From the output we can then compare the cross-validation statistics for each of the 5 sets of cross-validations (where $m$ goes from 1 to 5.)  
+
+\subsubsection{Evaluating the Cross-Validated Results} 
+\label{sec:evaluating_CV_smooth}
+The output of \ttt{SVDsmoothCV} consists of the cross-validated RMSE, $R^2$, and Bayesian Information Criteria (BIC). 
+The number of basis functions that lead to low BIC and point to where the RMSE stops decreasing rapidly is what we are looking for.
+
+ We can see a numeric summary of the CV results by simply typing:
+
+<<>>=
+print(SVD.cv)
+@
+
+A graphical summary can be obtained thus:
+
+<<label=figSVDcv, eval=FALSE>>=
+##Plotting the smooth trends CV results, see \autoref&fig:svd_cv;
+plot(SVD.cv)
+@
+
+The output of the above command can be seen in \autoref{fig:svd_cv}.
+As would be expected in any regression scenario,
+ increasing the number of basis functions increases the $R^2$ and decreases the RMSE, 
+ but the increase in $R^2$ and decrease in RMSE is by far the most dramatic going from 1 to 2 basis functions; 
+ the RMSE stops decreasing rapidly after 2 basis functions. The BIC is also lowest when 2 basis functions are used to model 
+ the temporal variations. This indicates that 2 basis functions would provide 
+ the most efficient description of the seasonal variability.
+
+\begin{figure}[!htb]
+\centering
+<<fig=TRUE, echo=FALSE>>=
+<<figSVDcv>>
+@
+\caption{Cross-validation results for different numbers of smooth temporal trends}
+\label{fig:svd_cv}
+\end{figure}
+
+
+
+Just looking at overall statistics might be misleading.
+We can also do scatter plots of BIC for different numbers of trends
+at all the sites, as shown in \autoref{fig:BIC_pairs}.
+
+<<label=figBICpairs, eval=FALSE>>=
+##Plotting BIC values, see \autoref&fig:BIC_pairs;
+par(mfcol=c(1,1),mar=c(4,4,.5,.5))
+pairs(SVD.cv$BIC.all, pane = 
+      function(x,y){points(x,y)
+                    abline(0,1)})
+@
+
+\begin{figure}[!htb]
+\centering
+<<fig=TRUE, echo=FALSE>>=
+<<figBICpairs>>
+@
+\caption{BIC at all sites for different numbers of temporal trends}
+\label{fig:BIC_pairs}
+\end{figure}
+
+Note from \autoref{fig:BIC_pairs} that as we increase the number of trends all sites don't behave equally.
+Some sites require many trends and some fewer.  In particular, there are three sites whose seasonal trends appear 
+very well described by using only one basis function.
+
+\subsection{Creating and Investigating the Trends} 
+\label{sec:creating_and_investigating_trends}
+Based on the cross-validation statistics, using two smooth temporal basis functions appears to be appropriate. If they were not already
+there, we would now compute two smooth trends, and add them to the data structure.
+<<>>=
+##compute new temporal smooths
+F <- calcSmoothTrends(mesa.data, n.basis=2)
+##and add the new trends to the data structure
+mesa.data$trend <- F$trend
+@
+
+Alternatively (and more efficiently), if \ttt{mesa.data} did not contain any temporal trends,
+ we could use the \ttt{updateSTdataTrend()} function to add them to the data structure:
+
+<<>>=
+##compute new temporal smooths
+mesa.data <- updateSTdataTrend(mesa.data, n.basis=2)
+@
+
+Given smooth trends we fit the time series of observations to the trends at
+each site, and study the residuals (see \autoref{fig:smooth_trends}).
+
+<<label=figsmooth_trends, eval=FALSE>>=
+##plot the observations at two of the locations along
+##with the fitted smooth trends, see \autoref&fig:smooth_trends;
+par(mfrow=c(4,1),mar=c(2.5,2.5,2,.5))
+plot(mesa.data, "obs", ID=5)
+plot(mesa.data, "obs", ID=18)
+
+##also plot the residuals
+plot(mesa.data, "res", ID=5)
+plot(mesa.data, "res", ID=18)
+@
+
+\begin{figure}[!htb]
+\centering
+<<fig=TRUE, echo=FALSE>>=
+<<figsmooth_trends>>
+@
+\caption{Smooth temporal trends and residuals for two locations}
+\label{fig:smooth_trends}
+\end{figure}
+
+The function \ttt{plot.STdata} fits a linear regression of observations for a particular site on the smooth basis functions, and plots either fitted values, residuals or the auto-correlation function.  From \autoref{fig:smooth_trends} we can see that the fitted seasonal variability is different for the two sites (with greater seasonal variability in \lno{x} for Site \Sexpr{mesa.data$covars$ID[18]}), and furthermore that for Site \Sexpr{mesa.data$covars$ID[18]}, the fit extends earlier in time than observations are made.  Both of the fits elicit residuals that are centred around 0, indicating that the temporal trends do a good job of describing the temporal variability of the observed \lno{x} concentrations.
+%The difference between the locations in the seasonal trends motivates finding a way to model the coefficients of the trends flexibly by location.  We will discuss this further in the next section.
+
+Since we want the temporal trends to capture the temporal variability
+we also study the auto correlation function of the residuals to determine
+how much temporal dependence remains after fitting the temporal trends. If 
+the temporal trends do a good job of capturing temporal variability, there 
+should be little to no temporal correlation in the residuals.  To investigate 
+how well the trends have captured the temporal variability we study the 
+auto-correlation plots in \autoref{fig:autocorr}.
+
+<<label=figAutocorr, eval=FALSE>>=
+##Autocorrelation of the residuals at four locations,
+##see \autoref&fig:autocorr;
+par(mfcol=c(2,2),mar=c(2.5,2.5,3,.5))
+plot(mesa.data, "acf", ID=1)
+plot(mesa.data, "acf", ID=5)
+plot(mesa.data, "acf", ID=13)
+plot(mesa.data, "acf", ID=18)
+@
+
+\begin{figure}[!htb]
+\centering
+<<fig=TRUE, echo=FALSE>>=
+<<figAutocorr>>
+@
+\caption{Auto-correlation functions for four locations}
+\label{fig:autocorr}
+\end{figure}
+
+The plots in \autoref{fig:autocorr} show us the auto-correlation functions at four different locations.  Taken as a whole, these plots show us what we want to see: little to no correlation (rarely stronger than $\pm 0.2$) in the residuals at any time lag.  
+These plots, together with the ones above it, give credence to the assumptions of the SpatioTemporal model: 
+residual fields that have mean 0 and are uncorrelated over time.  It appears that the temporal trends are aptly 
+capturing the seasonal variability.
+
+\section{Empirical Estimation of the \texorpdfstring{$\beta$}{\textbeta}--Fields}\label{sec:beta_fields}
+The advantage of the spatio\hyp{}temporal model is the ability to allow the temporal fluctuation of \no{x} to vary based on the geographic characteristics of various locations \eqref{eqn:mean_model}.  This is done by allowing the coefficients of the temporal trends in the model to depend on land-use regression covariates \eqref{eqn:beta_fields}.  The coefficients of the temporal trends are what we refer to as the $\beta$--fields, which we will now estimate using an empirical approach \citep[see][for more details]{Szpiro10a}.
+
+Recall \ttt{D}, which was the $\Sexpr{dim(D)[1]} \times \Sexpr{dim(D)[2]}$ data 
+matrix of the $n=\Sexpr{dim(D)[2]}$ locations with the (up to) 
+$T=\Sexpr{dim(D)[1]}$ observations over time.  
+Given smooth temporal trends we fit each of the times series of
+observations to the smooth trends and extract the regression
+coefficients.
+<<>>=
+##create data matrix
+D <- createDataMatrix(mesa.data)
+beta <- matrix(NA,dim(D)[2], dim(mesa.data$trend)[2])
+beta.std <- beta
+##extact the temporal trends
+F <- mesa.data$trend
+##drop the date column
+F$date <- NULL
+
+##estimate the beta-coeficients at each location
+for(i in 1:dim(D)[2]){
+  tmp <- lm(D[,i] ~ as.matrix(F))
+  beta[i,] <- coef(tmp)
+  beta.std[i,] <- sqrt(diag(vcov(tmp)))
+}
+
+##Add names to the estimated betas
+colnames(beta) <- c("const",colnames(F))
+rownames(beta) <- colnames(D)
+dimnames(beta.std) <- dimnames(beta)
+@
+Finally we study the estimated regression coefficients:
+<<>>=
+##examine the beta fields
+head(beta)
+@
+And the uncertainty in the estimation
+<<>>=
+head(beta.std)
+@
+
+These are the $\beta$--fields that will be modelled using
+geographic covariates in the full spatio\hyp{}temporal model.  Here, \ttt{beta} is a $\Sexpr{dim(beta)[1]} \times \Sexpr{dim(beta)[2]}$ matrix with 
+$\beta_0(s), \beta_1(s),$ and $\beta_2(s)$ representing 
+regression coefficients for the intercept and two temporal trends at each of the \Sexpr{dim(beta)[1]} locations.  
+
+The selection of geographic covariates could be done by comparing these fields
+to the available covariates. However, the variable selection is outside the
+ scope of this tutorial \citep[see][for some possible alternatives]{Mercer11}. 
+For now we just keep the values and will (eventually) compare them
+to results from the full model.
+
+\section{\ttt{createSTmodel()}: Specifying the Spatio-Temporal model}
+
+This section discusses how to specify everything we need to fit the Spatio-Temporal
+model.  Recall that the covariance matrices of each $\beta_i$-field is characterised 
+by two parameters, $\phi_i$ and $\sigma_i^2$, where $\phi_i$ is the range and
+$\sigma_i^2$ is the partial sill \eqref{eqn:covar_beta_par}; we are assuming
+a zero nugget for the $\beta$-fields. The covariance for the spatio\hyp{}temporal 
+residuals are characterised by three parameters, $\phi_\nu$, $\sigma^2_\nu$, 
+and $\tau^2_\nu$ \eqref{eqn:covar_nu_par}; respectively denoting range, 
+partial sill and nugget \citep{Lindstrom11,Sampson09,Szpiro10a}. These are
+the parameters that we need to estimate using maximum-likelihood.  We need to specify the 
+type of spatial covariance model (e.g., exponential) to use for each $\beta$-fields
+and the $\nu$-field, and define the covariates
+we want for each of the $\beta$-fields.  The 
+regression parameters \eqref{eqn:regression_par} are implicitly estimated 
+since we will be using a profile likelihood formulation, see 
+\citet{Lindstrom11} for details.
+
+First we will create the input for \ttt{createSTmodel()} that gives the LUR covariates
+to be used for each of the $\beta$-fields; and define the spatial covariace model for each 
+$\beta$-field and the $\nu$-field.  This is done accordingly:
+
+<<>>=
+##define land-use covariates
+LUR <-  list(c("log10.m.to.a1", "s2000.pop.div.10000", "km.to.coast"),
+             "km.to.coast", "km.to.coast")
+##and covariance model
+cov.beta <- list(covf="exp", nugget=FALSE)
+cov.nu <- list(covf="exp", nugget=TRUE, random.effect=FALSE)
+@
+
+The above code shows that we want to use three LUR variables to model the $\beta_0$-field, 
+namely, $\log_{10}$ meters to A1 road, population density, and kilometers to coast.
+We will use only the variable kilometer to coast to model the $\beta_1$- and $\beta_2$-fields.
+We are specifying an exponential covariance for the $\beta$-fields, and specifying that we are
+not going to estimate a nugget; we also use an exponential covariance for the $\nu$-field but saying
+that we want to estimate a nugget.  The \ttt{random.effect=FALSE} option specifies that we 
+want to use a constant nugget.  
+
+Next we specify a list which tells us which variable names in the \ttt{STdata\$covars}
+data frame correspond to the locations:
+
+<<>>=
+##which locations to use
+locations <- list(coords=c("x","y"), long.lat=c("long","lat"), 
+  others="type")
+@
+
+And finally, we create the \ttt{STmodel} object:
+
+<<>>=
+##create object
+mesa.model <- createSTmodel(mesa.data, LUR=LUR, cov.beta=cov.beta,
+                            cov.nu=cov.nu, locations=locations)
+print(mesa.model)
+@
+
+The above output summarizes the model specifications we've made: which LUR covariates we use to model
+each of the $\beta$-fields;  exponential covariances
+with no nugget for each of the $\beta$-fields, and an exponential covariance
+with constant nugget for the $\nu$-field.  
+
+Note there is quite a bit of flexibility in specification of the $\beta$-fields.
+We can specify different covariance models
+for each one, and allow some of them to have nuggets, by using the \ttt{updateCovf()} function.
+The proceeding code specifies an exponential covariance for the $\beta_0$-field;
+a Gaussian/double exponential covariance for the $\beta_1$-field, and i.i.d. $\beta_2$-field.
+We also need to allow for a nugget in the i.i.d. $\beta_2$-field, which we can also specify.
+The help file for \ttt{namesCovFuns()} gives a description of all the available
+covariance functions.
+
+<<>>=
+cov.beta2 <- list(covf=c("exp","exp2","iid"),nugget=c(FALSE,FALSE,TRUE))
+mesa.model2 <- updateCovf(mesa.model,cov.beta=cov.beta2)
+print(mesa.model2)
+@
+
+
+
+\section{Estimating the Model} \label{sec:estimation}
+We are now ready to fit the entire spatio\hyp{}temporal model 
+\eqref{eqn:model_full} to data.
+
+
+\subsection{Parameter Estimation} \label{sec:par_estimation}
+Before we estimate the parameters, we can look at the important dimensions of the model:
+
+<<>>=
+model.dim <- loglikeSTdim(mesa.model)
+model.dim
+@
+\ttt{T} gives us the number of time points; \ttt{m} the number of $\beta$-fields;
+\ttt{n} the number of locations; \ttt{n.obs} the number of observed locations (equal to 
+\ttt{n} in this case, since we have no unobserved locations);
+\ttt{p} a vector giving the number of regression coefficients for each of the $\beta$-fields;
+\ttt{L} the number of spatio-temporal covariates.  The rest of the output
+gives numbers of parameters by field, and total number of parameters.  An important
+dimension is \ttt{nparam.cov}, which gives us the total number of covariance parameters.
+Since the regression coefficients are estimated by profile likelihood, in essence only
+the covariance parameters need starting values specified.  We do this accordingly: 
+
+<<>>=
+##Setting up the initial parameter values for optimization
+x.init <- cbind(rep(2,model.dim$nparam.cov), 
+                c(rep(c(1,-3),model.dim$m+1),-3))
+x.init
+@
+
+Here each column of \ttt{x.init} contains a starting value for the optimisation
+ process in estimating the MLE's of the 9 covariance parameters. Note that 
+these are starting values for only the optimisation of the covariance 
+parameters; once those have been optimised, the maximum-likelihood estimate 
+of the regression coefficients can be inferred using generalised least squares 
+\citep[see][for details]{Lindstrom11}. In general \ttt{x.init} should be a 
+(\ttt{nparam.cov})-by-(number of starting points) matrix, or just a 
+vector of length \ttt{nparam.cov} vector if only one starting point is 
+desired.
+
+What parameters are we specifying the starting points for?  We can verify this using \ttt{loglikeSTnames}:
+
+<<>>=
+loglikeSTnames(mesa.model,all=FALSE)
+@
+
+This gives the order of variables in \ttt{x.init} and also tells us which 
+of the parameters are logged. Specifying \ttt{all=FALSE} gives us 
+only the covariance parameters. 
+
+<<>>=
+##Add names to the initial values
+rownames(x.init) <- loglikeSTnames(mesa.model,all=FALSE)
+x.init
+@
+
+
+We are now ready to estimate the model parameters!
+\warnCode
+
+<<eval=FALSE>>=
+##Estimate model parameters
+est.mesa.model <- estimate(mesa.model, x.init, type="p", 
+    hessian.all=TRUE)
+@
+\begin{verbatim}
+Optimisation using starting value 1/2
+N = 9, M = 5 machine precision = 2.22045e-16
+At X0, 0 variables are exactly at the bounds
+At iterate     0  f=       6266.3  |proj g|=           17
+At iterate    10  f =      -5723.4  |proj g|=        19.483
+At iterate    20  f =      -5727.4  |proj g|=        4.1738
+At iterate    30  f =      -5731.4  |proj g|=        5.0493
+At iterate    40  f =      -5732.2  |proj g|=       0.34874
+
+iterations 48
+function evaluations 69
+segments explored during Cauchy searches 51
+BFGS updates skipped 0
+active bounds at final generalized Cauchy point 0
+norm of the final projected gradient 0.0543287
+final function value -5732.2
+
+F = -5732.2
+final  value -5732.201762 
+converged
+Optimisation using starting value 2/2
+N = 9, M = 5 machine precision = 2.22045e-016
+At X0, 0 variables are exactly at the bounds
+At iterate     0  f=      -3987.4  |proj g|=           14
+At iterate    10  f =      -5727.4  |proj g|=        7.6344
+At iterate    20  f =      -5731.6  |proj g|=        7.1355
+At iterate    30  f =      -5732.1  |proj g|=         1.046
+At iterate    40  f =      -5732.2  |proj g|=       0.95107
+At iterate    50  f =      -5732.2  |proj g|=       0.10955
+Bad direction in the line search;
+   refresh the lbfgs memory and restart the iteration.
+
+iterations 51
+function evaluations 102
+segments explored during Cauchy searches 55
+BFGS updates skipped 0
+active bounds at final generalized Cauchy point 0
+norm of the final projected gradient 0.109547
+final function value -5732.2
+
+F = -5732.2
+l(0) > u(0).  No feasible solutionfinal  value -5732.201035 
+converged
+\end{verbatim}
+
+\altCode
+<<>>=
+##Get the precomputed optimisation results instead.
+data(est.mesa.model)
+@
+\altEnd
+The function \ttt{estimate()} estimates all the model parameters.  Specifying \ttt{type="p"} 
+indicates we want to maximize the profile likelihood.  \ttt{hessian.all=TRUE}
+indicates we want the Hessian for \textit{all} model parameters; if we leave
+this entry blank, the default will compute the Hessian for only the log-covariance
+parameters.
+
+
+From the output, which is mainly due to the internal function
+\ttt{optim}, we see that the two optimisation consumed $69$ and $102$ 
+function evaluations each and ended with the same value, $-5732.2$. 
+The exact behaviour, including amount of progress information, of 
+\ttt{optim} is controlled by the pass-through argument 
+\ttt{control = list(trace=3, maxit=1000)}.
+
+The log-likelihood function called by \ttt{estimate()} is included 
+in the package as \ttt{loglikeST}, with \ttt{loglike.grad} and 
+\ttt{loglike.hessian} computing the finite difference gradient and
+hessian of the log-likelihood functions. In case of trouble with the
+optimisation the user is recommended to study the behaviour of the 
+log-likelihood.
+
+Here we just verify that the log-likelihood value given parameters from
+the optimisation actually equals the maximum reported from the optimisation.
+%\vspace*{-0.5\baselineskip} 
+<<>>=
+loglikeST(est.mesa.model$res.best$par, mesa.model)
+est.mesa.model$res.best$value
+@
+
+\subsection{Evaluating the Results}\label{sec:evaluating_results}
+The first step in evaluating the optimisation results is to study the 
+message included in the output from \ttt{estimate()}, as well as the converged
+parameter values from the two starting points:
+%\vspace*{-0.5\baselineskip} 
+
+<<>>=
+##Optimisation status message
+print(est.mesa.model)
+@
+%$
+The message at the top of the output indicates that of our 2 starting points both converged,
+and the best overall result was found for the first starting value.
+
+The function \ttt{estimate()} determines convergence for a given 
+optimisation by studying the \ttt{convergence} field in the output 
+from \ttt{optim}, with $0$ indicating a successful completion; 
+followed by an evaluation of the eigenvalues of the Hessian (the 
+$2^\text{nd}$ derivative of the log-likelihood) to determine if the 
+matrix is negative definite; indicating that the optimisation has 
+found a (local) maximum.
+
+\textbf{Studying} \ttt{est.mesa.model}:
+%\vspace*{-0.5\baselineskip} 
+<<>>=
+names(est.mesa.model)
+@
+
+we see that \ttt{estimate()}, in addition to the message above, 
+returns the results from all the optimisations and the best possible 
+result. Here \ttt{res.all} is a list with the optimisation 
+results for each starting point, and \ttt{res.best} contains the 
+``best'' optimisation results.
+
+Examining the optimisation results
+\vspace*{-0.5\baselineskip} 
+<<>>=
+names(est.mesa.model$res.best)
+names(est.mesa.model$res.all[[1]])
+names(est.mesa.model$res.all[[2]])
+@
+  
+we see that the results include several different fields --- 
+\begin{description}
+\item[\ttt{par}] The estimated log-covariance parameters.
+\item[\ttt{value}] The value of the log-likelihood.
+\item[\ttt{counts}] The number of function evaluations.
+\item[\ttt{convergence} and \ttt{message}] Convergence information 
+  from \ttt{optim}.
+\item[\ttt{conv}] An indicator of convergence that combines \ttt{convergence} 
+  with a check if the Hessian is negative definite
+\item[\ttt{hessian}] The Hessian of the profile log-likelihood.
+\item[\ttt{par.cov}] A data frame containing estimates, estimated standard errors,
+initial or fixed values depending on whether we estimated or fixed the various
+parameters (in this case, all were estimated), and t-statistics for the log-covariance
+parameters
+\item[\ttt{par.all}] The same summary as \ttt{par.cov}, but for all the parameters of the model.
+The regression coefficents are computed using
+  generalised least squares \citep[See][for details.]{Lindstrom11}.
+\item[\ttt{hessian.all}] The Hessian of the full log-likelihood,
+  this is {\em only} computed for the best starting point, 
+  \ttt{par.est\$res.best}.
+\end{description}
+
+Refer back to the output from \ttt{print(est.mesa.model)}; we consider
+now the two columns of parameter estimates resulting from the two starting values.
+  The parameters are similar but not identical, with the biggest 
+difference being for \ttt{log.range.V1}. The differences have to do
+with where and how the numerical optimisation stopped/converged.
+Due to the few locations (only 25) the log-likelihood is flat, implying 
+that even with some variability in the parameter values we will still 
+obtain {\em very} similar log-likelihood values.
+
+The flat log-likelihood implies that some parameter estimates 
+will be rather uncertain. Extracting the estimated parameters and 
+computing the parameter uncertainties,
+we can now plot the estimated parameters along with approximate 
+confidence intervals, see \autoref{fig:conf_int}.
+\vspace*{-0.5\baselineskip} 
+<<>>=
+##extract the estimated parameters and approximate uncertainties
+x <- est.mesa.model$res.best$par.all
+@
+
+
+\ttt{\#\#Plot the estimated parameters with uncertainties, see \autoref{fig:conf_int}}%
+\vspace*{-1\baselineskip}
+
+<<label=figParCI, eval=FALSE>>=
+##plot the estimated parameters with uncertainties
+par(mfrow=c(1,1),mar=c(13.5,2.5,.5,.5))
+plot(x$par, ylim=range(c( x$par-1.96*x$sd, x$par+1.96*x$sd )),
+     xlab="", xaxt="n")
+points(x$par - 1.96*x$sd, pch=3)
+points(x$par + 1.96*x$sd, pch=3)
+axis(1, 1:length(x$par), rownames(x), las=2)
+@
+
+\begin{figure}[!htb]
+\centering
+<<fig=TRUE, echo=FALSE>>=
+<<figParCI>>
+@
+\caption{Estimated parameters and their 95\% confidence intervals from the first
+starting point.}
+\label{fig:conf_int}
+\end{figure}
+
+In the above \ttt{x} contains the 17 estimated parameters including 
+the spatial coefficients for the $\beta$-fields, the covariance parameters 
+for the $\beta$-fields, and the covariance parameters for the spatial-temporal 
+residual fields, $\nu$. \ttt{par.sd} contains the approximate standard errors
+of those estimated parameters, computed using the Hessian (i.e.\ the 
+observed information matrix) and assuming standard asymptotic properties 
+for ML-estimators \citep[Chap.~10,][]{CasellaBerger02}.
+
+
+From \autoref{fig:conf_int} we note that the confidence intervals of the 
+covariance parameters for the spatial-temporal residual field are much 
+smaller than those of the covariance parameters that characterise the 
+$\beta$-fields.
+
+The wide confidence intervals for the $\beta$-field covariance parameters 
+is because the effective number of ``observations'' that go into 
+estimating the $\beta$-field covariance parameters is only 25, 
+while the entire contingent of observations (4577 in this data set) can be 
+used to estimate the covariance parameters of the spatial-temporal residual 
+fields. Another way of seeing this is that we have {\em only one replicate}
+of each $\beta$-field --- given by the regression of observations on the 
+smooth-temporal basis functions --- but $T$ replicates of the residual 
+field, {\em one for each timepoint} --- given by the residuals from 
+the regression.
+
+Either way, the larger sample size for the residual field is making
+the standard error for those covariance parameters smaller, 
+leading to tighter confidence intervals.
+
+\subsection{Predictions} \label{sec:predictions}
+Having estimated the model parameters we use \ttt{cond.expectation} 
+to compute the conditional expectations of different parts of the model.
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+##compute conditional expectations (takes roughly 1 min)
+EX <- cond.expectation(par.est$res.best$par, mesa.data.model,
+                       compute.beta = TRUE)
+\end{verbatim}
+The results from \ttt{cond.expectation} contains the following elements
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+> names(EX)
+[1] "pars"       "EX.beta.mu" "EX.beta" "VX.beta" "EX.mu"     
+[6] "EX.mu.beta" "EX"         "VX"      "VX.full" "I"         
+\end{verbatim}
+The most important components of these results are the
+estimated $\beta$-fields and their variances (\ttt{EX.beta} and 
+\ttt{VX.beta}); as well as the conditional expectations 
+and variances at all the $280 \times 25$ space\hyp{}time 
+locations (\ttt{EX} and \ttt{VX}).
+
+All the components of \ttt{EX} are compute conditional on the 
+estimated parameters and observed data; the components are:
+\begin{description}
+\item[\ttt{pars}] The regression parameters in \eqref{eqn:regression_par}, 
+computed using generalised least squares \citep[see][for details]{Lindstrom11}.
+\item[\ttt{EX.beta}] The expected latent $\beta$-fields.
+\item[\ttt{EX.beta.mu}] The mean component of the latent $\beta$-fields, 
+i.e.\ the $X_i \alpha_i$ part of \eqref{eqn:beta_fields}.
+\item[\ttt{VX.beta}] The conditional variance of the latent $\beta$-fields
+  in \ttt{EX.beta}.
+\item[\ttt{EX}] The expected spatio-temporal process \eqref{eqn:model_decomp},
+   or \\ $\pE(y(s,t) \vert \Psi, \text{observations})$.
+\item[\ttt{EX.mu}] The regression component of the spatio-temporal process,
+  $$
+    \mu(s,t) = \sum_{l=1}^L \gamma_l \M_l(s,t) + 
+    \sum_{i=1}^{m} X_i \alpha_i f_i(t).
+  $$
+  Note that this differs from \eqref{eqn:mean_model}.
+\item[\ttt{EX.mu.beta}] The mean part \eqref{eqn:mean_model} of the 
+  spatio-temporal process \eqref{eqn:model_decomp}.
+\item[\ttt{VX}] The conditional variance of the spatio-temporal process
+  in \ttt{EX}.
+\item[\ttt{VX.full}] A list containing the temporal covariance
+  matrix for each reconstructed time-series. This is needed to correctly
+  compute confidence intervalls for long term average pollution at
+  each location.
+\item[\ttt{I}] An index vector that can be used to extract the observed 
+  spatio-temporal locations from \ttt{EX}, \ttt{EX.mu}, and/or 
+  \ttt{EX.mu.beta}.
+\end{description}
+The decomposition of the predictions could potentially be used for 
+model evaluation.
+
+First we compare the $\beta$-fields computed by fitting each of the
+times series of observations to the smooth trends, with the $\beta$-fields 
+obtained from the full model. Recall that the simple, or empirical, estimate
+of the $\beta$-fields was computed in \autoref{sec:beta_fields} above with
+the results are contained in the \ttt{beta}.
+
+\ttt{\#\#Plot that compares two estimated beta-fields, see \autoref{fig:betafields}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfcol=c(1,1), mar=c(4.5,4.5,2,.5), pty="s")
+plotCI(x=beta[,1], y=EX$EX.beta[,1],
+       uiw=1.96*beta.std[,1], err="x",
+       main="Intercept", pch=NA, sfrac=0.005,
+       xlab="Empirical estimate",
+       ylab="Spatio-Temporal Model")
+plotCI(x=beta[,1],y=EX$EX.beta[,1],
+       uiw=1.96*sqrt(EX$VX.beta[,1]),
+       add=TRUE, pch=NA, sfrac=0.005)
+abline(0,1,col="grey")
+\end{verbatim}
+%$
+The above code compares the two estimates of the $\beta$-field for 
+$f_1(t)\equiv 1$ and produces \autoref{fig:betafields}.
+We can of course also look at the $\beta$-fields for
+the two smooth temporal trend, $f_2$ and $f_3$.
+
+\ttt{\#\#Plot that compares the other beta-fields, see \autoref{fig:betafields2}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfcol=c(1,2), mar=c(4.5,4.5,2,.5), pty="s")
+for(i in 2:3){
+  plotCI(x=beta[,i], y=EX$EX.beta[,i],
+         uiw=1.96*beta.std[,i], err="x",
+         main=colnames(beta)[i], pch=NA, sfrac=0.005,
+         xlab="Empirical estimate",
+         ylab="Spatio-Temporal Model")
+  plotCI(x=beta[,i],y=EX$EX.beta[,i],
+         uiw=1.96*sqrt(EX$VX.beta[,i]),
+         add=TRUE, pch=NA, sfrac=0.005)
+  abline(0,1,col="grey")
+}
+\end{verbatim}
+%$
+We can see from \autoref{fig:betafields} and \ref{fig:betafields2} that 
+the two ways of computing the $\beta$-fields lead to very comparable 
+results. The largest discrepancies lie with the coefficient for the second 
+temporal trend, where it appears the coefficients calculated via conditional 
+expectation are larger than those calculated by fitting the time series to 
+the temporal trend. However, the uncertainty in these coefficients is large.
+
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=\textwidth]{beta_comp}
+\caption{Comparing the two estimates of the $\beta$--field for the
+         constant temporal trend.}
+\label{fig:betafields}
+\end{figure}
+
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=\textwidth]{beta_comp2}
+\caption{Comparing the two estimates of the $\beta$--field for the
+         two smooth temporal trends.}
+\label{fig:betafields2}
+\end{figure}
+
+In addition to predictions of the $\beta$-fields, \ttt{cond.expectation}
+also computes the conditional expectation at all the $280 \times 25$ 
+space\hyp{}time locations.
+
+\ttt{\#\#plot predictions and observations for 4 locations, see \autoref{fig:pred_TS}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfrow=c(4,1),mar=c(2.5,2.5,2,.5))
+plotPrediction(EX,  1, mesa.data.model)
+lines(as.Date(rownames(EX$EX.mu)),EX$EX.mu[,1],col=3)
+lines(as.Date(rownames(EX$EX.mu.beta)),
+      EX$EX.mu.beta[,1],col=4)
+plotPrediction(EX, 10, mesa.data.model)
+lines(as.Date(rownames(EX$EX.mu)),EX$EX.mu[,10],col=3)
+lines(as.Date(rownames(EX$EX.mu.beta)),
+      EX$EX.mu.beta[,10],col=4)
+plotPrediction(EX, 17, mesa.data.model)
+lines(as.Date(rownames(EX$EX.mu)),EX$EX.mu[,17],col=3)
+lines(as.Date(rownames(EX$EX.mu.beta)),
+      EX$EX.mu.beta[,17],col=4)
+plotPrediction(EX, 22, mesa.data.model)
+lines(as.Date(rownames(EX$EX.mu)),EX$EX.mu[,22],col=3)
+lines(as.Date(rownames(EX$EX.mu.beta)),
+      EX$EX.mu.beta[,22],col=4)
+\end{verbatim}
+Plotting these predictions along with 95\% confidence intervals, the
+components of the predictions, and the observations at 4 different 
+locations indicates that the predictions 
+capture the seasonal variations in the data, see \autoref{fig:pred_TS}.
+Since the predictions are conditional on the observations (and estimated
+parameters) predictions at the observed locations of course coincides with
+the observations. Adding the components of the predictions that are due
+to only the regression (green) and both regression and $\beta$-fields 
+(blue) allows us to investigate how the different parts of the model
+capture observations.
+
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=\textwidth]{pred_time_series}
+\caption{The predicted and observed data for 4 of the 25 locations.
+         The red-lines denote observations, the black line and grey
+         shading give predictions and 95\% confidence intervals at
+         unobserved time\hyp{}points. The green and blue give the contribution
+         to the predictions from the regression and regression + 
+         $\beta$-fields respectively.}
+\label{fig:pred_TS}
+\end{figure}
+
+\section{Cross-validation}\label{sec:CV}
+As a last step in the tutorial we will study a cross-validation (CV) 
+example. The first step is to define 10 CV groups:
+\vspace*{-0.5\baselineskip}
+{\small \begin{verbatim}
+##create the CV structure defining 10 different CV-groups
+> Ind.cv <- createCV(mesa.data.model, groups=10, min.dist=.1)
+> head(Ind.cv)
+      [,1]  [,2]  [,3]  [,4]  [,5]  [,6]  [,7]  [,8]  [,9] [,10]
+[1,]  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
+[2,] FALSE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
+[3,] FALSE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE FALSE FALSE
+[4,] FALSE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
+[5,] FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE  TRUE
+[6,] FALSE FALSE FALSE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE
+\end{verbatim}
+}
+Here \ttt{Ind.cv} is a $4577 \times 10$ matrix where each column defines
+a CV-group. The columns contain logical values indicating which of the 
+observations to leave out. For each column, we are going to use our model 
+to predict at the observations marked by \ttt{TRUE} using all of the 
+observations marked \ttt{FALSE}. Once we have done this for each 
+CV-group/column we can compare our predictions to the truth and 
+calculate cross-validated statistics such as RMSE and $\mathrm{R}^2$.
+
+However first we will take a closer look at the CV-groupings.
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+##number of observations in each CV-group
+> colSums(Ind.cv)
+ [1] 438 389 811 556 546 165 228 487 160 797
+\end{verbatim}
+We see that the number of observations left out of each group is
+rather uneven; the main goal of \ttt{createCV} is to create 
+CV-groups such that the groups contain roughly the same 
+{\em number of locations} ignoring the number of observations at 
+each location. If there are large differences in the number of 
+observations at different locations one could use the \ttt{subset}
+option to create different CV-groupings for different types of 
+locations, possibly combining the resulting CV-groups by 
+\ttt{Ind.cv.final = Ind.cv1 | Ind.cv2}.
+
+If we instead look at which sites that will be excluded from which CV-group:
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+##Which sites belong to which groups?
+> ID.cv <- lapply(apply(Ind.cv,2,list),function(x) 
++                 unique(mesa.data.model$obs$ID[x[[1]]]))
+> ID.cv
+[[1]]
+[1] "60370002" "L002"     "LC001"   
+
+[[2]]
+[1] "60371002" "60370030" "LC003"   
+
+[[3]]
+[1] "60370016" "60371301" "60374002"
+
+[[4]]
+[1] "60371201" "60372005"
+
+[[5]]
+[1] "60591003" "60595001"
+
+[[6]]
+[1] "60370031" "60375005"
+
+[[7]]
+[1] "60375001" "60590001"
+
+[[8]]
+[1] "60370113" "60590007"
+
+[[9]]
+[1] "LC002"    "60371602"
+
+[[10]]
+[1] "60371103" "60371601" "60371701" "L001"    
+\end{verbatim}
+We see that the groups are a lot more even. The four sites in the
+$10^\text{th}$ group is due to the fact that \ttt{60371701} and 
+\ttt{L001} are colocated.
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+##Distances between the sites in the 10th CV-group
+> mesa.data.model$dist[ID.cv[[10]],ID.cv[[10]]]
+            60371103 60371601 60371701        L001
+60371103  0.00000000 16.36527 43.75141  0.08363892
+60371601 16.36527030  0.00000 29.06447 16.44669372
+60371701 43.75141252 29.06447  0.00000 43.83429713
+L001      0.08363892 16.44669 43.83430  0.00000000
+\end{verbatim}
+%$
+By studying the distance between the sites in the $10^\text{th}$ group
+we see that the \ttt{60371701} and \ttt{L001} are only $0.084$ km apart,
+which is less than the \ttt{min.dist=.1} specified in the 
+\ttt{createCV}-call above. This causes \ttt{createCV} to lump the two 
+sites together, treating them as ``one'' site when creating the CV-grouping.
+
+Instead of creating a list with which site(s) get dropped in each CV-group
+is might be more useful with a vector that, for each site, indicates
+which CV-group it belongs to.
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+##Find out which location belongs to which cv group
+> I.col <- apply(sapply(ID.cv,
++     function(x) mesa.data.model$location$ID %in% x),1,
++     function(x) if(sum(x)==1) which(x) else 0)
+> names(I.col) <- mesa.data.model$location$ID
+> I.col
+60370002 60370016 60370030 60370031 60370113 60371002 60371103 
+       1        3        2        6        8        2       10
+60371201 60371301 60371601 60371602 60371701 60372005 60374002
+       4        3       10        9       10        4        3
+60375001 60375005 60590001 60590007 60591003 60595001     L001
+       7        6        7        8        5        5       10
+    L002    LC001    LC002    LC003 
+       1        1        9        2 
+\end{verbatim}
+Using this vector we can plot the sites on a map, colour-coded by 
+which CV-group they belong to, see \autoref{fig:mapCV}.
+
+\ttt{\#\#Plot the locations, colour coded by CV-grouping, see \autoref{fig:mapCV}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfrow=c(1,1))
+plot(mesa.data$covars$long,mesa.data$covars$lat,
+     pch=23+floor(I.col/max(I.col)+.5), bg=I.col, 
+     xlab="Longitude",ylab="Latitude")
+
+##Add the map of LA
+map("county","california",col="#FFFF0055",fill=TRUE,add=TRUE)
+\end{verbatim}
+
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=\textwidth]{mapCV}
+\caption{Location of monitors in the Los Angeles area. The different
+         cross-validation groups are indicated by colour and shape of 
+         the points, i.e.\ all points of the same colour and shape belong 
+         to the same cross-validation group.}
+\label{fig:mapCV}
+\end{figure}
+
+Having created the CV-grouping we need to estimate the parameters
+for each of the CV-groups and then predict the left out observations
+given the estimated parameters. The estimation and prediction is 
+described in \autoref{sec:CV_estimations} and \ref{sec:CV_predictions} 
+below.
+
+\subsection{Cross-validated Estimation}\label{sec:CV_estimations}
+Parameter estimation for each of the CV-groups is done by the
+\ttt{estimateCV} function, which calls \ttt{fit.mesa.model}.
+The inputs to \ttt{estimateCV} are similar to those of 
+\ttt{fit.mesa.model}. As described in \autoref{sec:par_estimation} 
+the estimation function require at least a \ttt{mesa.data.model} 
+and a matrix (or vector) of initial values, in addition to these
+\ttt{estimateCV} also requires a matrix describing the CV-grouping,
+e.g.\ \ttt{Ind.cv}.
+\vspace*{-0.5\baselineskip}
+\warnCode
+\begin{verbatim}
+##estimate different parameters for each CV-group
+dim <- loglike.dim(mesa.data.model)
+x.init <- cbind(rep(2,dim$nparam.cov),
+                c(rep(c(1,-3),dim$m+1),-3))
+par.est.cv <- estimateCV(x.init, mesa.data.model, Ind.cv)
+\end{verbatim}
+\altCode
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+##Get the precomputed CV-estimation results instead.
+par.est.cv <- mesa.data.res$par.est.cv
+\end{verbatim}
+\altEnd
+%$
+Since the parameter estimation for 10 CV-groups using two initial
+values takes some considerable time the results have been 
+pre-computed.
+
+We first study the results of the estimation.
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+#lets examine the results
+> names(par.est.cv)
+[1] "par"     "res.all"
+\end{verbatim}
+Here \ttt{par} is a matrix containing the estimated parameters for 
+each of the CV-groups,
+\vspace*{-0.5\baselineskip}
+{\small \begin{verbatim}
+> par.est.cv$par
+                     [,1]      [,2]      [,3]      [,4]      [,5]
+log.range.const  1.827772  2.343013  0.853828  2.335368  2.094403
+log.sill.const  -2.653389 -2.782688 -2.811791 -2.682343 -2.796057
+log.range.V1     3.036171  2.748023  2.552579  3.039957  2.689855
+log.sill.V1     -3.494985 -3.491094 -3.797869 -3.377405 -3.655132
+log.range.V2    -1.806757  1.897147 -2.618593  1.536771  1.563515
+log.sill.V2     -4.809735 -4.627417 -4.696091 -4.546989 -4.557741
+log.range.nu     4.578942  4.506398  4.705063  4.488070  4.220442
+log.sill.nu     -3.299564 -3.262670 -3.230799 -3.214886 -3.254663
+log.nugget.nu   -4.221845 -4.206128 -4.220209 -4.216576 -4.338722
+                     [,6]      [,7]      [,8]      [,9]     [,10]
+log.range.const  1.051494  1.335265  2.264926  1.673407  3.011853
+log.sill.const  -2.894746 -2.735022 -2.771816 -2.665607 -2.696889
+log.range.V1     2.834853  2.809474  3.197457  2.811640  2.922013
+log.sill.V1     -3.548835 -3.511821 -3.508199 -3.596125 -3.409934
+log.range.V2    -1.973050 -1.621618  2.305343 -1.661328  1.679843
+log.sill.V2     -4.718497 -4.562417 -4.841537 -4.781818 -4.556341
+log.range.nu     4.371704  4.424812  4.312572  4.409028  4.226999
+log.sill.nu     -3.198788 -3.263056 -3.211409 -3.231683 -3.175562
+log.nugget.nu   -4.524629 -4.260814 -4.443111 -4.283517 -4.276639
+\end{verbatim}
+}%$
+ and \ttt{res.all} is a list storing the \ttt{res.best} field
+from the output of \ttt{fit.mesa.model} for each of the 
+CV-groups.
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+> str(par.est.cv$res.all[[1]])
+List of 9
+ $ par        : Named num [1:9] 1.83 -2.65 3.04 -3.49 -1.81 ...
+  ..- attr(*, "names")= chr [1:9] "log.range.const" ...
+ $ value      : num 5170
+ $ counts     : Named int [1:2] 103 103
+  ..- attr(*, "names")= chr [1:2] "function" "gradient"
+ $ convergence: int 0
+ $ message    : chr "CONVERGENCE: REL_REDUCTION_OF_F ..."
+ $ hessian    : num [1:9, 1:9] -2.2384 1.4527 -0.0766 ...
+ $ conv       : logi TRUE
+ $ par.init   : Named num [1:9] 2 2 2 2 2 2 2 2 2
+  ..- attr(*, "names")= chr [1:9] "log.range.const" ...
+ $ par.all    : Named num [1:17] 3.8571 -0.2426 0.033 ...
+  ..- attr(*, "names")= chr [1:17] "alpha.const.const" ...
+\end{verbatim}
+
+Studying the \ttt{conv}-field in \ttt{res.all} 
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+> sapply(par.est.cv$res.all,function(x) x$conv)
+ [1] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
+\end{verbatim}
+we see that all optimisations have converged for all CV-groups.
+The field \ttt{par.init} gives information about which 
+initial value gave the best optimisation result, for each CV-group
+\vspace*{-0.5\baselineskip}
+{\small \begin{verbatim}
+> sapply(par.est.cv$res.all,function(x) x$par.init)
+               [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10]
+log.range.const   2    2    2    2    2    1    1    1    1     1
+log.sill.const    2    2    2    2    2   -3   -3   -3   -3    -3
+log.range.V1      2    2    2    2    2    1    1    1    1     1
+log.sill.V1       2    2    2    2    2   -3   -3   -3   -3    -3
+log.range.V2      2    2    2    2    2    1    1    1    1     1
+log.sill.V2       2    2    2    2    2   -3   -3   -3   -3    -3
+log.range.nu      2    2    2    2    2    1    1    1    1     1
+log.sill.nu       2    2    2    2    2   -3   -3   -3   -3    -3
+log.nugget.nu     2    2    2    2    2   -3   -3   -3   -3    -3
+\end{verbatim}
+}
+and we see that different initial values worked best for
+different CV-groups.
+
+Finally we can study the difference in the estimated parameters
+for the different CV-groups using a box-plot.
+
+\ttt{\#\#Boxplot of the different estimates from the CV, see \autoref{fig:CVparest}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfrow=c(1,1), mar=c(7,2.5,2,.5), las=2)
+boxplot(t(par.est.cv$par))
+points(par.est$res.best$par, pch=4, col=2)
+\end{verbatim}
+%$
+The result in \autoref{fig:CVparest}, shows some considerable 
+spread in the estimated variables, which can be compared to 
+the parameter estimates based on all the data in 
+\autoref{fig:conf_int}.
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=\textwidth]{CVparest}
+\caption{The estimated parameters for the 10 cross-validation groups,
+         the red cross marks the parameter estimates obtained from the
+         entire data in \protect{\autoref{fig:conf_int}}, 
+         \protect{\autoref{sec:par_estimation}}.}
+\label{fig:CVparest}
+\end{figure}
+
+\subsection{Cross-Validated Prediction} \label{sec:CV_predictions}
+Once the parameters have been estimated, \ttt{predictCV()} does 
+column-by-column predictions of the left-out observations denoted 
+by \ttt{TRUE} in the \ttt{Ind.cv} data set.
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+##Do cross-validated predictions using the newly 
+##estimated paremeters (takes roughly 1 minute)
+> pred.cv <- predictCV(par.est.cv$par, mesa.data.model,
++                      Ind.cv, silent = FALSE)
+[1] "Predicting cv-set 1/10"
+[1] "Predicting cv-set 2/10"
+[1] "Predicting cv-set 3/10"
+[1] "Predicting cv-set 4/10"
+[1] "Predicting cv-set 5/10"
+[1] "Predicting cv-set 6/10"
+[1] "Predicting cv-set 7/10"
+[1] "Predicting cv-set 8/10"
+[1] "Predicting cv-set 9/10"
+[1] "Predicting cv-set 10/10"
+\end{verbatim}
+%$
+This is done by computing the conditional expectation of the left-out 
+observations, as indicated in by the columns in \ttt{Ind.cv}, given all other
+observations and the estimated parameters.  The conditional expectation
+is computed under the assumption that the observed and ``unobserved'' (i.e., left out)
+locations follow a joint multivariate normal distribution characterised by the
+parameters we have estimated. Further details can be found in \citep{Lindstrom11,Szpiro10a}.
+It should be noted that the cross-validated predictions are conceptually identical to the
+predictions of unobserved locations descriped in \autoref{app:pred_unobs}.
+
+We first examine the results of the predictions:
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+> names(pred.cv)
+[1] "pred.obs"   "pred.by.cv" "pred.all"  
+\end{verbatim}
+Here the \ttt{pred.obs} contains a data frame with 
+predictions, prediction variances and observations for each
+observed space\hyp{}time location (this matches the observations in
+\ttt{mesa.data.model\$obs\$obs})
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+> head(pred.cv$pred.obs)
+          obs     pred   pred.var
+[1,] 4.577684 4.407115 0.14053531
+[2,] 4.131632 4.518086 0.14223372
+[3,] 4.727882 4.881646 0.09687876
+[4,] 5.352608 5.110592 0.17340530
+[5,] 5.281452 5.208341 0.08265215
+[6,] 4.984585 4.864277 0.20100392
+\end{verbatim}
+%$
+Since \ttt{pred.obs} {\em only gives predictions at observed}
+ space\hyp{}time locations the full predictions are collected
+in the list \ttt{pred.all}
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+> str(pred.cv$pred.all[[1]])
+ num [1:280, 1:3, 1:3] 4.58 3.89 4.01 4.08 3.73 ...
+ - attr(*, "dimnames")=List of 3
+  ..$ : chr [1:280] "1999-01-13" "1999-01-27" "1999-02-10" ...
+  ..$ : chr [1:3] "60370002" "L002" "LC001"
+  ..$ : chr [1:3] "obs" "pred" "pred.var"
+\end{verbatim}
+%$
+Each element in the list contains a 3D-array with predictions, 
+prediction variances and observations for the sites left out
+in the corresponding CV-group.
+
+Some standard cross-validation statistics can be obtained 
+through:
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+> pred.cv.stats <- summaryStatsCV(pred.cv, lta=TRUE, trans=0)
+> names(pred.cv.stats)
+[1] "Stats"    "res"      "res.norm" "lta"      "p"       
+\end{verbatim}
+Here \ttt{summaryStatsCV} computes prediction residuals, standardised 
+residuals, cross-validation statistics, and the long term average 
+at each site. Cross-validation statistics as well as the averages are
+computed on the {\em natural scale} (our observations are \lno{x}),
+with the {\em exponential back-transformation} being requested by the
+ \ttt{trans=0} option.
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+> pred.cv.stats$Stats
+        RMSE        R2  coverage
+obs 17.99432 0.7969228 0.9217828
+lta 12.44381 0.5433923        NA
+\end{verbatim} 
+%$
+For cross-validation statistics the function gives us RMSE, $\mathrm{R}^2$, 
+and the coverage of the observations by a calculated 95\% prediction 
+intervals. The cross-validated statistics show a RMSE that is reasonably 
+small, while the cross-validated $\mathrm{R}^2$ is reasonably large.  
+Also, the 95\% prediction intervals provide coverage that is close to 95\%, 
+at 0.922.
+
+As discussed above, the cross-validation function \ttt{predictCV} leaves one site out at a time and uses the estimated parameters to predict the left-out data.  To assess the model's predictive ability we plot four predicted time series (with 95\% confidence intervals),
+and the left out observations (in red), shown in \autoref{fig:pred_cv_ci}.
+
+\ttt{\#\#Plot observations with CV-predictions and}\\
+\ttt{\#\#95\% prediction intervals, see \autoref{fig:pred_cv_ci}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfcol=c(4,1),mar=c(2.5,2.5,2,.5))
+plotCV(pred.cv,  1, mesa.data.model)
+plotCV(pred.cv, 10, mesa.data.model)
+plotCV(pred.cv, 17, mesa.data.model)
+plotCV(pred.cv, 22, mesa.data.model)
+\end{verbatim}
+The object \ttt{pred.cv} contains the observations and 
+predictions made using \\
+\ttt{predictCV}.  Remember that this function takes our (number of 
+observations)-by-(number of groups) data frame of logical values 
+and predicts at the locations and times denoted by \ttt{TRUE}. The 
+function \ttt{plotCV} plots the observations and predictions with 
+corresponding 95\% prediction intervals for each location specified; 
+this is what we are specifying by the integers in e.g.\
+\ttt{plotCV(pred.cv, 1, mesa.data.model)}.  We can see the plots below:
+
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=\textwidth]{pred_cv_ci}
+\caption{Observed and predicted time series and 95\% prediction 
+         intervals at 4 locations}
+\label{fig:pred_cv_ci}
+\end{figure}
+
+In \autoref{fig:pred_cv_ci} we can see that the observations lie reasonably 
+close to the predicted \lno{x} concentrations.  The 95\% prediction 
+intervals also do a good job of covering the observations, and it 
+seems the model has performed well.
+
+Another option is to do a scatter plot of the left out data against the 
+predicted (points colour-coded by site), shown in \autoref{fig:pred_obs}.
+
+\ttt{\#\#Plot predicted vs. observed, see \autoref{fig:pred_obs}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfcol=c(1,1),mar=c(4.5,4.5,2,2))
+plot(pred.cv$pred.obs[,"obs"], pred.cv$pred.obs[,"pred"],
+     xlab="Observations", ylab="Predictions", pch=19,
+     cex=.1, col=mesa.data.model$obs$idx)
+abline(0,1,col="grey")
+\end{verbatim}
+Or a scatter plot of the average at each of the $25$ sites
+against the predicted averages, shown in \autoref{fig:pred_lta}.
+
+\ttt{\#\#Predicted long term average against observations} \\
+\ttt{\#\#(on the natural scale), see \autoref{fig:pred_lta}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfcol=c(1,1),mar=c(4.5,4.5,3.5,2))
+plot(pred.cv.stats$lta[,"obs"], pred.cv.stats$lta[,"pred"],
+     xlab="Observations", ylab="Predictions", main="Averages",
+     ylim=c(25,95), xlim=c(25,95))
+abline(0,1,col="grey")
+\end{verbatim}
+
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=\textwidth]{pred_vs_obs}
+\caption{Plot of observations vs. predictions, the 
+         points are colour-coded by site.}
+\label{fig:pred_obs}
+\end{figure}
+
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=\textwidth]{pred_lta}
+\caption{Plot of the observed long term average at each site against the
+         cross-validated predictions. The data has been back-transformed to
+         the original scale by taking exponents {\em before} computing the
+         averages.}
+\label{fig:pred_lta}
+\end{figure}
+
+\subsubsection{Residual Analysis} \label{sec:CV_residuals}
+Before we start with a more thorough residual analysis, we need to
+create an indicator vector for which season each observation belongs to.
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+##create a vector dividing data into four seasons
+I.season <- matrix(NA,length(mesa.data.model$obs$date),1)
+I.season[months(mesa.data.model$obs$date) %in%
+         c("December","January","February"),1] <- "DJF"
+I.season[months(mesa.data.model$obs$date) %in%
+         c("March","April","May"),1] <- "MAM"
+I.season[months(mesa.data.model$obs$date) %in%
+         c("June","July","August"),1] <- "JJA"
+I.season[months(mesa.data.model$obs$date) %in%
+         c("September","October","November"),1] <- "SON"
+I.season <- factor(I.season,levels=c("DJF","MAM","JJA","SON"))
+\end{verbatim}
+Given this we can investigate how many observations we have during 
+each season.
+\vspace*{-0.5\baselineskip}
+\begin{verbatim}
+> table(I.season)
+I.season
+ DJF  MAM  JJA  SON 
+1096 1223 1172 1086 
+\end{verbatim}
+
+We now take a look at the residuals from the prediction, to do this we 
+use the \ttt{pred.cv.stats} object computed above which contains 
+prediction residuals.  First we'll examine a residual QQ-plot to 
+assess the normality of the residuals, both raw and normalised, 
+shown in \autoref{fig:qqplots}.
+
+\ttt{\#\#Residual QQ-plots, see \autoref{fig:qqplots}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfrow=c(1,2),mar=c(3,2,1,1),pty="s")
+##Raw Residual QQ-plot
+CVresiduals.qqnorm(pred.cv.stats$res, I.season=I.season)
+##Normalized Residual QQ-plot
+CVresiduals.qqnorm(pred.cv.stats$res.norm, norm=TRUE,
+                   I.season=I.season)
+\end{verbatim}
+Here we have used the \ttt{I.season} indicator to colour code our 
+observations, this should help us to detect any seasonal effects on
+ the predictions.
+
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=\textwidth]{resid_qqplot}
+\caption{QQ-plots for the residuals, colour-coded by season.}
+\label{fig:qqplots}
+\end{figure}
+
+In \autoref{fig:qqplots} the raw residuals are on the left and the normalised on the right.  Both appear close to normal, though both have slightly heavier tails than a normal distribution.  Though the departure from normality is not drastic for either, the normalised residuals are noticeably closer to being approximately normally distributed.
+
+We can also plot the residuals versus the temporal trends or versus any 
+of the land use regression variables.  The residuals of the prediction are 
+contained in \ttt{pred.cv.stats\$res}. In \autoref{fig:resid_scatter} 
+we will plot the residuals against the first temporal trend and one of 
+the LUR variables used to model the 
+$\beta_0(s)$-field .
+
+\ttt{\#\#Residual Scatter Plots, see \autoref{fig:resid_scatter}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfcol=c(2,1),mar=c(4.5,4.5,2,2))
+CVresiduals.scatter(pred.cv.stats$res, mesa.data.model$F[,2],
+     I.season=I.season, xlab="First temporal smooth",
+     main="CV Residuals - All data")
+CVresiduals.scatter(pred.cv.stats$res, 
+     mesa.data.model$X[[1]][ mesa.data.model$obs$idx, 2],
+     I.season=I.season, main="CV Residuals - All data",
+     xlab=colnames(mesa.data.model$X[[1]])[2])
+\end{verbatim}
+%$
+Finally we can use the \ttt{mesa.data.model\$location\$type} field
+to distinguish between AQS and Mesa FIXED sites, doing separate
+plots for separate types of sites, see 
+\autoref{fig:resid_scatter_by_type}.
+
+\ttt{\#\#Residual Scatter Plots by type of site, see \autoref{fig:resid_scatter_by_type}}%
+\vspace*{-1\baselineskip}
+\begin{verbatim}
+par(mfcol=c(2,2),mar=c(4.5,4.5,2,2))
+CVresiduals.scatter(pred.cv.stats$res, 
+  mesa.data.model$X[[1]][ mesa.data.model$obs$idx, 2], I.type=
+  mesa.data.model$location$type[mesa.data.model$obs$idx],
+  I.season=I.season, xlab=colnames(mesa.data.model$X[[1]])[2], 
+  main="CV Residuals - ")
+\end{verbatim}
+%$
+
+The plots in \autoref{fig:resid_scatter} and \ref{fig:resid_scatter_by_type} show us residuals that are roughly centred around zero and that are relatively constant over space and time.  This is good to see: the model seems to be capturing the spatio\hyp{}temporal relationships of \no{x} in the data set.
+
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=\textwidth]{CVresids}
+\caption{Residual scatter plots}
+\label{fig:resid_scatter}
+\end{figure}
+
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=\textwidth]{CVresids_by_type}
+\caption{Residual scatter plots}
+\label{fig:resid_scatter_by_type}
+\end{figure}
+
+\clearpage
+\section*{Acknowledgements} \addcontentsline{toc}{section}{Acknowledgements}
+Data used in the examples has been provided by  {\bf the Multi-Ethnic Study 
+of Atherosclerosis and Air Pollution (MESA Air)}. Details regarding the data
+can be found in \citet{Cohen09,Wilton10}.
+
+Although this tutorial and development of the package described there in
+has been funded wholly or in part by the United States Environmental 
+Protection Agency through {\bf assistance agreement CR-834077101-0} 
+and {\bf grant RD831697} to the University of Washington, it has not 
+been subjected to the Agency's required peer and policy review and 
+therefore does not necessarily reflect the views of the Agency 
+and no official endorsement should be inferred.
+
+Travel for Johan Lindstr\"om has been paid by 
+{\bf STINT Grant IG2005-2047}.
+
+Additional funding was provided by grants to the University of 
+Washington from the {\bf National Institute of Environmental Health 
+Sciences (P50 ES015915)} and the {\bf Health Effects Institute 
+(4749-RFA05-1A/06-10)}.
+
+%%%%%%BIBLIOGRAPHY%%%%%%%%%
+\clearpage
+\bibliographystyle{apalike}
+\addcontentsline{toc}{section}{References}
+\bibliography{tutorial}
+
+\cleardoublepage
+\appendix
+\input{AppRcode} %DONE- Unless we change in the main tutorial
+\clearpage
+\input{AppUnobs} %DONE
+\clearpage
+\input{AppMCMC}  %DONE
+\clearpage
+\input{AppST}    %DONE
+\clearpage
+\input{AppSim}   %DONE
+\end{document}

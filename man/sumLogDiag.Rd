@@ -1,40 +1,21 @@
 \name{sumLogDiag}
-\encoding{latin1}
-\Rdversion{1.1}
 \alias{sumLogDiag}
-\title{
-  Sum the Logarithm of Diagonal Elements
-}
-\description{
-  Computes the sum of the logarithm of the diagonal elements in a
-  matrix. This corresponds to the logarithm of the determinant for a
-  Cholesky factor. Behaviour is undefined for any elements that are
-  <=0.
-}
+\title{Sum the Logarithm of Diagonal Elements}
 \usage{
-sumLogDiag(mat)
+  sumLogDiag(mat)
 }
 \arguments{
-  \item{mat}{
-    A square matrix (preferably a Cholesky factor).
-  }
+  \item{mat}{A square matrix (preferably a Cholesky
+  factor).}
 }
 \value{
   Sum of the logarithm of the diagonal elements.
 }
-\author{
-  \enc{Johan Lindström}{Johan Lindstrom}
-}
-\seealso{
-  \code{\link{chol}} or \code{\link{makeCholBlock}} for computation of
-  Cholesky factors.
-  
-  
-  Other block matrix functions \code{\link{dot.prod}}, 
-  \code{\link{block.mult}}, \code{\link{calc.tF.times.mat}}, 
-  and \cr \code{\link{calc.iS.X}}.
-  
-  This function is used by \code{\link{loglike}}.
+\description{
+  Computes the sum of the logarithm of the diagonal
+  elements in a matrix. This corresponds to the logarithm
+  of the determinant for a Cholesky factor. Behaviour is
+  undefined for any elements that are <=0.
 }
 \examples{
 #Create a covariance matrix
@@ -46,8 +27,19 @@ log(det(R))
 #compare with sum of the logarithm of diagonal elements
 sumLogDiag(R)
 \dontshow{
-if( abs(log(det(R)) - sumLogDiag(R)) > 1e-10 ){
-  stop("sumLogDiag: Results not equal")
+  if( abs(log(det(R)) - sumLogDiag(R)) > 1e-10 ){
+    stop("sumLogDiag: Results not equal")
+  }
 }
-}%\dontshow
-}%\examples
+
+}
+\author{
+  Johan Lindström
+}
+\seealso{
+  Other basic linear algebra: \code{\link{blockMult}},
+  \code{\link{crossDist}}, \code{\link{dotProd}},
+  \code{\link{invCholBlock}}, \code{\link{makeCholBlock}},
+  \code{\link{norm2}}, \code{\link{solveTriBlock}}
+}
+
