@@ -205,7 +205,8 @@ SVDsmooth <- function(X, n.basis=min(2,dim(X)[2]), date.ind=NULL, scale=TRUE,
     }
     X.comps[,j] <- predict(spline, as.double(date.ind))$y
     #scale components to unit variance and zero mean
-    X.comps[,j] <- scale(X.comps[,j])
+    X.comps[,j] <- scale(X.comps[,j],  center=mean(X.comps[Irow,j]),
+                         scale=sd(X.comps[Irow,j]))
     #Ensure that components have alternating sign
     X.comps[,j] <- (-1)^j*X.comps[,j]*sign(X.comps[1,j])
   }

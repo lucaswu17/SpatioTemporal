@@ -33,13 +33,13 @@
   Johan Lindström
 }
 \seealso{
+  Other SVDcv methods: \code{\link{print.SVDcv}},
+  \code{\link{SVDsmooth}}, \code{\link{SVDsmoothCV}}
+
   Other SVD for missing data:
   \code{\link{calcSmoothTrends}},
   \code{\link{print.SVDcv}}, \code{\link{SVDmiss}},
   \code{\link{SVDsmooth}}, \code{\link{SVDsmoothCV}},
   \code{\link{updateSTdataTrend}}
-
-  Other SVDcv methods: \code{\link{print.SVDcv}},
-  \code{\link{SVDsmooth}}, \code{\link{SVDsmoothCV}}
 }
 

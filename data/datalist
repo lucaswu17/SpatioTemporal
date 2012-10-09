@@ -1,7 +1,7 @@
 CV.mesa.model: est.cv.mesa pred.cv.mesa
-MCMC.mesa.model
 est.mesa.model: est.mesa.model est.mesa.model.ST est.mesa.model.ST.0
-mesa.data
+MCMC.mesa.model
 mesa.data.raw
+mesa.data
 mesa.model
 pred.mesa.model: pred.mesa.model pred.mesa.model.obs

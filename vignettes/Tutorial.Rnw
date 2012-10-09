@@ -390,7 +390,15 @@ We begin our examination of the data by investigating \ttt{mesa.data\$covars}:
 head(mesa.data$covars)
 @
 
-The \ttt{covars} data frame is a $\Sexpr{dim(mesa.data$covars)[1]} \times \Sexpr{dim(mesa.data$covars)[2]}$ data frame.  The first column contains the ID names for each of the $\Sexpr{dim(mesa.data$covars)[1]}$ air pollution monitoring sites in the data set as factors or strings; the second and third columns contain x- and y-coordinates, which are used to calculate distances between sites.  The fourth and fifth columns contain longitude and latitude coordinates.  These coordinates are optional --- not required for modelling --- but can be included in the data structure to simplify plotting the locations on a map.
+The \ttt{covars} data frame is a $\Sexpr{dim(mesa.data$covars)[1]} \times
+\Sexpr{dim(mesa.data$covars)[2]}$ data frame.  The first column contains the ID
+names for each of the $\Sexpr{dim(mesa.data$covars)[1]}$ air pollution
+monitoring sites in the data set as factors or strings; the second and third
+columns contain x- and y-coordinates, which are used to calculate distances
+between sites.  The fourth and fifth columns contain longitude and latitude
+coordinates.  These coordinates are optional --- not required for modelling ---
+but can be included in the data structure to simplify plotting the locations on
+a map.
 For this dataset the x- and y-coordinates (given in km) are actually computed from the
 longitude and latitude as
 \begin{align*}
@@ -666,7 +674,6 @@ indicates we want to compute 2 temporal trends: these will then be included in t
 argument unspecified, no temporal trends will be computed.
 
 Finally, make sure we created the right object:
-
 <<>>=
 class(mesa.data.scratch)
 @
@@ -775,33 +782,40 @@ Finally, the function \ttt{SVDsmoothCV} does leave-one-column-out (i.e.\ leave-o
       cross-validation statistics
 \end{enumerate} 
 
-An important thing to keep in mind is that the value of $m$ is fixed across the functions that are calling each other.  That is, \ttt{SVDsmoothCV} first does a cross-validation for $m$=1 (and hence calls \ttt{SVDsmooth} with $m=1$, which calls \ttt{SVDmiss} with $m$=1) and calculates cross-validation statistics; then it does a new cross-validation for $m=2$ (which in turn calls \ttt{SVDsmooth} with $m=2$, etc.). From the output we can then compare the cross-validation statistics for each of the 5 sets of cross-validations (where $m$ goes from 1 to 5.)  
+An important thing to keep in mind is that the value of $m$ is fixed across the
+functions that are calling each other.  That is, \ttt{SVDsmoothCV} first does a
+cross-validation for $m$=1 (and hence calls \ttt{SVDsmooth} with $m=1$, which
+calls \ttt{SVDmiss} with $m$=1) and calculates cross-validation statistics; then
+it does a new cross-validation for $m=2$ (which in turn calls \ttt{SVDsmooth}
+with $m=2$, etc.). From the output we can then compare the cross-validation
+statistics for each of the 5 sets of cross-validations (where $m$ goes from 1 to
+5.)
 
 \subsubsection{Evaluating the Cross-Validated Results} 
 \label{sec:evaluating_CV_smooth}
 The output of \ttt{SVDsmoothCV} consists of the cross-validated RMSE, $R^2$, and Bayesian Information Criteria (BIC). 
-The number of basis functions that lead to low BIC and point to where the RMSE stops decreasing rapidly is what we are looking for.
+The number of basis functions that lead to low BIC and point to where the RMSE
+stops decreasing rapidly is what we are looking for.
 
- We can see a numeric summary of the CV results by simply typing:
-
+We can see a numeric summary of the CV results by simply typing:
 <<>>=
 print(SVD.cv)
 @
 
 A graphical summary can be obtained thus:
-
 <<label=figSVDcv, eval=FALSE>>=
 ##Plotting the smooth trends CV results, see \autoref&fig:svd_cv;
 plot(SVD.cv)
 @
 
 The output of the above command can be seen in \autoref{fig:svd_cv}.
-As would be expected in any regression scenario,
- increasing the number of basis functions increases the $R^2$ and decreases the RMSE, 
- but the increase in $R^2$ and decrease in RMSE is by far the most dramatic going from 1 to 2 basis functions; 
- the RMSE stops decreasing rapidly after 2 basis functions. The BIC is also lowest when 2 basis functions are used to model 
- the temporal variations. This indicates that 2 basis functions would provide 
- the most efficient description of the seasonal variability.
+As would be expected in any regression scenario, increasing the number of basis
+functions increases the $R^2$ and decreases the RMSE, but the increase in $R^2$
+and decrease in RMSE is by far the most dramatic going from 1 to 2 basis
+functions; the RMSE stops decreasing rapidly after 2 basis functions. The BIC is
+also lowest when 2 basis functions are used to model the temporal
+variations. This indicates that 2 basis functions would provide the most
+efficient description of the seasonal variability.
 
 \begin{figure}[!htb]
 \centering
@@ -811,7 +825,6 @@ As would be expected in any regression scenario,
 \caption{Cross-validation results for different numbers of smooth temporal trends}
 \label{fig:svd_cv}
 \end{figure}
-
 
 
 Just looking at overall statistics might be misleading.
@@ -882,8 +895,19 @@ plot(mesa.data, "res", ID=18)
 \label{fig:smooth_trends}
 \end{figure}
 
-The function \ttt{plot.STdata} fits a linear regression of observations for a particular site on the smooth basis functions, and plots either fitted values, residuals or the auto-correlation function.  From \autoref{fig:smooth_trends} we can see that the fitted seasonal variability is different for the two sites (with greater seasonal variability in \lno{x} for Site \Sexpr{mesa.data$covars$ID[18]}), and furthermore that for Site \Sexpr{mesa.data$covars$ID[18]}, the fit extends earlier in time than observations are made.  Both of the fits elicit residuals that are centred around 0, indicating that the temporal trends do a good job of describing the temporal variability of the observed \lno{x} concentrations.
-%The difference between the locations in the seasonal trends motivates finding a way to model the coefficients of the trends flexibly by location.  We will discuss this further in the next section.
+The function \ttt{plot.STdata} fits a linear regression of observations for a
+particular site on the smooth basis functions, and plots either fitted values,
+residuals or the auto-correlation function.  From \autoref{fig:smooth_trends} we
+can see that the fitted seasonal variability is different for the two sites
+(with greater seasonal variability in \lno{x} for Site
+\Sexpr{mesa.data$covars$ID[18]}), and furthermore that for Site
+\Sexpr{mesa.data$covars$ID[18]}, the fit extends earlier in time than
+observations are made.  Both of the fits elicit residuals that are centred
+around 0, indicating that the temporal trends do a good job of describing the
+temporal variability of the observed \lno{x} concentrations.
+%The difference between the locations in the seasonal trends motivates finding a
+%way to model the coefficients of the trends flexibly by location.  We will
+%discuss this further in the next section.
 
 Since we want the temporal trends to capture the temporal variability
 we also study the auto correlation function of the residuals to determine
@@ -959,9 +983,10 @@ head(beta.std)
 @
 
 These are the $\beta$--fields that will be modelled using
-geographic covariates in the full spatio\hyp{}temporal model.  Here, \ttt{beta} is a $\Sexpr{dim(beta)[1]} \times \Sexpr{dim(beta)[2]}$ matrix with 
-$\beta_0(s), \beta_1(s),$ and $\beta_2(s)$ representing 
-regression coefficients for the intercept and two temporal trends at each of the \Sexpr{dim(beta)[1]} locations.  
+geographic covariates in the full spatio\hyp{}temporal model.  Here, \ttt{beta}
+is a $\Sexpr{dim(beta)[1]} \times \Sexpr{dim(beta)[2]}$ matrix with $\beta_0(s),
+\beta_1(s),$ and $\beta_2(s)$ representing regression coefficients for the
+intercept and two temporal trends at each of the \Sexpr{dim(beta)[1]} locations.
 
 The selection of geographic covariates could be done by comparing these fields
 to the available covariates. However, the variable selection is outside the
@@ -1027,9 +1052,8 @@ print(mesa.model)
 @
 
 The above output summarizes the model specifications we've made: which LUR covariates we use to model
-each of the $\beta$-fields;  exponential covariances
-with no nugget for each of the $\beta$-fields, and an exponential covariance
-with constant nugget for the $\nu$-field.  
+each of the $\beta$-fields;  exponential covariances with no nugget for each of
+the $\beta$-fields, and an exponential covariance with constant nugget for the $\nu$-field.  
 
 Note there is quite a bit of flexibility in specification of the $\beta$-fields.
 We can specify different covariance models
@@ -1041,12 +1065,10 @@ The help file for \ttt{namesCovFuns()} gives a description of all the available
 covariance functions.
 
 <<>>=
-cov.beta2 <- list(covf=c("exp","exp2","iid"),nugget=c(FALSE,FALSE,TRUE))
-mesa.model2 <- updateCovf(mesa.model,cov.beta=cov.beta2)
+cov.beta2 <- list(covf=c("exp","exp2","iid"), nugget=c(FALSE,FALSE,TRUE))
+mesa.model2 <- updateCovf(mesa.model, cov.beta=cov.beta2)
 print(mesa.model2)
 @
-
-
 
 \section{Estimating the Model} \label{sec:estimation}
 We are now ready to fit the entire spatio\hyp{}temporal model 

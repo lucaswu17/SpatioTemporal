@@ -100,9 +100,9 @@ print(model.same)
   Johan Lindström
 }
 \seealso{
-  Other STdata functions: \code{\link{c.STmodel}},
-  \code{\link{createDataMatrix}},
-  \code{\link{createSTdata}}, \code{\link{detrendSTdata}},
+  Other STdata functions: \code{\link{createDataMatrix}},
+  \code{\link{createSTdata}}, \code{\link{c.STmodel}},
+  \code{\link{detrendSTdata}},
   \code{\link{removeSTcovarMean}},
   \code{\link{updateSTdataTrend}}
 
@@ -115,12 +115,12 @@ print(model.same)
   \code{\link{processST}}, \code{\link{updateCovf}}
 
   Other STmodel methods: \code{\link{c.STmodel}},
-  \code{\link{estimate.STmodel}},
   \code{\link{estimateCV.STmodel}},
+  \code{\link{estimate.STmodel}},
   \code{\link{MCMC.STmodel}}, \code{\link{plot.STdata}},
   \code{\link{plot.STmodel}},
-  \code{\link{predict.STmodel}},
   \code{\link{predictCV.STmodel}},
+  \code{\link{predict.STmodel}},
   \code{\link{print.STmodel}},
   \code{\link{print.summary.STmodel}},
   \code{\link{simulate.STmodel}},

@@ -118,6 +118,12 @@ updateCovf <- function(STmodel, cov.beta=STmodel$cov.beta,
                       ##find constant columns
                       test <- apply(tmp, 2, function(x){length(unique(x))})
                       test <- test!=1 | names(test)=="(Intercept)"
+                      warning(
+  paste("Some covariates are constant or factors with only one level",
+        "in the specification of the nugget. This will result in",
+        "unidentifiable parameters. To avoid this the following elemets",
+        "of the formula have been dropped:",
+        paste(names(test[!test]),collapse=", "), sep="\n") )
                       ##drop constant columns
                       tmp <- tmp[,test, drop=FALSE];
                       return(tmp)})

@@ -55,10 +55,9 @@ plot(mesa.data.mean0$covars$mean.lax.conc.1500,
   Johan Lindström
 }
 \seealso{
-  Other STdata functions: \code{\link{c.STmodel}},
-  \code{\link{createDataMatrix}},
+  Other STdata functions: \code{\link{createDataMatrix}},
   \code{\link{createSTdata}}, \code{\link{createSTmodel}},
-  \code{\link{detrendSTdata}},
+  \code{\link{c.STmodel}}, \code{\link{detrendSTdata}},
   \code{\link{updateSTdataTrend}}
 }
 

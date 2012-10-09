@@ -182,13 +182,13 @@ axis(1, 1:length(x$par), rownames(x), las=2)
   \code{\link{coef.estimateSTmodel}},
   \code{\link{print.estimateSTmodel}}
 
-  Other STmodel methods: \code{\link{c.STmodel}},
-  \code{\link{createSTmodel}},
+  Other STmodel methods: \code{\link{createSTmodel}},
+  \code{\link{c.STmodel}},
   \code{\link{estimateCV.STmodel}},
   \code{\link{MCMC.STmodel}}, \code{\link{plot.STdata}},
   \code{\link{plot.STmodel}},
-  \code{\link{predict.STmodel}},
   \code{\link{predictCV.STmodel}},
+  \code{\link{predict.STmodel}},
   \code{\link{print.STmodel}},
   \code{\link{print.summary.STmodel}},
   \code{\link{simulate.STmodel}},

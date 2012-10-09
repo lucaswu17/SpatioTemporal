@@ -140,13 +140,13 @@ plot(mesa.data, "pacf", ID="60370016")
   \code{\link{print.summary.STdata}},
   \code{\link{summary.STdata}}
 
-  Other STmodel methods: \code{\link{c.STmodel}},
-  \code{\link{createSTmodel}},
-  \code{\link{estimate.STmodel}},
+  Other STmodel methods: \code{\link{createSTmodel}},
+  \code{\link{c.STmodel}},
   \code{\link{estimateCV.STmodel}},
+  \code{\link{estimate.STmodel}},
   \code{\link{MCMC.STmodel}},
-  \code{\link{predict.STmodel}},
   \code{\link{predictCV.STmodel}},
+  \code{\link{predict.STmodel}},
   \code{\link{print.STmodel}},
   \code{\link{print.summary.STmodel}},
   \code{\link{simulate.STmodel}},

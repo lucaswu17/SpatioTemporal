@@ -71,8 +71,8 @@ head(M2)
   \code{\link{SVDmiss}}, \code{\link{SVDsmooth}},
   \code{\link{SVDsmoothCV}}
 
-  Other STdata functions: \code{\link{c.STmodel}},
-  \code{\link{createSTdata}}, \code{\link{createSTmodel}},
+  Other STdata functions: \code{\link{createSTdata}},
+  \code{\link{createSTmodel}}, \code{\link{c.STmodel}},
   \code{\link{detrendSTdata}},
   \code{\link{removeSTcovarMean}},
   \code{\link{updateSTdataTrend}}

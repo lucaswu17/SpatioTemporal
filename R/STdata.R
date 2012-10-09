@@ -33,7 +33,8 @@
 ##'   by \code{\link{updateSTdataTrend}}, if \code{NULL} no trend is computed 
 ##'   (implies only a constant).
 ##' @param extra.dates Additional dates for which smooth trends should be
-##'   computed, used by \code{\link{updateSTdataTrend}}.
+##'   computed, used by \code{\link{updateSTdataTrend}}. If \code{n.basis=NULL}
+##'   this will force n.basis=0; since the dates are stored in the trend..
 ##' @param ... Additional parameters passed to \code{\link{updateSTdataTrend}}.
 ##' @param detrend Use \code{\link{detrendSTdata}} to remove a termporal trend
 ##'   from the observations; requires \code{n.basis!=NULL}.
@@ -52,7 +53,13 @@ createSTdata <- function(obs, covars, SpatioTemporal=NULL,
                          n.basis=NULL, extra.dates=NULL, ...,
                          detrend=FALSE, region=NULL, method=NULL){
 
-  ##First check if observations are given as a matrix or as a vector
+  ##Check for valid inputs, if extra.dates have been specified we also need
+  ##at least n.basis=0 (to store the extra dates)
+  if( !is.null(extra.dates) && is.null(n.basis) ){
+    message("'extra.dates' implies n.basis!=NULL; taking n.basis=0")
+    n.basis <- 0
+  }
+  ##Check if observations are given as a matrix or as a vector
   if( length(obs)==0 ){
     ##empty observation vector
     obs <- data.frame(obs=double(0), date=integer(0), ID=character(0),
@@ -129,15 +136,12 @@ createSTdata <- function(obs, covars, SpatioTemporal=NULL,
 
   ##now attempt to modify output object
   ##compute smooth trends?
-  if( !is.null(extra.dates) ){
-    warning("'extra.dates' specified but not 'n.basis'; taking n.basis=0")
-    n.basis <- 0
-  }
   if( !is.null(n.basis) ){
     out <- updateSTdataTrend(out, n.basis=n.basis,
                              extra.dates=extra.dates, ...)
   }
-  ##detrend data?
+  ##detrend data? (will throw an internal warning if n.basis=NULL since this
+  ##implies no trend)
   if( detrend ){
     out <- detrendSTdata(out, region, method)
   }
@@ -179,7 +183,7 @@ print.STdata <- function(x, type=x$covars$type, ...){
   stCheckClass(x, "STdata", name="x")
   
   ##general information regarding number of observations and trends
-  commonPrintST(x, "STmodel", 1)
+  commonPrintST(x, "STdata", 1)
 
   ##covariates
   cat( sprintf("%d covariate(s):\n", dim(x$covars)[2]))

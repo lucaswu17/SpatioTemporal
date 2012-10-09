@@ -195,9 +195,8 @@ print( pred.cv.stats )
   \code{\link{print.summary.predCVSTmodel}},
   \code{\link{summary.predCVSTmodel}}
 
-  Other STmodel methods: \code{\link{c.STmodel}},
-  \code{\link{createSTmodel}},
-  \code{\link{estimate.STmodel}},
+  Other STmodel methods: \code{\link{createSTmodel}},
+  \code{\link{c.STmodel}}, \code{\link{estimate.STmodel}},
   \code{\link{MCMC.STmodel}}, \code{\link{plot.STdata}},
   \code{\link{plot.STmodel}},
   \code{\link{predict.STmodel}},

@@ -7,8 +7,8 @@
 ##' \tabular{ll}{
 ##'   Package: \tab SpatioTemporal\cr
 ##'   Type: \tab Package\cr
-##'   Version: \tab 1.1.1\cr
-##'   Date: \tab 2012-08-26\cr
+##'   Version: \tab 1.1.2\cr
+##'   Date: \tab 2012-10-09\cr
 ##'   License: \tab GPL version 2 or newer\cr
 ##'   LazyLoad: \tab yes\cr
 ##' }
@@ -41,6 +41,25 @@
 ##'
 ##' @section Changelog:
 ##' \describe{
+##'   \item{1.1.2}{Minor changes/Bug fixes:}
+##'   \itemize{
+##'     \item{Fixed a bug in \code{\link{SVDsmooth}}, that caused the values in
+##'           the temporal smooths to depend on the number of \emph{unobserved
+##'           time points.}. This \emph{also affects}
+##'           \code{\link{calcSmoothTrends}} and \code{\link{updateSTdataTrend}}
+##'           when the option \code{extra.dates} is in use.}
+##'     \item{Fixed bug in \code{\link{simulate.STmodel}} that caused \code{NA}
+##'           values when simulating at unobserved sites.}
+##'     \item{Fixed bug in \code{\link{predict.STmodel}} that could cause
+##'           errors when predicting at unobserved sites.}
+##'     \item{Fixed bug in \code{\link{predictCV.STmodel}} and
+##'           \code{\link{predict.STmodel}}; these will now handle predictions
+##'           at locations with incomplete nugget covariates.}
+##'     \item{Updated \code{\link{c.STmodel}} and \code{\link{predict.STmodel}}
+##'           to avoid errors/warnings due to more complex nugget models.}
+##'     \item{Replaced warning in \code{\link{createSTdata}} when
+##'           \code{extra.dates!=NULL} and \code{n.basis=NULL} with a message.}
+##'   }
 ##'   \item{1.1.1}{Bug fixes:}
 ##'   \itemize{
 ##'     \item{\code{\link{c.STmodel}} will now combine \code{STmodel}

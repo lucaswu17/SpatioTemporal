@@ -103,10 +103,9 @@ print(mesa.data.detrend2$fit.trend)
   Assaf P. Oron and Johan Lindström
 }
 \seealso{
-  Other STdata functions: \code{\link{c.STmodel}},
-  \code{\link{createDataMatrix}},
+  Other STdata functions: \code{\link{createDataMatrix}},
   \code{\link{createSTdata}}, \code{\link{createSTmodel}},
-  \code{\link{removeSTcovarMean}},
+  \code{\link{c.STmodel}}, \code{\link{removeSTcovarMean}},
   \code{\link{updateSTdataTrend}}
 }
 

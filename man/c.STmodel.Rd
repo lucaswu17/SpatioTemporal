@@ -19,11 +19,11 @@
   STmodel/STdata objects. Temporal trend, observations and
   covariance model (both spatial and spatio-temporal) is
   taken from the first object in the call. Any additional
-  covariates/trends are dropped from the additional
-  arguments \emph{without warning}. Locations and
-  covariates (both spatial and spatio-temporal) from
-  additional objects are added to those in the first
-  object.
+  covariates/trends/observations not present in the first
+  argument are dropped from the additional arguments
+  \emph{without warning}. Locations and covariates (both
+  spatial and spatio-temporal) from additional objects are
+  added to those in the first object.
 }
 \details{
   For additional \code{STdata} objects the covariates are
@@ -80,12 +80,12 @@ print(c(mesa.model, mesa.model.full))
   \code{\link{updateSTdataTrend}}
 
   Other STmodel methods: \code{\link{createSTmodel}},
-  \code{\link{estimate.STmodel}},
   \code{\link{estimateCV.STmodel}},
+  \code{\link{estimate.STmodel}},
   \code{\link{MCMC.STmodel}}, \code{\link{plot.STdata}},
   \code{\link{plot.STmodel}},
-  \code{\link{predict.STmodel}},
   \code{\link{predictCV.STmodel}},
+  \code{\link{predict.STmodel}},
   \code{\link{print.STmodel}},
   \code{\link{print.summary.STmodel}},
   \code{\link{simulate.STmodel}},

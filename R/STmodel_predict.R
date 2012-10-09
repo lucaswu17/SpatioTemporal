@@ -199,15 +199,20 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
                 immediate.=TRUE)
         STdata$trend <- object$trend
       }
+      ##since we're not using covariances for the prediction locations
+      ##(specified seperately in nugget.unobs), we just pick a simple covariance
+      ##structure, avoiding problems with missing covariates/levels.
+      cov.nu <- object$cov.nu
+      cov.nu$nugget <- TRUE
       ##Create an STmodel from STdata
       STdata <- createSTmodel(STdata, LUR=object$LUR.list, ST=object$ST.list,
-                              cov.beta=object$cov.beta, cov.nu=object$cov.nu,
+                              cov.beta=object$cov.beta, cov.nu=cov.nu,
                               locations=object$locations.list,
                               scale=!is.null(object$scale.covars),
                               scale.covars=object$scale.covars)
     }else{
       ##STdata is an STmodel object ->
-      ##test for consistent covariates and scaling (not allowed).
+      ##test for consistent covariates and scaling (only equal scaling allowed).
       areSTmodelsConsistent(object, STdata, "STdata")
     }
   }##if( is.null(STdata) ){...}else{...}
@@ -474,7 +479,7 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
   
   ##We also have that in the stripped data the indecies may not match so we need a
   ##second vector giving which idx in striped matches original idx.
-  Ind.2.1 <- match(object$locations$ID, STdata$locations$ID, nomatch=0)
+  Ind.2.1 <- match(object$locations$ID[I.obs], STdata$locations$ID, nomatch=0)
     
   ##precompute the cross-covariance for the beta-fields
   sigma.B.C <- makeSigmaB(cov.pars.beta$pars,

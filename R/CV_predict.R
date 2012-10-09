@@ -57,7 +57,7 @@ predictCV.STmodel <- function(object, x, Ind.cv, ..., silent=TRUE){
     ##create data matrices that contains observed
     object.obs <- dropObservations(object, Ind.current)
     ##and locations to be predicted
-    object.pred <- dropObservations(object, !Ind.current)
+    suppressWarnings( object.pred <- dropObservations(object, !Ind.current) )
 
     ##compute nugget for unobserved
     nugget.unobs <- loglikeSTgetPars(x[,i], object)$cov.nu$nugget

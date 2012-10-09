@@ -36,7 +36,9 @@
 
   \item{extra.dates}{Additional dates for which smooth
   trends should be computed, used by
-  \code{\link{updateSTdataTrend}}.}
+  \code{\link{updateSTdataTrend}}. If \code{n.basis=NULL}
+  this will force n.basis=0; since the dates are stored in
+  the trend..}
 
   \item{...}{Additional parameters passed to
   \code{\link{updateSTdataTrend}}.}
@@ -91,9 +93,9 @@ print(mesa.data.3)
   Johan Lindström and Assaf P. Oron
 }
 \seealso{
-  Other STdata functions: \code{\link{c.STmodel}},
-  \code{\link{createDataMatrix}},
-  \code{\link{createSTmodel}}, \code{\link{detrendSTdata}},
+  Other STdata functions: \code{\link{createDataMatrix}},
+  \code{\link{createSTmodel}}, \code{\link{c.STmodel}},
+  \code{\link{detrendSTdata}},
   \code{\link{removeSTcovarMean}},
   \code{\link{updateSTdataTrend}}
 

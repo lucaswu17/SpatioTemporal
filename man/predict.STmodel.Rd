@@ -201,10 +201,10 @@ plot(pred.mesa.model, ID=22, STmodel=mesa.model, pred.var=TRUE)
   \code{\link{plot.predictSTmodel}},
   \code{\link{print.predictSTmodel}}
 
-  Other STmodel methods: \code{\link{c.STmodel}},
-  \code{\link{createSTmodel}},
-  \code{\link{estimate.STmodel}},
+  Other STmodel methods: \code{\link{createSTmodel}},
+  \code{\link{c.STmodel}},
   \code{\link{estimateCV.STmodel}},
+  \code{\link{estimate.STmodel}},
   \code{\link{MCMC.STmodel}}, \code{\link{plot.STdata}},
   \code{\link{plot.STmodel}},
   \code{\link{predictCV.STmodel}},

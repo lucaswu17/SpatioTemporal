@@ -31,14 +31,14 @@ print(mesa.model)
   Johan Lindström
 }
 \seealso{
-  Other STmodel methods: \code{\link{c.STmodel}},
-  \code{\link{createSTmodel}},
-  \code{\link{estimate.STmodel}},
+  Other STmodel methods: \code{\link{createSTmodel}},
+  \code{\link{c.STmodel}},
   \code{\link{estimateCV.STmodel}},
+  \code{\link{estimate.STmodel}},
   \code{\link{MCMC.STmodel}}, \code{\link{plot.STdata}},
   \code{\link{plot.STmodel}},
-  \code{\link{predict.STmodel}},
   \code{\link{predictCV.STmodel}},
+  \code{\link{predict.STmodel}},
   \code{\link{print.summary.STmodel}},
   \code{\link{simulate.STmodel}},
   \code{\link{summary.STmodel}}

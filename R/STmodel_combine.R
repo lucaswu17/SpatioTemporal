@@ -11,7 +11,8 @@
 ##' Combines several locations and covariates for several STmodel/STdata objects.
 ##' Temporal trend, observations and covariance model (both spatial and
 ##' spatio-temporal) is taken from the first object in the call. Any additional
-##' covariates/trends are dropped from the additional arguments \emph{without warning}.
+##' covariates/trends/observations not present in the first argument are dropped
+##' from the additional arguments \emph{without warning}. 
 ##' Locations and covariates (both spatial and spatio-temporal) from
 ##' additional objects are added to those in the first object.
 ##' 
@@ -52,23 +53,30 @@ c.STmodel <- function(...,recursive=FALSE){
   for(i in 2:length(input)){
     out <- combineSTmodel(out, input[[i]], i)
   }
+  ##update covariance functions
+  out <- updateCovf(out)
+  
   ##return combined object.
   return(out)
 }
 
 ##internal function that combined STmodel with a second STdata or STmodel object
 combineSTmodel <- function(STmodel, STdata, i.arg){
-  ##check second input, first alreadt checked by c.STmodel
+  ##check second input, first already checked by c.STmodel
   stCheckClass(STdata, c("STmodel","STdata"), name=paste("argument no.",i.arg))
     
   ##is second object of type STdata, convert to STmodel
   if( inherits(STdata,"STdata") ){
     if( is.null(STdata$trend) ){
-      ##add trend to avoid non-sense warning in following call
+      ##add trend to avoid nonsense warning in following call
       STdata <- updateSTdataTrend(STdata,0)
     }
+    ##since we're updating the covariance fucntions once everything has been
+    ##added together, pick a simple covariance structure
+    cov.nu <- STmodel$cov.nu
+    cov.nu$nugget <- TRUE
     STdata <- createSTmodel(STdata, LUR=STmodel$LUR.list, ST=STmodel$ST.list,
-                            cov.beta=STmodel$cov.beta, cov.nu=STmodel$cov.nu,
+                            cov.beta=STmodel$cov.beta, cov.nu=cov.nu,
                             locations=STmodel$locations.list,
                             scale=!is.null(STmodel$scale.covars),
                             scale.covars=STmodel$scale.covars)

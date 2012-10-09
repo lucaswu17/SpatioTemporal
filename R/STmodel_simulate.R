@@ -102,7 +102,7 @@ simulate.STmodel <- function(object, nsim=1, seed=NULL, x, nugget.unobs=0, ...){
   colnames(D.beta) <- rownames(D.beta) <- object$locations$ID
 
   ##calculate the land use regression for the temporal trends, as column
-  mu.B <- matrix(calc.mu.B(object$LUR, alpha), ncol=1)
+  mu.B <- matrix(calc.mu.B(object$LUR.all, alpha), ncol=1)
   
   ##create covariance matrices, beta-field
   sigma.B <- makeSigmaB(cov.pars.beta$pars, dist = D.beta,

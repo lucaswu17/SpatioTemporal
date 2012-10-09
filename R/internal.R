@@ -320,7 +320,7 @@ stCheckX <- function(x, x.fixed, dimensions, type, object){
 ## nugget.unobs.in to unobserved locations.      ##
 ###################################################
 internalFixNuggetUnobs <- function(nugget.unobs.in, STmodel, nugget){
-  ##nugget fo unobserved sites
+  ##nugget for unobserved sites
   nugget.unobs <- matrix(NA, length(STmodel$locations$ID), 1)
   I <- match(rownames(nugget), STmodel$locations$ID)
   if( !any(is.na(I)) ){

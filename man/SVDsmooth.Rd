@@ -134,12 +134,12 @@ plot(res.cv, pairs=TRUE)
   Other data matrix: \code{\link{createDataMatrix}},
   \code{\link{mesa.data.raw}}, \code{\link{SVDmiss}}
 
+  Other SVDcv methods: \code{\link{plot.SVDcv}},
+  \code{\link{print.SVDcv}}
+
   Other SVD for missing data:
   \code{\link{calcSmoothTrends}}, \code{\link{plot.SVDcv}},
   \code{\link{print.SVDcv}}, \code{\link{SVDmiss}},
   \code{\link{updateSTdataTrend}}
-
-  Other SVDcv methods: \code{\link{plot.SVDcv}},
-  \code{\link{print.SVDcv}}
 }
 
