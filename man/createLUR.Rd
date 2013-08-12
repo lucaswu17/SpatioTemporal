@@ -9,7 +9,8 @@
 }
 \arguments{
   \item{STdata}{\code{STdata} object with observations,
-  covariates, trends, etc; see \code{\link{mesa.data}}.}
+  covariates, trends, etc; see
+  \code{\link{mesa.data.raw}}.}
 
   \item{LUR.list}{specification of covariates; e.g. output
   from \code{\link{processLUR}}.}

@@ -156,7 +156,7 @@ updateCovf <- function(STmodel, cov.beta=STmodel$cov.beta,
 ##' 
 ##' @title Add Covariate Fields to \code{STdata} Object.
 ##' @param STdata \code{STdata} object with observations, covariates, trends,
-##'   etc; see \code{\link{mesa.data}}.
+##'   etc; see \code{\link{mesa.data.raw}}.
 ##' @param LUR.list specification of covariates; e.g. output from
 ##'   \code{\link{processLUR}}.
 ##' 

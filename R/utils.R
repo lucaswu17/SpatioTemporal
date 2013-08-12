@@ -57,14 +57,14 @@ stCheckClass <- function(x, what, name="Object"){
 ##' 
 ##' @examples
 ##'   ##load data
-##'   data(mesa.data)
+##'   data(mesa.model)
 ##'   ##names present in dta
-##'   names(mesa.data$covars)
+##'   names(mesa.model$locations)
 ##' 
 ##'   ##check for some names
-##'   stCheckFields(mesa.data$covars, c("ID","x","lat"))
+##'   stCheckFields(mesa.model$locations, c("ID","x","lat"))
 ##'   ##check for non-existant names
-##'   try( stCheckFields(mesa.data$covars, c("ID","x","test")) )
+##'   try( stCheckFields(mesa.model$locations, c("ID","x","test")) )
 ##' 
 ##' @author Johan Lindström
 ##' @family object checking utilities
@@ -95,19 +95,19 @@ stCheckFields <- function(x, what, name="Object"){
 ##' 
 ##' @examples
 ##'   ##load data
-##'   data(mesa.data)
+##'   data(mesa.model)
 ##' 
 ##'   ##check observations 
-##'   stCheckObs( mesa.data$obs )
+##'   stCheckObs( mesa.model$obs )
 ##'   ##some possible failures
-##'   mesa.data$obs <- rbind(mesa.data$obs, mesa.data$obs[1,])
-##'   try( stCheckObs( mesa.data$obs ) )
-##'   mesa.data$obs$obs[1] <- NaN
-##'   try( stCheckObs( mesa.data$obs ) )
-##'   mesa.data$obs$date <- as.character( mesa.data$obs$date )
-##'   try( stCheckObs( mesa.data$obs ) )
-##'   mesa.data$obs$date <- NULL
-##'   try( stCheckObs( mesa.data$obs ) )
+##'   mesa.model$obs <- rbind(mesa.model$obs, mesa.model$obs[1,])
+##'   try( stCheckObs( mesa.model$obs ) )
+##'   mesa.model$obs$obs[1] <- NaN
+##'   try( stCheckObs( mesa.model$obs ) )
+##'   mesa.model$obs$date <- as.character( mesa.model$obs$date )
+##'   try( stCheckObs( mesa.model$obs ) )
+##'   mesa.model$obs$date <- NULL
+##'   try( stCheckObs( mesa.model$obs ) )
 ##' 
 ##' @author Johan Lindström
 ##' @family object checking utilities
@@ -147,16 +147,16 @@ stCheckObs <- function(obs){
 ##' 
 ##' @examples
 ##'   ##load data
-##'   data(mesa.data)
+##'   data(mesa.model)
 ##' 
 ##'   ##check covariates
-##'   tmp <- stCheckCovars( mesa.data$covars, mesa.data$covars$ID )
+##'   tmp <- stCheckCovars( mesa.model$locations, mesa.model$locations$ID )
 ##'   str(tmp)
 ##'   ##require non-existant site
-##'   try( stCheckCovars( mesa.data$covars, "Bad.Site" ) )
+##'   try( stCheckCovars( mesa.model$locations, "Bad.Site" ) )
 ##'   ##drop the ID
-##'   mesa.data$covars$ID <- NULL
-##'   tmp <- stCheckCovars( mesa.data$covars )
+##'   mesa.model$locations$ID <- NULL
+##'   tmp <- stCheckCovars( mesa.model$locations )
 ##'   ##ID:s infered from rownames (1-25)
 ##'   str(tmp)
 ##' 
@@ -212,15 +212,15 @@ stCheckCovars <- function(covars, ID.unique=character(0)){
 ##' 
 ##' @examples
 ##'   ##load data
-##'   data(mesa.data)
+##'   data(mesa.model)
 ##' 
 ##'   ##check covariates
-##'   tmp <- stCheckSTcovars( mesa.data$SpatioTemporal, mesa.data$covars$ID )
+##'   tmp <- stCheckSTcovars( mesa.model$ST.all, mesa.model$locations$ID )
 ##'   str(tmp)
 ##'   ##require non-existant site
-##'   try( stCheckSTcovars( mesa.data$SpatioTemporal, "Bad.Site" ) )
+##'   try( stCheckSTcovars( mesa.model$ST.all, "Bad.Site" ) )
 ##'   ##require non-existant site
-##'   try( stCheckSTcovars( mesa.data$SpatioTemporal, date.unique=1 ) )
+##'   try( stCheckSTcovars( mesa.model$ST.all, date.unique=1 ) )
 ##' 
 ##' @author Johan Lindström
 ##' @family object checking utilities

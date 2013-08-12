@@ -7,6 +7,8 @@
 ## summary.STmodel       EX:ok
 ## print.summary.STmodel EX:implicit in summary.STmodel
 ## plot.STmodel          EX:aliased as plot.STdata
+## qqnorm.STmodel        EX:with qqnorm.STdata
+## scatterPlot.STmodel   Ex:with scatterPlot.STdata
 
 ##' Creates a \code{STmodel} object that can be for estimation and prediction.
 ##' For details see the sub-functions linked under the relevant Arguments.
@@ -19,7 +21,7 @@
 ##' @title Construct STmodel Object
 ##' 
 ##' @param STdata \code{STdata} object with observations, covariates, trends, etc;
-##'   see \code{\link{createSTdata}} or \code{\link{mesa.data}} for an example.
+##'   see \code{\link{createSTdata}} or \code{\link{mesa.data.raw}} for an example.
 ##' @param LUR Specification of covariates for the beta-fields,
 ##'   see \code{\link{processLUR}}.
 ##' @param ST Specification of spatio-temporal covariates,
@@ -46,8 +48,10 @@
 ##' @family STmodel functions
 ##' @family STdata functions
 ##' @export
-createSTmodel <- function(STdata, LUR=NULL, ST=NULL, cov.beta=list(covf="exp", nugget=FALSE),
-                          cov.nu=list(covf="exp", nugget=TRUE, random.effect=FALSE),
+createSTmodel <- function(STdata, LUR=NULL, ST=NULL,
+                          cov.beta=list(covf="exp", nugget=FALSE),
+                          cov.nu=list(covf="exp", nugget=TRUE,
+                            random.effect=FALSE),
                           locations=list(coords=c("x","y"), long.lat=NULL,
                             coords.beta=NULL, coords.nu=NULL, others=NULL),
                           strip=FALSE, scale=FALSE, scale.covars=NULL){
@@ -68,17 +72,23 @@ createSTmodel <- function(STdata, LUR=NULL, ST=NULL, cov.beta=list(covf="exp", n
     nugget.names <- NULL
   }
   ##add the names needed by nugget to locations$others
-  locations$others <- c(locations$others, nugget.names)
+  locations$others <- unique(c(locations$others, nugget.names))
 
   ##create output object, start with a copy
   STmodel <- STdata
   ##and assign both classes
   class(STmodel) <- c("STmodel","STdata")
 
-  ##first add trend if missing
+  ##first add trend if missing - mainly backwards compability
   if( is.null(STmodel$trend) ){
     warning("No smooth trend in 'STdata', assuming only an intercept.")
-    STmodel <- updateSTdataTrend(STmodel, n.basis=0)
+    STmodel <- updateTrend.STdata(STmodel, n.basis=0)
+  }else if( is.null(STmodel$trend.fnc) && dim(STmodel$trend)[2]!=1 ){
+    ##trend function missing (and more than constant), add a trend function (backwards comp.)
+    message("No trend $trend.fnc object detected, STdata probably from old ",
+            "version of the package.\n$trend.fnc has been added based on ",
+            "spline fit to elements in STmodel$trend.")
+    STmodel$trend.fnc <- internalCreateTrendFnc(STmodel$trend)
   }
   ##sort temporal trend
   STmodel$trend <- STmodel$trend[order(STmodel$trend$date),,drop=FALSE]
@@ -110,7 +120,10 @@ createSTmodel <- function(STdata, LUR=NULL, ST=NULL, cov.beta=list(covf="exp", n
   ##add idx variables for the observations
   STmodel$obs$idx <- match(STmodel$obs$ID, STmodel$locations$ID)
   ##sort the observations
-  STmodel$obs <- STmodel$obs[order(STmodel$obs$date, STmodel$obs$idx),,drop=FALSE]
+  STmodel$obs <- STmodel$obs[order(STmodel$obs$date,
+                                   STmodel$obs$idx),,drop=FALSE]
+  ##and remove rownames
+  rownames(STmodel$obs) <- NULL
 
   ##Covariance specification, default values
   ##process covariance specification
@@ -144,16 +157,7 @@ createSTmodel <- function(STdata, LUR=NULL, ST=NULL, cov.beta=list(covf="exp", n
   STmodel <- createST(STmodel, STmodel$ST.list)
   
   ##create temporal trends for observations, F
-  ##match times with observations
-  STmodel$F <- STmodel$trend[ match(STmodel$obs$date, STmodel$trend$date),,drop=FALSE]
-  ##add intercept
-  STmodel$F <- cbind(rep(1,dim(STmodel$F)[1]), STmodel$F)
-  names(STmodel$F)[1] <- "const"
-  ##drop date column
-  STmodel$F <- STmodel$F[,-which(names(STmodel$F)=="date"),drop=FALSE]
-  ##cast to matrix
-  STmodel$F <- data.matrix(STmodel$F)
-  rownames(STmodel$F) <- as.character(STmodel$obs$date)
+  STmodel$F <- internalSTmodelCreateF(STmodel)
   
   ##test for colocated monitoring sites, beta-fields
   I.idx <- unique(STmodel$obs$idx)
@@ -372,7 +376,8 @@ print.summary.STmodel <- function(x, ...){
 ##' @family STmodel methods
 ##' @method plot STmodel
 ##' @export
-plot.STmodel <- function(x, y="obs", ID=x$locations$ID[1], type=x$locations$type, ...){
+plot.STmodel <- function(x, y="obs", ID=x$locations$ID[1],
+                         type=x$locations$type, ...){
   ##check class belonging
   stCheckClass(x, "STmodel", name="x")
 
@@ -384,3 +389,42 @@ plot.STmodel <- function(x, y="obs", ID=x$locations$ID[1], type=x$locations$type
   
   return(invisible())
 }##function plot.STmodel
+
+
+##' @rdname qqnorm.STdata
+##' @family STmodel methods
+##' @importFrom stats qqnorm
+##' @method qqnorm STmodel
+##' @export
+qqnorm.STmodel <- function(y, ID="all", main="Q-Q plot for observations",
+                           group=NULL, col=1, line=0, ...){ 
+  ##check class belonging
+  stCheckClass(y, "STmodel", name="y")
+
+  Y <- y$obs[, c("ID","obs")]
+
+  internalQQnormPlot(Y, ID, main, group, col, FALSE, line, ...)
+  
+  return(invisible())
+}##function qqnorm.STmodel
+
+##' @rdname scatterPlot.STdata
+##' @family STmodel methods
+##' @method scatterPlot STmodel
+##' @export
+scatterPlot.STmodel <- function(x, covar=NULL, trend=NULL, pch=1, col=1, cex=1,
+                                lty=1, subset=NULL, group=NULL, add=FALSE,
+                               smooth.args=NULL, ...){
+  ##check class belonging
+  stCheckClass(x, "STmodel", name="x")
+  ##collect location & LUR information
+  covars <- cbind(x$locations, do.call(cbind, x$LUR))
+  covars <- covars[,unique(colnames(covars))]
+  
+  ##pass data to internalScatterPlot function
+  internalScatterPlot(obs=x$obs[, c("obs","ID","date")],
+                      covar=covar, trend=trend, subset=subset,
+                      data=list(covars=covars, trend=x$trend),
+                      group=group, pch=pch, col=col, cex=cex,
+                      lty=lty, add=add, smooth.args=smooth.args, ...)
+}##function scatterPlot.STmodel

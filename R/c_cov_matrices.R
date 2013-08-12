@@ -29,6 +29,8 @@
 ##'   gives a first dimension index, used only if \code{symmetry=FALSE}
 ##'   to determine which covariances should have an added nugget (collocated
 ##'   sites).
+##' @param sparse If \code{TRUE}, return a block diagonal sparse matrix, see
+##'   \code{\link[Matrix:bdiag]{bdiag}}.
 ##' @return Block covariance matrix of size \code{dim(dist)*n.blocks}.
 ##' 
 ##' @example Rd_examples/Ex_makeSigmaB.R
@@ -37,10 +39,11 @@
 ##' @family block matrix functions
 ##' @family covariance functions
 ##' @export
+##' @import Matrix
 ##' @useDynLib SpatioTemporal C_makeSigmaB
 makeSigmaB <- function(pars, dist, type="exp", nugget=0,
                        symmetry=dim(dist)[1]==dim(dist)[2],
-                       ind2.to.1=1:dim(dist)[2]){
+                       ind2.to.1=1:dim(dist)[2], sparse=FALSE){
   if( !is.list(pars) ){
     ##pars not a list, assuming that we only have one block
     pars <- list(pars)
@@ -53,9 +56,18 @@ makeSigmaB <- function(pars, dist, type="exp", nugget=0,
   if( length(nugget)==1 ){
     nugget <- rep(nugget, n.blocks)
   }
+
   ##call C-code, internal error-checking
-  return( .Call(C_makeSigmaB, type, pars, nugget, dist,
-                as.integer(symmetry), as.integer(ind2.to.1)) )
+  tmp <- .Call(C_makeSigmaB, type, pars, nugget, dist,
+               as.integer(symmetry), as.integer(ind2.to.1),
+               as.integer(sparse))
+  if( sparse ){
+    if(symmetry){
+      tmp <- lapply(tmp, forceSymmetric)
+    }
+    tmp <- Matrix::bdiag(tmp)
+  }
+  return( tmp )
 }##function makeSigmaB
 
 
@@ -74,8 +86,9 @@ makeSigmaB <- function(pars, dist, type="exp", nugget=0,
 ##'   can be interpereted as either and partial sill with infinite
 ##'   range or as a random effect with variance given by \code{random.effect}
 ##'   for the mean value.
-##' @param symmetry \code{TRUE}/\code{FALSE} flag if the \code{dist} is
-##'   symmetric, resulting in a symmetric covariance matrix.
+##' @param symmetry \code{TRUE}/\code{FALSE} flag if the \code{dist} matrix is
+##'   symmetric. If also \code{ind1==ind2} and \code{blocks1==blocks2} the
+##'   resulting covariance matrix will be symmetric.
 ##' @param blocks1,blocks2 Vectors with the size(s) of each of the
 ##'   diagonal blocks, usually \code{\link{mesa.model}$nt}. If \code{symmetry=TRUE}
 ##'   and then \code{blocks2} defaults to \code{blocks1} if missing.
@@ -88,6 +101,8 @@ makeSigmaB <- function(pars, dist, type="exp", nugget=0,
 ##'   \code{ind2}, gives a first dimension index, \code{ind1}, used only if
 ##'   \code{symmetry=FALSE} to determine which covariances should have an
 ##'   added nugget (collocated sites).
+##' @param sparse If \code{TRUE}, return a block diagonal sparse matrix, see
+##'   \code{\link[Matrix:bdiag]{bdiag}}.
 ##' @return Block covariance matrix of size
 ##'   \code{length(ind1)}-by-\code{length(ind2)}.
 ##' 
@@ -97,12 +112,13 @@ makeSigmaB <- function(pars, dist, type="exp", nugget=0,
 ##' @family block matrix functions
 ##' @family covariance functions
 ##' @export
+##' @import Matrix
 ##' @useDynLib SpatioTemporal C_makeSigmaNu
 makeSigmaNu <- function(pars, dist, type="exp", nugget=0, random.effect=0,
                         symmetry=dim(dist)[1]==dim(dist)[2],
                         blocks1=dim(dist)[1], blocks2=dim(dist)[2],
                         ind1=1:dim(dist)[1], ind2=1:dim(dist)[2], 
-                        ind2.to.1=1:dim(dist)[2]){
+                        ind2.to.1=1:dim(dist)[2], sparse=FALSE){
   if( missing(blocks2) && symmetry ){
     blocks2 <- blocks1
   }
@@ -110,11 +126,22 @@ makeSigmaNu <- function(pars, dist, type="exp", nugget=0, random.effect=0,
     ind2 <- ind1
   }
   ##call C-code, internal error-checking
-  return( .Call(C_makeSigmaNu, type, pars, nugget, random.effect, dist,
-                as.integer(blocks1), as.integer(blocks2),
-                as.integer(ind1), as.integer(ind2), as.integer(ind2.to.1),
-                as.integer(symmetry)) )
+  tmp <- .Call(C_makeSigmaNu, type, pars, nugget, random.effect, dist,
+               as.integer(blocks1), as.integer(blocks2),
+               as.integer(ind1), as.integer(ind2), as.integer(ind2.to.1),
+               as.integer(symmetry), as.integer(sparse))
+  if( sparse ){
+    ##order differs agains makeSigmaB,
+    ##sigmaNu often has more and smaller blocks -> this option is faster
+    tmp <- Matrix::bdiag(tmp)
+    if(symmetry && isTRUE(all.equal(blocks1,blocks2)) &&
+       isTRUE(all.equal(ind1,ind2)) ){
+      tmp <- forceSymmetric(tmp)
+    }
+  }
+  return( tmp )
 }##function makeSigmaNu
+
 
 ##' Provides a list of parameter names for the given covariance function(s),
 ##' excluding the nugget which is added elsewhere.

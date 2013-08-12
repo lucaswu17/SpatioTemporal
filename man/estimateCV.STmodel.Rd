@@ -1,13 +1,19 @@
 \name{estimateCV.STmodel}
+\alias{estimateCV}
 \alias{estimateCV.STmodel}
+\alias{predictCV}
 \alias{predictCV.STmodel}
 \title{Cross-Validated Estimation and Prediction}
 \usage{
   \method{estimateCV}{STmodel} (object, x, Ind.cv,
-    control = list(trace = 3), ...)
+    control = list(trace = 3), verbose.res = FALSE, ...)
 
-  \method{predictCV}{STmodel} (object, x, Ind.cv, ...,
-    silent = TRUE)
+  estimateCV(object, x, Ind.cv, ...)
+
+  \method{predictCV}{STmodel} (object, x, Ind.cv = NULL,
+    ..., silent = TRUE, LTA = FALSE)
+
+  predictCV(object, x, Ind.cv, ...)
 }
 \arguments{
   \item{object}{\code{STmodel} object for which to perform
@@ -25,12 +31,19 @@
   \item{Ind.cv}{\code{Ind.cv} defines the cross-validation
   scheme.  Either a (number or observations) - by -
   (groups) logical matrix or an \emph{integer valued}
-  vector with length equal to (number or observations). See
-  further \code{\link{createCV}}.}
+  vector with length equal to (number or observations). For
+  \code{predictCV.STmodel} \code{Ind.cv} can be infered
+  from \code{x} if \code{x} is a \code{estCVSTmodel} object
+  See further \code{\link{createCV}}.}
 
   \item{control}{A list of control parameters for the
   optimisation.  See \code{\link[stats:optim]{optim}} for
   details; setting \code{trace}=0 eliminates all ouput.}
+
+  \item{verbose.res}{A \code{TRUE}/\code{FALSE} variable
+  indicating if full results from
+  \code{\link{estimate.STmodel}} for each CV group should
+  be returned; defaults to \code{FALSE}}
 
   \item{...}{All additional parameters for
   \code{\link{estimate.STmodel}} or
@@ -41,6 +54,11 @@
   \code{only.pars=FALSE}, and \code{combine.data=FALSE}.}
 
   \item{silent}{Show status after each iteration?}
+
+  \item{LTA}{\code{TRUE}/\code{FALSE}, compute long-term
+  temporal averages, similar to \code{\link{computeLTA}},
+  but with the option of including the uncertainty; see
+  \code{\link{predict.STmodel}}.}
 }
 \value{
   Either a \code{estCVSTmodel} object with elements:
@@ -48,28 +66,28 @@
   best function value for each cross-validation group.}
   \item{Ind.cv}{The cross-validation grouping.}
   \item{x.fixed}{Fixed parameters in the estimation, see
-  \code{\link{estimate.STmodel}}.} \item{par.all,
-  par.cov}{Matrices with estimated parameters for each
-  cross-validation group.} \item{par.all.sd,
-  par.cov.sd}{Standard deviations computed from the
-  Hessian/information matrix for set of estimated
-  parameters.} \item{res.all}{Estimation results for each
-  cross-validation group, contains the \code{res.best} and
-  \code{summary} fields from the
-  \code{\link{estimate.STmodel}} results.} Or a
-  \code{predCVSTmodel} object with elements:
-  \item{opts}{Copy of the \code{opts} field in the output
-  from \code{\link{predict.STmodel}}.} \item{Ind.cv}{The
-  cross-validation grouping.} \item{pred.obs}{A data.frame
-  with a copy of observations from \code{object$obs},
-  predictions (for different model components), variances,
-  and residuals. Variance field will be missing if
-  \code{pred.var=FALSE}.} \item{pred.all}{A list with
-  time-by-location data.frames containing predictions and
-  variances for all space-time locations as well as
-  predictions and variances for the beta-fields. Unobserved
-  points are \code{NA} for the option
-  \code{only.obs=TRUE}.}
+  \code{\link{estimate.STmodel}}.} \item{x.init}{Matrix of
+  inital values used, i.e. \code{x} from the input.}
+  \item{par.all, par.cov}{Matrices with estimated
+  parameters for each cross-validation group.}
+  \item{par.all.sd, par.cov.sd}{Standard deviations
+  computed from the Hessian/information matrix for set of
+  estimated parameters.} \item{res.all}{Estimation results
+  for each cross-validation group, contains the output from
+  the \code{\link{estimate.STmodel}} calls, only included
+  if \code{verbose.res=TRUE}.} Or a \code{predCVSTmodel}
+  object with elements: \item{opts}{Copy of the \code{opts}
+  field in the output from \code{\link{predict.STmodel}}.}
+  \item{Ind.cv}{The cross-validation grouping.}
+  \item{pred.obs}{A data.frame with a copy of observations
+  from \code{object$obs}, predictions (for different model
+  components), variances, and residuals. Variance field
+  will be missing if \code{pred.var=FALSE}.}
+  \item{pred.all}{A list with time-by-location data.frames
+  containing predictions and variances for all space-time
+  locations as well as predictions and variances for the
+  beta-fields. Unobserved points are \code{NA} for the
+  option \code{only.obs=TRUE}.}
 }
 \description{
   Functions that perform cross-validated parameter
@@ -102,6 +120,7 @@
 \examples{
 ##load data
 data(mesa.model)
+data(est.mesa.model)
 
 ################
 ## estimateCV ##
@@ -109,63 +128,44 @@ data(mesa.model)
 ##create the CV structure defining 10 different CV-groups
 Ind.cv <- createCV(mesa.model, groups=10, min.dist=.1)
 
-##create vector of initial values
-dim <- loglikeSTdim(mesa.model)
-x.init <- cbind(rep(2,dim$nparam.cov),c(rep(c(1,-3),dim$m+1),-3))
+##use the best parameters and there starting values as
+x.init <- coef(est.mesa.model, pars="cov")[,c("par","init")]
 
 \dontrun{
   ##estimate different parameters for each CV-group
   est.cv.mesa <- estimateCV(mesa.model, x.init, Ind.cv)
 }
 ##lets load precomputed results instead
-data(CV.mesa.model)
+data(est.cv.mesa)
 
 ##examine the estimation results
 print( est.cv.mesa )
 ##estimated parameters for each CV-group
-est.cv.mesa$par.cov
-
-##boxplot of the different estimates from the CV
-par(mfrow=c(1,1), mar=c(12,2.5,2,.5), las=2)
-boxplot( est.cv.mesa, plot.type="cov")
+coef(est.cv.mesa, pars="cov")
 
 ###############
 ## predictCV ##
 ###############
 \dontrun{
   ##Do cross-validated predictions using the just estimated parameters
-  pred.cv.mesa <- predictCV(mesa.model, est.cv.mesa, est.cv.mesa$Ind.cv)
+  ##Ind.cv is infered from est.cv.mesa as est.cv.mesa$Ind.cv
+  pred.cv.mesa <- predictCV(mesa.model, est.cv.mesa, LTA=TRUE)
 }
 ##lets load precomputed results instead
-data(CV.mesa.model)
+data(pred.cv.mesa)
 
-##examine the prediction results
-names( pred.cv.mesa )
+##prediction results
 print( pred.cv.mesa )
-##compute CV-statistics
-pred.cv.stats <- summary( pred.cv.mesa, LTA=TRUE)
-print( pred.cv.stats )
- 
-##Plot observations with CV-predictions and prediction intervals
-##TODO TODO TODO
-#par(mfcol=c(4,1),mar=c(2.5,2.5,2,.5))
-#plotCV(mesa.data.res$pred.cv,  1, mesa.data.model)
-#plotCV(mesa.data.res$pred.cv, 10, mesa.data.model)
-#plotCV(mesa.data.res$pred.cv, 17, mesa.data.model)
-#plotCV(mesa.data.res$pred.cv, 22, mesa.data.model)
 
-##Residual QQ-plots
-#par(mfrow=c(1,2),mar=c(3,2,1,1),pty="s")
-##Raw Residual QQ-plot
-#CVresiduals.qqnorm(pred.cv.stats$res)
-##Normalized Residual QQ-plot
-#CVresiduals.qqnorm(pred.cv.stats$res.norm, norm=TRUE)
+##and CV-statistics
+print( summary( pred.cv.mesa, LTA=TRUE) )
+
 
 \dontrun{
   ##A faster option is to only consider the observations and not to compute
   ##variances
-  pred.cv.fast <- predictCV(mesa.model, est.cv.mesa, est.cv.mesa$Ind.cv,
-                            only.obs=TRUE, pred.var=FALSE)
+  pred.cv.fast <- predictCV(mesa.model, est.cv.mesa, only.obs=TRUE,
+                            pred.var=FALSE)
   print( pred.cv.fast )
   summary( pred.cv.fast )
 }
@@ -193,15 +193,28 @@ print( pred.cv.stats )
   \code{\link{plot.predictSTmodel}},
   \code{\link{print.predCVSTmodel}},
   \code{\link{print.summary.predCVSTmodel}},
+  \code{\link{qqnorm.predCVSTmodel}},
+  \code{\link{qqnorm.STdata}},
+  \code{\link{qqnorm.STmodel}},
+  \code{\link{scatterPlot.predCVSTmodel}},
+  \code{\link{scatterPlot.STdata}},
+  \code{\link{scatterPlot.STmodel}},
   \code{\link{summary.predCVSTmodel}}
 
-  Other STmodel methods: \code{\link{createSTmodel}},
-  \code{\link{c.STmodel}}, \code{\link{estimate.STmodel}},
+  Other STmodel methods: \code{\link{c.STmodel}},
+  \code{\link{createSTmodel}}, \code{\link{estimate}},
+  \code{\link{estimate.STmodel}}, \code{\link{MCMC}},
   \code{\link{MCMC.STmodel}}, \code{\link{plot.STdata}},
   \code{\link{plot.STmodel}},
   \code{\link{predict.STmodel}},
   \code{\link{print.STmodel}},
   \code{\link{print.summary.STmodel}},
+  \code{\link{qqnorm.predCVSTmodel}},
+  \code{\link{qqnorm.STdata}},
+  \code{\link{qqnorm.STmodel}},
+  \code{\link{scatterPlot.predCVSTmodel}},
+  \code{\link{scatterPlot.STdata}},
+  \code{\link{scatterPlot.STmodel}},
   \code{\link{simulate.STmodel}},
   \code{\link{summary.STmodel}}
 }

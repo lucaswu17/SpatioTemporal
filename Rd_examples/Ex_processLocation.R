@@ -1,5 +1,8 @@
 ##load the data
-data(mesa.data)
+data(mesa.data.raw)
+##and create STdata-object
+mesa.data <- createSTdata(mesa.data.raw$obs, mesa.data.raw$X, n.basis=2,
+                          SpatioTemporal=mesa.data.raw["lax.conc.1500"])
 
 ##specify locations, using x/y and specifying long/lat and picking
 ##type as an additional field

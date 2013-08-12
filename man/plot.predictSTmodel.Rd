@@ -37,7 +37,11 @@
   \item{col}{A vector of three colours: The first is the
   colour of the predictions, second for the observations
   and third for the polygon illustrating the confidence
-  bands.}
+  bands. \cr For \code{y="obs"} the colours are 1) colour
+  of the points, 2) colour of the 1-1 line, and 3) colour
+  of the polygon. If \code{ID="all"}, picking
+  \code{col[1]="ID"} will colour code the
+  observations-prediction points by site ID.}
 
   \item{pch,cex,lty,lwd}{Vectors with two elements giving
   the point type, size, line type and line width to use
@@ -55,19 +59,22 @@
   normal quantiles).}
 
   \item{pred.type}{Which type of prediction to plot, one of
-  \code{"EX"}, \code{"EX.mu"}, or \code{"EX.mu.beta"}, see
-  the output from \code{\link{predict.STmodel}}}
+  \code{"EX"}, \code{"EX.mu"}, \code{"EX.mu.beta"}, or
+  \code{"EX.pred"}; see the output from
+  \code{\link{predict.STmodel}}}
 
   \item{pred.var}{Should we plot confidence bands based on
   prediction (TRUE) or confidence intrevalls (FALSE), see
   \code{\link{predict.STmodel}}.  Only relevant if
-  \code{pred.type="EX"}. \cr \strong{NOTE:} \emph{The
-  default differs for \code{plot.predictSTmodel} and
+  \code{pred.type="EX"} or \code{pred.type="EX.pred"}. \cr
+  \strong{NOTE:} \emph{The default differs for
+  \code{plot.predictSTmodel} and
   \code{plot.predCVSTmodel}!}}
 
   \item{add}{Add to existing plot?}
 
-  \item{...}{Ignored additional arguments.}
+  \item{...}{Additional parameters passed to
+  \code{\link[graphics:plot]{plot}}.}
 }
 \value{
   Nothing
@@ -78,16 +85,14 @@
   several different plots of the data.
 }
 \examples{
+#######################################
+## plot predictions for a given site ##
+#######################################
 ##load data
 data(mesa.model)
 ##load predictions
 data(pred.mesa.model)
-##load CV-predictions
-data(CV.mesa.model)
 
-#######################################
-## plot predictions for a given site ##
-#######################################
 par(mfrow=c(2,1))
 plot(pred.mesa.model)
 ##different site with data and prediction variances
@@ -98,6 +103,7 @@ plot(pred.mesa.model, STmodel=mesa.model, ID="L001",
 plot(pred.mesa.model)
 plot(pred.mesa.model, pred.type="EX.mu", col="red", add=TRUE)
 plot(pred.mesa.model, pred.type="EX.mu.beta", col="green", add=TRUE)
+
 ##compare the two confidence and prediction intervalls
 plot(pred.mesa.model, ID=3, pred.var=TRUE, col=c(0,0,"darkgrey"))
 plot(pred.mesa.model, ID=3, STmodel=mesa.model,
@@ -105,58 +111,70 @@ plot(pred.mesa.model, ID=3, STmodel=mesa.model,
 
 ##plot predictions as function of observations
 par(mfrow=c(2,2))
-plot(pred.mesa.model.obs, y="obs", STmodel=mesa.model, pred.var=TRUE)
-##all data
-plot(pred.mesa.model.obs, y="obs", STmodel=mesa.model, ID="all",
-     pred.var=TRUE)
-##prehaps using points
-plot(pred.mesa.model.obs, y="obs", STmodel=mesa.model, ID="all",
+plot(pred.mesa.model, y="obs", STmodel=mesa.model, pred.var=TRUE)
+
+##all data, using points and colour coded by site
+plot(pred.mesa.model, y="obs", STmodel=mesa.model, ID="all",
+     lty=c(NA,1), pch=c(19,NA), col=c("ID", "red", "grey"),
+     cex=.25, pred.var=TRUE)
+
+##compare prediction methods, for one site only
+plot(pred.mesa.model, y="obs", STmodel=mesa.model,
      lty=c(NA,1), pch=c(19,NA), cex=.25, pred.var=TRUE)
-##compare prediction methods
-plot(pred.mesa.model.obs, y="obs", STmodel=mesa.model, ID="all",
-     lty=c(NA,1), pch=c(19,NA), cex=.25, pred.var=TRUE)
-plot(pred.mesa.model.obs, y="obs", STmodel=mesa.model, ID="all",
-     col="red", lty=NA, pch=c(19,NA), cex=.25, pred.type="EX.mu",
+plot(pred.mesa.model, y="obs", STmodel=mesa.model, col="red",
+     lty=NA, pch=c(19,NA), cex=.25, pred.type="EX.mu",
      add=TRUE)
-plot(pred.mesa.model.obs, y="obs", STmodel=mesa.model, ID="all",
-     col="green", lty=NA, pch=c(19,NA), cex=.25, pred.type="EX.mu.beta",
+plot(pred.mesa.model, y="obs", STmodel=mesa.model, col="green",
+     lty=NA, pch=c(19,NA), cex=.25, pred.type="EX.mu.beta",
      add=TRUE)
 
 ####################################
 ## plot CV-pred. for a given site ##
 ####################################
+##load CV-predictions
+data(pred.cv.mesa)
+
 par(mfcol=c(3,1),mar=c(2.5,2.5,2,.5))
 plot(pred.cv.mesa, ID=1)
 plot(pred.cv.mesa, ID=1, pred.type="EX.mu", col="green", add=TRUE)
 plot(pred.cv.mesa, ID=1, pred.type="EX.mu.beta", col="blue", add=TRUE)
+
 ##different colours
 plot(pred.cv.mesa, ID=10, col=c("blue","magenta","light blue"))
+
 ##points and lines for the observations
 plot(pred.cv.mesa, ID=17, lty=c(1,NA), pch=c(NA,19), cex=.5)
 
 ##plot predictions as function of observations
 par(mfrow=c(2,2))
 plot(pred.cv.mesa, y="obs")
-##all data
-plot(pred.cv.mesa, y="obs", ID="all")
-##prehaps using points
-plot(pred.cv.mesa, y="obs", ID="all", lty=c(NA,1), pch=c(19,NA), cex=.25)
-##compare prediction methods
-plot(pred.cv.mesa, y="obs", ID="all", lty=c(NA,1), pch=c(19,NA), cex=.25)
-plot(pred.cv.mesa, y="obs", ID="all", col="red", lty=NA, pch=c(19,NA),
+
+##all data, using points and colour coded by site
+plot(pred.cv.mesa, y="obs", ID="all", lty=c(NA,1),
+     pch=c(19,NA), cex=.25, col=c("ID", "red", "grey"))
+
+##compare prediction methods, for one site only
+plot(pred.cv.mesa, y="obs", lty=c(NA,1), pch=c(19,NA), cex=.25)
+plot(pred.cv.mesa, y="obs", col="red", lty=NA, pch=c(19,NA),
      cex=.25, pred.type="EX.mu", add=TRUE)
-plot(pred.cv.mesa, y="obs", ID="all", col="green", lty=NA, pch=c(19,NA),
+plot(pred.cv.mesa, y="obs", col="green", lty=NA, pch=c(19,NA),
      cex=.25, pred.type="EX.mu.beta", add=TRUE)
 }
 \author{
   Johan Lindström
 }
 \seealso{
-  Other predCVSTmodel methods:
+  Other predCVSTmodel methods: \code{\link{estimateCV}},
   \code{\link{estimateCV.STmodel}},
-  \code{\link{predictCV.STmodel}},
+  \code{\link{predictCV}}, \code{\link{predictCV.STmodel}},
   \code{\link{print.predCVSTmodel}},
   \code{\link{print.summary.predCVSTmodel}},
+  \code{\link{qqnorm.predCVSTmodel}},
+  \code{\link{qqnorm.STdata}},
+  \code{\link{qqnorm.STmodel}},
+  \code{\link{scatterPlot.predCVSTmodel}},
+  \code{\link{scatterPlot.STdata}},
+  \code{\link{scatterPlot.STmodel}},
   \code{\link{summary.predCVSTmodel}}
 
   Other predictSTmodel methods:

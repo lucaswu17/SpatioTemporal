@@ -10,7 +10,7 @@
 
 ##' Combines several locations and covariates for several STmodel/STdata objects.
 ##' Temporal trend, observations and covariance model (both spatial and
-##' spatio-temporal) is taken from the first object in the call. Any additional
+##' spatio-temporal) are taken from the first object in the call. Any additional
 ##' covariates/trends/observations not present in the first argument are dropped
 ##' from the additional arguments \emph{without warning}. 
 ##' Locations and covariates (both spatial and spatio-temporal) from
@@ -67,10 +67,9 @@ combineSTmodel <- function(STmodel, STdata, i.arg){
     
   ##is second object of type STdata, convert to STmodel
   if( inherits(STdata,"STdata") ){
-    if( is.null(STdata$trend) ){
-      ##add trend to avoid nonsense warning in following call
-      STdata <- updateSTdataTrend(STdata,0)
-    }
+    ##set a trend of the right size, use fnc in model-object
+    suppressMessages( STdata <- updateTrend(STdata, fnc=STmodel$trend.fnc,
+                                            extra.dates=STdata$trend$date) )
     ##since we're updating the covariance fucntions once everything has been
     ##added together, pick a simple covariance structure
     cov.nu <- STmodel$cov.nu

@@ -10,7 +10,7 @@
 ##' 
 ##'   \item{calc.F.times.X}{\code{\link{calc.FX}}}
 ##'   \item{calc.smooth.trends}{\code{\link{calcSmoothTrends}} and
-##'                             \code{\link{updateSTdataTrend}}}
+##'                             \code{\link{updateTrend}}}
 ##'   \item{calc.tF.mat.F}{\code{\link{calc.tFXF}}}
 ##'   \item{calc.tF.times.mat}{\code{\link{calc.tFX}}, see also
 ##'     \code{\link{expandF}}.}
@@ -23,8 +23,11 @@
 ##'   \item{create.data.model}{\code{\link{createSTmodel}}, see also
 ##'     \code{\link{updateCovf}} and \code{\link{processLocation}}.}
 ##'   \item{CVbasics}{Included in \code{\link{estimateCV.STmodel}}.}
-##'   \item{CVresiduals.qqnorm}{TODO}
-##'   \item{CVresiduals.scatter}{TODO}
+##'   \item{CVresiduals.qqnorm}{\code{\link{qqnorm.STdata}},
+##'     \code{\link{qqnorm.STmodel}}, or \code{\link{qqnorm.predCVSTmodel}}}
+##'   \item{CVresiduals.scatter}{\code{\link{scatterPlot.STdata}},
+##'     \code{\link{scatterPlot.STmodel}}, or
+##'     \code{\link{scatterPlot.predCVSTmodel}}}
 ##' 
 ##'   \item{default.LUR.list}{\code{\link{processLUR}}}
 ##'   \item{default.ST.list}{\code{\link{processST}}}
@@ -162,7 +165,7 @@ SVD.smooth.cv <- function(...){
 ##' @rdname make.sigma.B
 ##' @export
 calc.smooth.trends <- function(...){
-  stop("USE calcSmoothTrends and/or updateSTdataTrend")
+  stop("USE calcSmoothTrends and/or updateTrend")
 }
 
 ##' @rdname make.sigma.B
@@ -378,11 +381,11 @@ plotCV <- function(...){
 ##' @rdname make.sigma.B
 ##' @export
 CVresiduals.qqnorm <- function(...){
-  stop("Not yet implemented")
+  stop("USE qqnorm.predCVSTmodel")
 }
 
 ##' @rdname make.sigma.B
 ##' @export
 CVresiduals.scatter <- function(...){
-  stop("Not yet implemented")
+  stop("USE scatterPlot.predCVSTmodel")
 }

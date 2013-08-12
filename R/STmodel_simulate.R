@@ -196,6 +196,5 @@ simulate.STmodel <- function(object, nsim=1, seed=NULL, x, nugget.unobs=0, ...){
     }
   }
   out <- list(param=x, B=B, X=X, obs=obs)
-  ##TODO: class belonging, S3-compliance
   return( out )
 }##simulate.STmodel

@@ -4,7 +4,7 @@
 \usage{
   makeSigmaB(pars, dist, type = "exp", nugget = 0,
     symmetry = dim(dist)[1] == dim(dist)[2],
-    ind2.to.1 = 1:dim(dist)[2])
+    ind2.to.1 = 1:dim(dist)[2], sparse = FALSE)
 }
 \arguments{
   \item{pars}{List of parameters for each block; if not a
@@ -27,6 +27,9 @@
   second dimension gives a first dimension index, used only
   if \code{symmetry=FALSE} to determine which covariances
   should have an added nugget (collocated sites).}
+
+  \item{sparse}{If \code{TRUE}, return a block diagonal
+  sparse matrix, see \code{\link[Matrix:bdiag]{bdiag}}.}
 }
 \value{
   Block covariance matrix of size
@@ -77,6 +80,17 @@ Sigma.cross <- makeSigmaB(pars, Dcross, type="exp", nugget=nugget,
   Sigma.alt.cross <- Sigma.alt[c(1:3,6:8,11:13),c(Ind, 5+Ind, 10+Ind)]
   if( abs(max(Sigma.cross-Sigma.alt.cross)) > 1e-13){
     stop("makeSigmaB: Results not equal, cross-covariance")
+  }
+
+  Sigma2.s <- makeSigmaB(pars, D, type=c("exp","exp2","cubic"),
+                         nugget=nugget, sparse=TRUE)
+  if( max(abs(Sigma2.s-Sigma2)) > 1e-14 ){
+    stop("makeSigmaB: Sparse matrix not equal, covariance")
+  }
+  Sigma.cross.s <- makeSigmaB(pars, Dcross, type="exp", nugget=nugget,
+                              ind2.to.1=c(1,1,2,2), sparse=TRUE)
+  if( max(abs(Sigma.cross.s-Sigma.cross)) > 1e-14 ){
+    stop("makeSigmaB: Sparse matrix not equal, cross-covariance")
   }
 }
 

@@ -23,6 +23,13 @@
 \seealso{
   Other STdata methods: \code{\link{createSTdata}},
   \code{\link{plot.STdata}}, \code{\link{plot.STmodel}},
-  \code{\link{print.STdata}}, \code{\link{summary.STdata}}
+  \code{\link{print.STdata}},
+  \code{\link{qqnorm.predCVSTmodel}},
+  \code{\link{qqnorm.STdata}},
+  \code{\link{qqnorm.STmodel}},
+  \code{\link{scatterPlot.predCVSTmodel}},
+  \code{\link{scatterPlot.STdata}},
+  \code{\link{scatterPlot.STmodel}},
+  \code{\link{summary.STdata}}
 }
 

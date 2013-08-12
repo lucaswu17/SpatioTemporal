@@ -76,7 +76,9 @@
 ##' @family cross-validation functions
 ##' @export
 createCV <- function(STmodel, groups=10, min.dist=.1, random=FALSE,
-                     subset=NA, option="all", Icv.vector=TRUE){
+                     subset=NA,
+                     option=c("all","fixed","comco","snapshot","home"),
+                     Icv.vector=TRUE){
   ##check class belonging
   stCheckClass(STmodel, "STmodel", name="STmodel")
   
@@ -86,9 +88,7 @@ createCV <- function(STmodel, groups=10, min.dist=.1, random=FALSE,
   ## comco    (only comco, keeping gradients together, ignores min.dist)
   ## snapshot (same as comco)
   ## home     (only home)
-  option <- tolower(option) ##ensure lower case
-  if( !(option %in% c("all","fixed","comco","snapshot","home")) )
-    stop("Unknown option")
+  option <- match.arg( option )
   
   if(option=="all"){
     Ind <- 1:dim(STmodel$locations)[1]
@@ -301,7 +301,9 @@ dropObservations <- function(STmodel, Ind.cv){
 }##function dropObservations
 
 stCheckInternalCV <- function(Ind.cv, Icv.vector=TRUE){
-  if( is.vector(Ind.cv) ){
+  if( is.null(Ind.cv) ){
+    stop("Ind.cv must be defined (is NULL)")
+  }else if( is.vector(Ind.cv) ){
     ##ensure integers
     Ind.cv <- as.integer(Ind.cv)
     uInd.cv <- sort(unique(Ind.cv))
@@ -430,12 +432,12 @@ predictNaive <- function(STmodel, locations=NULL, type=NULL){
   
   ##2) use average of the fixed sites to predict
   date.tmp <- as.double(STmodel$obs$date)
-  for(t in date.tmp){
+  for(t in unique(date.tmp)){
     I <- date.tmp==t
     pred[I,2] <- mean(STmodel$obs$obs[IND & I])
   }
   
-  ##3) fit temporal smooth to the closes fixed site to predict the data
+  ##3) fit temporal smooth to the closest fixed site to predict the data
   ##start by fitting the temporal to each of the fixed sites
   pred.tmp <- matrix(NA,length(STmodel$obs$obs),length(IND.loc))
   for(i in 1:length(IND.loc)){
@@ -476,7 +478,8 @@ predictNaive <- function(STmodel, locations=NULL, type=NULL){
 ##' 
 ##' @param object A \code{predCVSTmodel} object, the result of
 ##'   \code{\link{predictCV.STmodel}}. 
-##' @param transform Transform observations and predictions \emph{before}
+##' @param transform Transform observations (\emph{without} bias correction) and
+##'   predictions \emph{before} 
 ##'   computing averages; e.g. \code{transform=exp} gives the long term averages
 ##'   as  \code{mean( exp(obs) )} and \code{mean( exp(pred) )}.
 ##' @return Returns a (number of locations) - by - 4 matrix with the observed
@@ -492,6 +495,11 @@ predictNaive <- function(STmodel, locations=NULL, type=NULL){
 computeLTA <- function(object, transform=function(x){return(x)}){
   ##check class belonging
   stCheckClass(object, "predCVSTmodel", name="object")
+
+  ##is data already transformed - LTA is a bad idea
+  if( !is.null(object$opts$transform) && !missing(transform)){
+    stop("Data already transformed by predictCV")
+  }
   
   ##check transformation
   if( !is.function(transform) ){
@@ -499,7 +507,8 @@ computeLTA <- function(object, transform=function(x){return(x)}){
   }
 
   ##apply transformation
-  out <- transform( object$pred.obs[,c("obs","EX.mu","EX.mu.beta","EX")] )
+  I <- names(object$pred.obs) %in% c("obs","EX.mu","EX.mu.beta","EX","EX.pred")
+  out <- transform( object$pred.obs[,I,drop=FALSE] )
   ##split by site
   out <- split(out, object$pred.obs$ID)
   ##drop NA:s

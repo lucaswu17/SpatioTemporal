@@ -28,7 +28,11 @@
   Johan Lindström
 }
 \seealso{
-  Other mcmcSTmodel methods: \code{\link{MCMC.STmodel}},
+  Other mcmcSTmodel methods:
+  \code{\link{density.mcmcSTmodel}}, \code{\link{MCMC}},
+  \code{\link{MCMC.STmodel}},
+  \code{\link{plot.density.mcmcSTmodel}},
+  \code{\link{plot.mcmcSTmodel}},
   \code{\link{print.mcmcSTmodel}},
   \code{\link{print.summary.mcmcSTmodel}}
 }

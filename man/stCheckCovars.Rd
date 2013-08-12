@@ -27,16 +27,16 @@
 }
 \examples{
 ##load data
-  data(mesa.data)
+  data(mesa.model)
 
   ##check covariates
-  tmp <- stCheckCovars( mesa.data$covars, mesa.data$covars$ID )
+  tmp <- stCheckCovars( mesa.model$locations, mesa.model$locations$ID )
   str(tmp)
   ##require non-existant site
-  try( stCheckCovars( mesa.data$covars, "Bad.Site" ) )
+  try( stCheckCovars( mesa.model$locations, "Bad.Site" ) )
   ##drop the ID
-  mesa.data$covars$ID <- NULL
-  tmp <- stCheckCovars( mesa.data$covars )
+  mesa.model$locations$ID <- NULL
+  tmp <- stCheckCovars( mesa.model$locations )
   ##ID:s infered from rownames (1-25)
   str(tmp)
 }

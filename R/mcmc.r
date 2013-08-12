@@ -2,15 +2,13 @@
 ## Functions for MCMC ##
 ########################
 ##Functions in this file:
-## MCMC                       EX:missing
+## MCMC.STmodel               EX:OK
 ## print.mcmcSTmodel          EX:OK
 ## summary.mcmcSTmodel        EX:OK
 ## print.summary.mcmcSTmodel  EX:with summary.estCVSTmodel
-
-##TODO:
-## plot.mcmcSTmodel           EX:missing
-## density.mcmcSTmodel        EX:missing
-## plot.density.mcmcSTmodel   EX:missing
+## plot.mcmcSTmodel           EX:OK
+## density.mcmcSTmodel        EX:OK
+## plot.density.mcmcSTmodel   EX:with density.mcmcSTmodel
 
 ##' Estimates parameters and parameter uncertainties for the spatio-temporal
 ##' model using a Metropolis-Hastings based Markov Chain Monte Carlo (MCMC)
@@ -57,7 +55,7 @@
 ##' @param Hessian.prop Hessian (information) matrix for the log-likelihood, can
 ##'   be used to create a proposal matrix for the MCMC.
 ##' @param Sigma.prop Proposal matrix for the MCMC.
-##' @param info Outputs status information every silent:th iteration.
+##' @param info Outputs status information every info:th iteration.
 ##'   If \code{info=0} no output.
 ##' @param ... ignored additional arguments.
 ##' 
@@ -78,8 +76,9 @@
 ##' @family mcmcSTmodel methods
 ##' @method MCMC STmodel
 ##' @export
-MCMC.STmodel <- function(object, x, x.fixed=NULL, type="f", N=1000, Hessian.prop=NULL,
-                         Sigma.prop=NULL, info=min(ceiling(N/50),100),... ){
+MCMC.STmodel <- function(object, x, x.fixed=NULL, type="f", N=1000,
+                         Hessian.prop=NULL, Sigma.prop=NULL,
+                         info=min(ceiling(N/50),100),... ){
   ##check class belonging
   stCheckClass(object, "STmodel", name="object")
   
@@ -174,15 +173,7 @@ MCMC.STmodel <- function(object, x, x.fixed=NULL, type="f", N=1000, Hessian.prop
 #################################
 ## General S3 methods for MCMC ##
 #################################
-##' General MCMC method
-##'
-##' @title Run MCMC for an object
-##' @param object object for which to run MCMC
-##' @param ... additional parameters
-##' 
-##' @return MCMC results
-##' 
-##' @author Johan Lindström
+##' @rdname MCMC.STmodel
 ##' @export
 MCMC <- function(object, ...){
   UseMethod("MCMC")
@@ -313,3 +304,222 @@ print.summary.mcmcSTmodel <- function(x, ...){
   
   return(invisible())
 }##function print.summary.mcmcSTmodel
+
+
+##' \code{\link[graphics:plot]{plot}} method for class \code{mcmcSTmodel}.
+##'
+##' Plots results from \code{\link{MCMC.STmodel}}. Either parameter paths or the
+##' log-likelihood for the mcmc simulations. 
+##' 
+##' @title Plots for an \code{mcmcSTmodel} object
+##' @param x \code{mcmcSTmodel} object to plot.
+##' @param y Type of plot, options are \code{"like"}, \code{"alpha"}, or
+##'   name/index number of a parameter.
+##' @param add Add to existing plot using \code{\link[graphics:lines]{lines}}
+##' @param main Parameter passed as \code{main} to
+##'   \code{\link[graphics:plot]{plot}}, defaults to the parameter-name if not
+##'   given. 
+##' @param ... Additional parameters passed to \code{\link[graphics:plot]{plot}}
+##'   or \code{\link[graphics:lines]{lines}}
+##' @return Nothing
+##'
+##' @example Rd_examples/Ex_plot_mcmcSTmodel.R
+##' 
+##' @author Johan Lindström
+##' 
+##' @family mcmcSTmodel methods
+##' @method plot mcmcSTmodel
+##' @export
+plot.mcmcSTmodel <- function(x, y="like", add=FALSE, main=NULL, ...){
+  ##check class belonging
+  stCheckClass(x, "mcmcSTmodel", name="x")
+
+  ##we have to use y, cast to resonable name
+  plot.type <- y
+
+  plot.type.OK <- FALSE ##Assume the worst.
+  if( is.numeric(plot.type) ){
+    plot.type.OK <- 1<=plot.type && plot.type<=dim(x$par)[2]
+  }else if( is.character(plot.type) ){
+    plot.type.OK <- plot.type %in% c("like","alpha",colnames(x$par))
+  }
+  if( !plot.type.OK ){
+    stop("Unknown option for 'y'")
+  }
+  if( is.character(plot.type) && (plot.type %in% colnames(x$par)) ){
+    plot.type <- match(plot.type,colnames(x$par))
+  }
+
+  if( is.character(plot.type) && plot.type=="like" ){
+    y <- x$l
+    name <- "log-likelihood"
+  }else if( is.character(plot.type) && plot.type=="like" ){
+    y <- x$acceptance
+    name <- "acceptance rate"
+  }else{
+    y <- x$par[,plot.type]
+    name <- colnames(x$par)[plot.type]
+  }
+  x <- seq(1,length(y))
+
+  if( missing(main) ){ main <- name }
+  
+  if( add==FALSE ){
+    plot(x, y, main=main, ...)
+  }else{
+    lines(x, y, ...)
+  }
+  
+  return(invisible())
+}##function plot.mcmcSTmodel
+
+
+##' \code{\link[stats:density]{density}} method for class \code{mcmcSTmodel}.
+##'
+##' Computes kernel density estimates for the MCMC-parameters; as well as
+##' approximate Gaussian densities based on the Fischer-information.
+##' 
+##' @title Kernel Density Estimation for an \code{mcmcSTmodel} Object
+##' @param x \code{mcmcSTmodel} object
+##' @param BurnIn Number of initial points to ignore.
+##' @param estSTmodel Either a \code{estimateSTmodel} object from
+##'   \code{\link{estimate.STmodel}} or a matrix with parameter-estimates and
+##'   standard deviations, such as the output from
+##'   \code{\link{coef.estimateSTmodel}}. If given as a matrix, it should have
+##'   columns named "par" and "sd", and rows named after the parameters.
+##' @param ... Additional parameters passed to
+##'   \code{\link[stats:density]{density}}.
+##' @return List containing density estimate and Gaussian densities for all
+##'   model parameters.
+##'
+##' @example Rd_examples/Ex_density_mcmcSTmodel.R
+##' 
+##' @author Johan Lindström
+##' 
+##' @family mcmcSTmodel methods
+##' @importFrom stats density
+##' @method density mcmcSTmodel
+##' @export
+density.mcmcSTmodel <- function(x, BurnIn=0, estSTmodel=NULL, ...){
+  ##check class belonging
+  stCheckClass(x, "mcmcSTmodel", name="x")
+
+  ##extract vector of parameters
+  if( !is.null(estSTmodel) ){
+    if( inherits(estSTmodel, "estimateSTmodel") ){
+      estSTmodel <- coef(estSTmodel)
+    }
+    if( !all(c("par","sd") %in% colnames(estSTmodel)) ){
+      stop("estSTmodel must contain columns named par and sd")
+    }
+    estSTmodel <- estSTmodel[,c("par","sd")]
+    if( !all(rownames(estSTmodel) %in% colnames(x$par)) ){
+      stop("estSTmodel must contain rows named after the parameters, i.e. colnames(x$par)")
+    }
+    estSTmodel <- estSTmodel[colnames(x$par),]
+  }else{
+    estSTmodel <- matrix(NA,dim(x$par)[2],2)
+  }
+
+  ##density estimation
+  N <- dim(x$par)[1]
+  est.dens <- apply(x$par[(BurnIn+1):N,], 2, density, ...)
+
+  ##Gauss approxmation
+  colnames(estSTmodel) <- c("mean", "sd")
+  rownames(estSTmodel) <- NULL
+  
+  ##vector containing results
+  res <- vector("list", dim(x$par)[2])
+  names(res) <- colnames(x$par)
+  ##collect results
+  for(i in 1:length(res)){
+    res[[i]] <- list(density=est.dens[[i]],
+                     approx.gauss = list(mean = estSTmodel[i,"mean"],
+                       sd = estSTmodel[i,"sd"]))
+  }
+  class(res) <- "density.mcmcSTmodel"
+  return( res )
+}##function density.mcmcSTmodel
+
+
+##' \code{\link[graphics:plot]{plot}} method for class \code{density.mcmcSTmodel}.
+##' Plots results from \code{\link{density.mcmcSTmodel}}.
+##' 
+##' @title Plots for an \code{density.mcmcSTmodel} object
+##' @param x \code{density.mcmcSTmodel} object to plot.
+##' @param y Name/index of parameter for which to plot the density.
+##' @param add Add to existing plot using \code{\link[graphics:lines]{lines}}.
+##' @param norm.col Add the Gaussian density using a line with colour
+##'   \code{norm.col}, if \code{norm.col=0} do \emph{not} add the Gaussian.
+##' @param main Parameter passed as \code{main} to
+##'   \code{\link[stats:plot.density]{plot.density}}, defaults to the
+##'   parameter-name if not given.
+##' @param ylim Additional parameters passed to
+##'   \code{\link[stats:plot.density]{plot.density}}.
+##' @param ... Additional parameters passed to
+##'   \code{\link[stats:plot.density]{plot.density}} or
+##'   \code{\link[graphics:lines]{lines}}.
+##' @return Nothing
+##'
+##' @example Rd_examples/Ex_density_mcmcSTmodel.R
+##' 
+##' @author Johan Lindström
+##' 
+##' @family mcmcSTmodel methods
+##' @method plot density.mcmcSTmodel
+##' @export
+plot.density.mcmcSTmodel <- function(x, y=1, add=FALSE, norm.col=0,
+                                     main=NULL, ylim=NULL, ...){
+  ##check class belonging
+  stCheckClass(x, "density.mcmcSTmodel", name="x")
+
+  ##we have to use y, cast to resonable name
+  plot.type <- y
+
+  plot.type.OK <- FALSE ##Assume the worst.
+  if( is.numeric(plot.type) ){
+    plot.type.OK <- 1<=plot.type && plot.type<=length(x)
+  }else if( is.character(plot.type) ){
+    plot.type.OK <- plot.type %in% names(x)
+  }
+  if( !plot.type.OK ){
+    stop("Unknown option for 'y'")
+  }
+
+  if( is.numeric(plot.type) ){
+    plot.type <- names(x)[plot.type]
+  }
+  ##extract density and gauss approx to plot
+  dens <- x[[plot.type]]$density
+  approx <- x[[plot.type]]$approx.gauss
+  name <- plot.type
+
+  if( norm.col!=0 ){
+    ##Gaussian approximation
+    xd <- dens$x
+    yd <- dnorm(xd, mean=approx$mean, sd=approx$sd)
+  }else{
+    yd <- NULL
+  }
+
+  if( missing(main) ){ main <- name }
+
+  if( is.null(ylim) ){
+    ylim <- range(c(dens$y,yd))
+  }else{
+    ylim <- range(ylim)
+  }
+
+  ##plot density kernel estimate
+  if( add==FALSE ){
+    plot(dens, main=main, ylim=ylim, ...)
+  }else{
+    lines(dens$x, dens$y, ...)
+  }
+  if( norm.col!=0 ){
+    lines(xd, yd, col=norm.col)
+  }
+  
+  return(invisible())
+}##function plot.density.mcmcSTmodel

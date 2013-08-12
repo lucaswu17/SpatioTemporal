@@ -49,7 +49,7 @@
 ##' 
 ##' @title Internal Function that do Covariate Selection
 ##' @param STdata \code{STdata} object with observations, covariates, trends, etc;
-##'   see \code{\link{mesa.data}}.
+##'   see \code{\link{mesa.data.raw}}.
 ##' @param LUR.in A vector or list indicating which geographic covariates to use.
 ##' 
 ##' @return A list of LUR specifications, as \code{\link[stats:formula]{formula}};
@@ -65,7 +65,11 @@ processLUR <- function(STdata, LUR.in){
   stCheckClass(STdata, "STdata", name="STdata")
 
   ##find the number of temporal trends (including intercept)
-  nt <- dim(STdata$trend)[2]
+  if( is.null(STdata$trend) ){
+    nt <- 1
+  }else{
+    nt <- dim(STdata$trend)[2]
+  }
   
   ##There are a few different options for LUR.in
   if( is.null(LUR.in) ){
@@ -199,7 +203,7 @@ processST <- function(STdata, ST.in){
 ##' 
 ##' @title Internal Function that Extracts Locations
 ##' @param STdata \code{STdata} object with observations, covariates, trends, etc;
-##'   see \code{\link{mesa.data}}.
+##'   see \code{\link{mesa.data.raw}}.
 ##' @param locations A list specifying which fields in \code{STdata$covars} that
 ##'   should be used for what in the location data.frame, see details.
 ##' 

@@ -7,7 +7,7 @@
     symmetry = dim(dist)[1] == dim(dist)[2],
     blocks1 = dim(dist)[1], blocks2 = dim(dist)[2],
     ind1 = 1:dim(dist)[1], ind2 = 1:dim(dist)[2],
-    ind2.to.1 = 1:dim(dist)[2])
+    ind2.to.1 = 1:dim(dist)[2], sparse = FALSE)
 }
 \arguments{
   \item{pars}{Vector of parameters, as suggested by
@@ -29,8 +29,9 @@
   value.}
 
   \item{symmetry}{\code{TRUE}/\code{FALSE} flag if the
-  \code{dist} is symmetric, resulting in a symmetric
-  covariance matrix.}
+  \code{dist} matrix is symmetric. If also
+  \code{ind1==ind2} and \code{blocks1==blocks2} the
+  resulting covariance matrix will be symmetric.}
 
   \item{blocks1,blocks2}{Vectors with the size(s) of each
   of the diagonal blocks, usually
@@ -50,6 +51,9 @@
   index, \code{ind1}, used only if \code{symmetry=FALSE} to
   determine which covariances should have an added nugget
   (collocated sites).}
+
+  \item{sparse}{If \code{TRUE}, return a block diagonal
+  sparse matrix, see \code{\link[Matrix:bdiag]{bdiag}}.}
 }
 \value{
   Block covariance matrix of size
@@ -84,8 +88,21 @@ sigma.nu.c <- makeSigmaNu(c(.4,2), D, "exp", nugget=0.1,
 ##compare the cross-covariance with the relevant part of sigma.nu
 range(sigma.nu.c-sigma.nu[,7:10])
 \dontshow{
-  if( abs(max(sigma.nu.c-sigma.nu[,7:10])) > 1e-13 ){
+  if( max(abs(sigma.nu.c-sigma.nu[,7:10])) > 1e-13 ){
     stop("make.sigma.nu.cross.cov 1: Results not equal")
+  }
+  sigma.nu.s <- makeSigmaNu(c(.4,2), D, "exp", nugget=0.1,
+                            blocks1 = c(3,2,4,1), ind1 = I,
+                            sparse=TRUE)
+  sigma.nu.c.s <- makeSigmaNu(c(.4,2), D, "exp", nugget=0.1,
+                              blocks1 = c(3,2,4,1), ind1 = I, 
+                              blocks2 = c(0,0,3,1), ind2 = I[7:10],
+                              sparse=TRUE)
+  if( max(abs(sigma.nu.s-sigma.nu)) > 1e-13 ){
+    stop("make.sigma.nu sparse not equal")
+  }
+  if( max(abs(sigma.nu.c.s-sigma.nu.c)) > 1e-13 ){
+    stop("make.sigma.nu sparse/cross not equal")
   }
 }
 ##an alternative showing the use of loc.ind2.to.1
@@ -96,7 +113,7 @@ sigma.nu.c <- makeSigmaNu(c(.4,2), D[,4:3], "exp", nugget=0.1,
 ##compare the cross-covariance with the relevant part of sigma.nu
 range(sigma.nu.c-sigma.nu[,6:7])
 \dontshow{
-  if( abs(max(sigma.nu.c-sigma.nu[,6:7])) > 1e-13 ){
+  if( max(abs(sigma.nu.c-sigma.nu[,6:7])) > 1e-13 ){
     stop("make.sigma.nu.cross.cov 2: Results not equal")
   }
 }

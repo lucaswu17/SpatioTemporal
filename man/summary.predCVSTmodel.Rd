@@ -25,13 +25,18 @@
   coverage of the cross-validated predictions.}
 
   \item{transform}{Transform observations and predictions
-  \emph{before} computing statistics; see also
-  \code{\link{computeLTA}}}
+  (\emph{without} bias correction) \emph{before} computing
+  statistics; see also \code{\link{computeLTA}}.
+  \emph{Redundant} if option \code{transform} was used in
+  \code{\link{predictCV.STmodel}} (as pass through argument
+  to \code{\link{predict.STmodel}})}
 
   \item{LTA}{Compute cross-validation statistics for the
   long term averages at each site, uses
   \code{\link{computeLTA}} to compute the averages.
-  \code{transform} is passed to \code{\link{computeLTA}}.}
+  \code{transform} is passed to \code{\link{computeLTA}}.
+  This is \emph{redundant} if option \code{LTA=TRUE} was
+  uses in \code{\link{predictCV.STmodel}}.}
 
   \item{...}{Ignored additional arguments.}
 }
@@ -50,28 +55,27 @@
 }
 \examples{
 ##load some data
-data(CV.mesa.model)
+data(pred.cv.mesa)
 
 ##basic summary statistics
 summary(pred.cv.mesa)
-##computed on the natural scale, and with long term averages
-summary(pred.cv.mesa, transform=exp, LTA=TRUE)
-
-##store the results
-cv.summary <- summary(pred.cv.mesa, transform=exp, LTA=TRUE)
-##and study the contents
-str(cv.summary)
 }
 \author{
   Johan Lindström
 }
 \seealso{
-  Other predCVSTmodel methods:
+  Other predCVSTmodel methods: \code{\link{estimateCV}},
   \code{\link{estimateCV.STmodel}},
   \code{\link{plot.predCVSTmodel}},
   \code{\link{plot.predictSTmodel}},
-  \code{\link{predictCV.STmodel}},
+  \code{\link{predictCV}}, \code{\link{predictCV.STmodel}},
   \code{\link{print.predCVSTmodel}},
-  \code{\link{print.summary.predCVSTmodel}}
+  \code{\link{print.summary.predCVSTmodel}},
+  \code{\link{qqnorm.predCVSTmodel}},
+  \code{\link{qqnorm.STdata}},
+  \code{\link{qqnorm.STmodel}},
+  \code{\link{scatterPlot.predCVSTmodel}},
+  \code{\link{scatterPlot.STdata}},
+  \code{\link{scatterPlot.STmodel}}
 }
 

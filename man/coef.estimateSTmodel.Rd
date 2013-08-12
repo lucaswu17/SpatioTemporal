@@ -2,8 +2,8 @@
 \alias{coef.estimateSTmodel}
 \title{Returns estimated parameters (and uncertaintes)}
 \usage{
-  \method{coef}{estimateSTmodel} (object, pars = "all",
-    ...)
+  \method{coef}{estimateSTmodel} (object,
+    pars = c("all", "cov", "reg"), ...)
 }
 \arguments{
   \item{object}{\code{estimateSTmodel} object from which to
@@ -33,7 +33,7 @@
   Johan Lindström
 }
 \seealso{
-  Other estimateSTmodel methods:
+  Other estimateSTmodel methods: \code{\link{estimate}},
   \code{\link{estimate.STmodel}},
   \code{\link{print.estimateSTmodel}}
 }

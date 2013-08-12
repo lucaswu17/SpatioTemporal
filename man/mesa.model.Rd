@@ -1,7 +1,7 @@
 \docType{data}
 \name{mesa.model}
 \alias{mesa.model}
-\title{Example of a \code{STmodel} Structure}
+\title{Example of a \code{STmodel} structure}
 \format{A list with elements, a detailed description of each elements is
 given in details below}
 \source{
@@ -37,9 +37,9 @@ given in details below}
   \item{LUR.list,LUR}{Specification of covariates for the
   beta-fields and a list with covariates for each of the
   beta-fields, see \code{\link{processLUR}} and
-  \code{\link{createLUR}}.  } \item{trend}{The temporal
-  trends with \emph{one of the} columns being named
-  \code{date}, preferably of class
+  \code{\link{createLUR}}.  } \item{trend,trend.fnc}{The
+  temporal trends with \emph{one of the} columns being
+  named \code{date}, preferably of class
   \code{\link[base:Date]{Date}} providing the time
   alignment for the temporal trends.} \item{F}{A matrix
   contaning smooth temporal trends for each observation;
@@ -92,7 +92,7 @@ loglikeSTdim(mesa.model)
 
   Other example data: \code{\link{est.cv.mesa}},
   \code{\link{est.mesa.model}},
-  \code{\link{MCMC.mesa.model}}, \code{\link{mesa.data}},
+  \code{\link{MCMC.mesa.model}},
   \code{\link{mesa.data.raw}},
   \code{\link{pred.mesa.model}}
 }

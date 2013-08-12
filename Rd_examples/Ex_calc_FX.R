@@ -30,7 +30,7 @@ FX.alt <- cBind(Fexp[,1:3] %*% X[[1]], Fexp[,4:6] %*% X[[2]])
 }
 
 
-##some examples using the mesa.data
+##some examples using real data
 data(mesa.model)
 
 ##Some information about the size(s) of the model.

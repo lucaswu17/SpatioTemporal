@@ -47,7 +47,6 @@
 }
 \examples{
 ##load the data
-data(mesa.data)
 data(mesa.model)
 data(est.mesa.model)
 
@@ -76,39 +75,27 @@ for(i in 1:3){
   }
   lines( beta[,i], col="grey")
 }
-
-###########################################
-## A case with some unobserved locations ##
-###########################################
-##keep only observations from the AQS sites
-I.aqs <- mesa.data$covars$ID[ mesa.data$covars$type=="AQS"]
-mesa.data$obs <- mesa.data$obs[ mesa.data$obs$ID \%in\% I.aqs,]
-
-##create a new model object
-mesa.model <- createSTmodel(mesa.data, LUR = mesa.model$LUR.list)
-
-##simulate some replicates for this object
-sim.data2 <- simulate(mesa.model, nsim=1, x=x)
-
-##The new object now only contains simulated observations for the AQS sites
-table( sim.data2$obs[[1]]$ID )
-##while the other two contain all locations
-table( sim.data$obs[[1]]$ID )
 }
 \author{
   Johan Lindström
 }
 \seealso{
-  Other STmodel methods: \code{\link{createSTmodel}},
-  \code{\link{c.STmodel}},
-  \code{\link{estimateCV.STmodel}},
-  \code{\link{estimate.STmodel}},
+  Other STmodel methods: \code{\link{c.STmodel}},
+  \code{\link{createSTmodel}}, \code{\link{estimate}},
+  \code{\link{estimate.STmodel}}, \code{\link{estimateCV}},
+  \code{\link{estimateCV.STmodel}}, \code{\link{MCMC}},
   \code{\link{MCMC.STmodel}}, \code{\link{plot.STdata}},
   \code{\link{plot.STmodel}},
+  \code{\link{predict.STmodel}}, \code{\link{predictCV}},
   \code{\link{predictCV.STmodel}},
-  \code{\link{predict.STmodel}},
   \code{\link{print.STmodel}},
   \code{\link{print.summary.STmodel}},
+  \code{\link{qqnorm.predCVSTmodel}},
+  \code{\link{qqnorm.STdata}},
+  \code{\link{qqnorm.STmodel}},
+  \code{\link{scatterPlot.predCVSTmodel}},
+  \code{\link{scatterPlot.STdata}},
+  \code{\link{scatterPlot.STmodel}},
   \code{\link{summary.STmodel}}
 }
 

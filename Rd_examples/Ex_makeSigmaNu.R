@@ -21,8 +21,21 @@ sigma.nu.c <- makeSigmaNu(c(.4,2), D, "exp", nugget=0.1,
 ##compare the cross-covariance with the relevant part of sigma.nu
 range(sigma.nu.c-sigma.nu[,7:10])
 \dontshow{
-  if( abs(max(sigma.nu.c-sigma.nu[,7:10])) > 1e-13 ){
+  if( max(abs(sigma.nu.c-sigma.nu[,7:10])) > 1e-13 ){
     stop("make.sigma.nu.cross.cov 1: Results not equal")
+  }
+  sigma.nu.s <- makeSigmaNu(c(.4,2), D, "exp", nugget=0.1,
+                            blocks1 = c(3,2,4,1), ind1 = I,
+                            sparse=TRUE)
+  sigma.nu.c.s <- makeSigmaNu(c(.4,2), D, "exp", nugget=0.1,
+                              blocks1 = c(3,2,4,1), ind1 = I, 
+                              blocks2 = c(0,0,3,1), ind2 = I[7:10],
+                              sparse=TRUE)
+  if( max(abs(sigma.nu.s-sigma.nu)) > 1e-13 ){
+    stop("make.sigma.nu sparse not equal")
+  }
+  if( max(abs(sigma.nu.c.s-sigma.nu.c)) > 1e-13 ){
+    stop("make.sigma.nu sparse/cross not equal")
   }
 }
 ##an alternative showing the use of loc.ind2.to.1
@@ -33,7 +46,7 @@ sigma.nu.c <- makeSigmaNu(c(.4,2), D[,4:3], "exp", nugget=0.1,
 ##compare the cross-covariance with the relevant part of sigma.nu
 range(sigma.nu.c-sigma.nu[,6:7])
 \dontshow{
-  if( abs(max(sigma.nu.c-sigma.nu[,6:7])) > 1e-13 ){
+  if( max(abs(sigma.nu.c-sigma.nu[,6:7])) > 1e-13 ){
     stop("make.sigma.nu.cross.cov 2: Results not equal")
   }
 }

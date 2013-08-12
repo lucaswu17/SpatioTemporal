@@ -1,5 +1,4 @@
 ##load the data
-data(mesa.data)
 data(mesa.model)
 data(est.mesa.model)
 
@@ -28,21 +27,3 @@ for(i in 1:3){
   }
   lines( beta[,i], col="grey")
 }
-
-###########################################
-## A case with some unobserved locations ##
-###########################################
-##keep only observations from the AQS sites
-I.aqs <- mesa.data$covars$ID[ mesa.data$covars$type=="AQS"]
-mesa.data$obs <- mesa.data$obs[ mesa.data$obs$ID %in% I.aqs,]
-
-##create a new model object
-mesa.model <- createSTmodel(mesa.data, LUR = mesa.model$LUR.list)
-
-##simulate some replicates for this object
-sim.data2 <- simulate(mesa.model, nsim=1, x=x)
-
-##The new object now only contains simulated observations for the AQS sites
-table( sim.data2$obs[[1]]$ID )
-##while the other two contain all locations
-table( sim.data$obs[[1]]$ID )

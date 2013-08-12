@@ -6,6 +6,7 @@
     Nmax = 1000, only.pars = FALSE, nugget.unobs = 0,
     only.obs = FALSE, pred.var = TRUE, pred.covar = FALSE,
     beta.covar = FALSE, combine.data = FALSE, type = "p",
+    LTA = FALSE, transform = c("none", "unbiased", "mspe"),
     ...)
 }
 \arguments{
@@ -59,9 +60,32 @@
   see \code{\link{c.STmodel}}.}
 
   \item{type}{A single character indicating the type of
-  log-likelihood to compute. Valid options are "f", "p",
-  and "r", for \emph{full}, \emph{profile} or
-  \emph{restricted maximum likelihood} (REML).}
+  prediction to compute. Valid options are "f", "p", and
+  "r", for \emph{full}, \emph{profile} or \emph{restricted
+  maximum likelihood} (REML). For profile and full the
+  predictions are computed assuming that \emph{both}
+  covariance parameters and regression parameters are
+  known, e.g. \code{E(X|Y,cov_par,reg_par)}; for REML
+  predictions are compute assuming \emph{only} covariance
+  parameters known, e.g. \code{E(X|Y,cov_par)}. The main
+  difference is that REML will have \emph{larger} variances
+  due to the additional uncertainty in the regression
+  parameters.}
+
+  \item{transform}{Regard field as log-Gaussian and apply
+  exponential transformation to predictions. For the final
+  expectations two options exist, either a unbiased
+  prediction or the (biased) mean-squared error
+  predictions.}
+
+  \item{LTA}{Compute long-term temporal averages. Either a
+  logical value or a list; if \code{TRUE} then averages at
+  each location (and variances if \code{pred.var=TRUE}) are
+  computed; otherwise this should be a list with elements
+  named after locations and each element containing a
+  vector (or list of vectors) with dates over which to
+  compute averages. If \code{only.obs=TRUE} averages are
+  computed over only the observations.}
 
   \item{...}{Ignored additional arguments.}
 }
@@ -85,24 +109,34 @@
   based on the latent-beta fields, but excluding the
   residual nu field.} \item{EX}{Full predictions at the
   space-time locations in \code{object} and/or
-  \code{STdata}.} \item{VX}{Pointwise variances for all
-  locations in \code{EX}.} \item{VX.pred}{Pointwise
-  prediction variances for all locations in \code{EX}, i.e.
-  including contribution from \code{nugget.unobs}.}
+  \code{STdata}.} \item{EX.pred}{Only for
+  \code{transform!="none"}, full predictions including bias
+  correction for prediction error.}
+  \item{VX,VX.pred}{Pointwise variances and prediction
+  variances (i.e. incl.  contribution from
+  \code{nugget.unobs}) for all locations in \code{EX}.}
   \item{VX.full}{A list with (number of locations)
   elements, each element is a (number of timepoints) - by -
   (number of timepoints) temporal covariance matrix for the
-  timeseries at each location.} \item{I}{A vector with the
-  locations of the observations in \code{object} or
-  \code{STdata}. To extract predictions at the observations
-  locations use \code{EX[I]}.}
+  timeseries at each location.}
+  \item{MSPE,MSPE.pred}{Pointwise mean-square prediction
+  errors for the log-Gaussian fields.}
+  \item{log.EX,log.VX.pred,log.VX}{Pointwise predictions
+  and variances for the un-transformed fields when
+  \code{transform!="none"}} \item{LTA}{A data.frame with
+  temporal averages for locations specified by \code{LTA}.
+  } \item{I}{A vector with the locations of the
+  observations in \code{object} or \code{STdata}. To
+  extract predictions at the observations locations use
+  \code{EX[I]}.}
 }
 \description{
   Compute the conditional expectations (i.e. predictions)
   at the unobserved space-time locations. Predictions are
   computed for the space-time locations in \code{object}
-  and/or \code{STdata}, conditional on the observations in
-  \code{object} and parameters given in \code{x}.
+  and/or \code{STdata}, conditional on the observations
+  (and temporal trends) in \code{object} and parameters
+  given in \code{x}.
 }
 \details{
   In addition to computing the conditional expectation at a
@@ -114,23 +148,28 @@
   a latent field given observations. This implies that
   \code{E(X_i| Y_i) != Y_i}, with the difference being due
   to smoothing over the nugget. Further two possible
-  variance are given, \code{V(X_i|Y_i)} and
-  \code{V(X_i|Y_i)+nugget_i}. Here the nugget for
+  variance can be computed (see below), \code{V(X_i|Y_i)}
+  and \code{V(X_i|Y_i)+nugget_i}. Here the nugget for
   unobserved locations needs to be specified as an
   additional argument \code{nugget.nobs}. The two variances
   correspond, losely, to confidence and prediction
   intervals.
 
-  Predictions variances can also be computed. If
-  \code{pred.var=TRUE} point-wise variances for the
-  predictions (and the latent beta-fields) are computed. If
-  instead \code{pred.covar=TRUE} the full covariance
-  matrices for each predicted time series is computed; this
-  implies that the covariances between temporal predictions
-  at the same location are calculated but \emph{not}, due
-  to memory restrictions, any covariances between
-  locations. \code{beta.covar=TRUE} gives the full
-  covariance matrices for the latent beta-fields.
+  Variances are computed if \code{pred.var=TRUE} point-wise
+  variances for the predictions (and the latent
+  beta-fields) are computed. If instead
+  \code{pred.covar=TRUE} the full covariance matrices for
+  each predicted time series is computed; this implies that
+  the covariances between temporal predictions at the same
+  location are calculated but \emph{not}, due to memory
+  restrictions, any covariances between locations.
+  \code{beta.covar=TRUE} gives the full covariance matrices
+  for the latent beta-fields.
+
+  If \code{transform!="none"} the field is assumed to be
+  log-Gaussian and expectations are transformed, and if
+  \code{pred.var=TRUE} the mean squared prediction errors
+  are given.
 }
 \examples{
 ##load data
@@ -141,56 +180,16 @@ data(est.mesa.model)
 x.reg <- predict(mesa.model, est.mesa.model, only.pars = TRUE)
 str(x.reg$pars)
 
-##Split data into FIXED and AQS
-I.aqs <- mesa.model$locations$ID[mesa.model$locations$type=="AQS"]
-I.aqs <- mesa.model$obs$ID \%in\% I.aqs
-mesa.model.aqs <- dropObservations(mesa.model, !I.aqs)
-mesa.model.fixed <- dropObservations(mesa.model, I.aqs)
-
 \dontrun{
   ##compute predictions at all locations, including beta-fields
   pred.mesa.model <- predict(mesa.model, est.mesa.model,
                              pred.var=TRUE)
-  ##predict at FIXED using AQS-sites
-  pred.mesa.model.obs <- predict(mesa.model.aqs, est.mesa.model,
-                                 STdata=mesa.model.fixed, only.obs=TRUE)
 }
 ##Let's load precomputed results instead.
 data(pred.mesa.model)
 
-##Compare the predictions at all locations and only obs
+##study results
 print(pred.mesa.model)
-print(pred.mesa.model.obs)
-
-##estimate beta from the observations for reference
-##create data matrix
-D <- createDataMatrix(mesa.model)
-beta <- matrix(NA,dim(D)[2], dim(mesa.model$trend)[2])
-##extact the temporal trends
-F <- mesa.model$trend
-##drop the date column
-F$date <- NULL
-##estimate the beta-coeficients at each location
-for(i in 1:dim(D)[2]){
-  beta[i,] <- coefficients( lm(D[,i] ~ as.matrix(F)) )
-}
-
-##Study the results
-##Start by comparing beta fields
-par(mfcol=c(1,1), mar=c(4.5,4.5,2,.5), pty="s")
-plot(x=beta[,1], y=pred.mesa.model$beta$EX[,1],
-     main="Temporal Intercept",
-     xlab="Empirical estimate", ylab="Spatio-Temporal Model")
-abline(0,1,col="grey")
-##or just the regression part of the beta fields
-points(x=beta[,1], y=pred.mesa.model$beta$mu[,1], col=2)
-
-##plot predictions and observations for 4 locations
-par(mfrow=c(4,1),mar=c(2.5,2.5,2,.5))
-plot(pred.mesa.model, ID=1, STmodel=mesa.model, pred.var=TRUE)
-plot(pred.mesa.model, ID=10, STmodel=mesa.model, pred.var=TRUE)
-plot(pred.mesa.model, ID=17, STmodel=mesa.model, pred.var=TRUE)
-plot(pred.mesa.model, ID=22, STmodel=mesa.model, pred.var=TRUE)
 }
 \author{
   Johan Lindström
@@ -201,15 +200,21 @@ plot(pred.mesa.model, ID=22, STmodel=mesa.model, pred.var=TRUE)
   \code{\link{plot.predictSTmodel}},
   \code{\link{print.predictSTmodel}}
 
-  Other STmodel methods: \code{\link{createSTmodel}},
-  \code{\link{c.STmodel}},
-  \code{\link{estimateCV.STmodel}},
-  \code{\link{estimate.STmodel}},
+  Other STmodel methods: \code{\link{c.STmodel}},
+  \code{\link{createSTmodel}}, \code{\link{estimate}},
+  \code{\link{estimate.STmodel}}, \code{\link{estimateCV}},
+  \code{\link{estimateCV.STmodel}}, \code{\link{MCMC}},
   \code{\link{MCMC.STmodel}}, \code{\link{plot.STdata}},
-  \code{\link{plot.STmodel}},
+  \code{\link{plot.STmodel}}, \code{\link{predictCV}},
   \code{\link{predictCV.STmodel}},
   \code{\link{print.STmodel}},
   \code{\link{print.summary.STmodel}},
+  \code{\link{qqnorm.predCVSTmodel}},
+  \code{\link{qqnorm.STdata}},
+  \code{\link{qqnorm.STmodel}},
+  \code{\link{scatterPlot.predCVSTmodel}},
+  \code{\link{scatterPlot.STdata}},
+  \code{\link{scatterPlot.STmodel}},
   \code{\link{simulate.STmodel}},
   \code{\link{summary.STmodel}}
 }

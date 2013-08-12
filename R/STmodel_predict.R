@@ -8,8 +8,8 @@
 
 ##' Compute the conditional expectations (i.e. predictions) at the unobserved
 ##' space-time locations. Predictions are computed for the space-time locations in
-##' \code{object} and/or \code{STdata}, conditional on the observations in
-##' \code{object} and parameters given in \code{x}.
+##' \code{object} and/or \code{STdata}, conditional on the observations (and
+##' temporal trends) in \code{object} and parameters given in \code{x}.
 ##' 
 ##' In addition to computing the conditional expectation at a number of
 ##' space-time locations the function also computes predictions based on only
@@ -18,19 +18,23 @@
 ##' Prediction are computed as the conditional expectation of a latent field
 ##' given observations. This implies that \code{E(X_i| Y_i) != Y_i}, with the
 ##' difference being due to smoothing over the nugget. Further two possible
-##' variance are given, \code{V(X_i|Y_i)} and \code{V(X_i|Y_i)+nugget_i}. Here
-##' the nugget for unobserved locations needs to be specified as an additional
-##' argument \code{nugget.nobs}. The two variances correspond, losely, to
-##' confidence and prediction intervals.
+##' variance can be computed (see below), \code{V(X_i|Y_i)} and
+##' \code{V(X_i|Y_i)+nugget_i}. Here the nugget for unobserved locations needs
+##' to be specified as an additional argument \code{nugget.nobs}. The two
+##' variances correspond, losely, to confidence and prediction intervals.
 ##' 
-##' Predictions variances can also be computed. If \code{pred.var=TRUE}
-##' point-wise variances for the predictions (and the latent beta-fields) are
+##' Variances are computed if \code{pred.var=TRUE} point-wise variances for the
+##' predictions (and the latent beta-fields) are 
 ##' computed. If instead \code{pred.covar=TRUE} the full covariance matrices for
 ##' each predicted time series is computed; this implies that the covariances between
 ##' temporal predictions at the same location are calculated but \emph{not}, due
 ##' to memory restrictions, any covariances between locations.
 ##' \code{beta.covar=TRUE} gives the full covariance matrices for the latent
 ##' beta-fields.
+##'
+##' If \code{transform!="none"} the field is assumed to be log-Gaussian and
+##' expectations are transformed, and if \code{pred.var=TRUE} the mean squared
+##' prediction errors are given.
 ##' 
 ##' @title Computes Conditional Expectation at Unobserved Locations
 ##' 
@@ -63,10 +67,27 @@
 ##'  beta-fields, otherwise only the diagonal elements of V(beta|obs) are
 ##'  computed. 
 ##' @param combine.data Combine \code{object} and \code{STdata} and predict for
-##'   the joint set of points, see \code{\link{c.STmodel}}.
-##' @param type A single character indicating the type of log-likelihood to
-##'   compute. Valid options are "f", "p", and "r", for \emph{full},
-##'   \emph{profile} or \emph{restricted maximum likelihood} (REML).
+##'  the joint set of points, see \code{\link{c.STmodel}}.
+##' @param type A single character indicating the type of prediction to
+##'  compute. Valid options are "f", "p", and "r", for \emph{full},
+##'  \emph{profile} or \emph{restricted maximum likelihood} (REML). For profile
+##'  and full the predictions are computed assuming that \emph{both} covariance
+##'  parameters and regression parameters are known,
+##'  e.g. \code{E(X|Y,cov_par,reg_par)}; for REML predictions are compute
+##'  assuming \emph{only} covariance parameters known,
+##'  e.g. \code{E(X|Y,cov_par)}. The main difference is that REML will have
+##'  \emph{larger} variances due to the additional uncertainty in the
+##'  regression parameters.
+##' @param transform Regard field as log-Gaussian and apply exponential
+##'  transformation to predictions. For the final expectations two options
+##'  exist, either a unbiased prediction or the (biased) mean-squared error
+##'  predictions.
+##' @param LTA Compute long-term temporal averages. Either a logical value or a
+##'  list; if \code{TRUE} then averages at each location (and variances if
+##'  \code{pred.var=TRUE}) are computed; otherwise this should be a list with
+##'  elements named after locations and each element containing a vector (or
+##'  list of vectors) with dates over which to compute averages. If
+##'  \code{only.obs=TRUE} averages are computed over only the observations.
 ##' @param ... Ignored additional arguments.
 ##' 
 ##' @return The function returns a list containing (objects not computed
@@ -89,13 +110,19 @@
 ##'                     the residual nu field.}
 ##'   \item{EX}{Full predictions at the space-time locations in
 ##'             \code{object} and/or \code{STdata}.}
-##'   \item{VX}{Pointwise variances for all locations in \code{EX}.}
-##'   \item{VX.pred}{Pointwise prediction variances for all locations in
-##'                  \code{EX}, i.e. including contribution from
-##'                  \code{nugget.unobs}.}
+##'   \item{EX.pred}{Only for \code{transform!="none"}, full predictions
+##'                  including bias correction for prediction error.}
+##'   \item{VX,VX.pred}{Pointwise variances and prediction variances (i.e. incl.
+##'                     contribution from \code{nugget.unobs}) for all locations in \code{EX}.}
 ##'   \item{VX.full}{A list with (number of locations) elements, each element is a
 ##'                  (number of timepoints) - by - (number of timepoints) temporal
 ##'                  covariance matrix for the timeseries at each location.}
+##'   \item{MSPE,MSPE.pred}{Pointwise mean-square prediction errors for the
+##'                         log-Gaussian fields.}
+##'   \item{log.EX,log.VX.pred,log.VX}{Pointwise predictions and variances for
+##'           the un-transformed fields when \code{transform!="none"}}
+##'   \item{LTA}{A data.frame with temporal averages for locations specified by
+##'              \code{LTA}. }
 ##'   \item{I}{A vector with the locations of the observations in \code{object} or
 ##'            \code{STdata}. To extract predictions at the observations locations use
 ##'            \code{EX[I]}.}
@@ -112,7 +139,10 @@
 predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
                             nugget.unobs=0, only.obs=FALSE, pred.var=TRUE,
                             pred.covar=FALSE, beta.covar=FALSE,
-                            combine.data=FALSE, type="p", ...){
+                            combine.data=FALSE, type="p", LTA=FALSE, 
+                            transform=c("none","unbiased","mspe"), ...){
+##################################
+### INITIAL SETUP AND CHECKING ###
   ##check class belongings
   stCheckClass(object, "STmodel", name="object")
   if( !is.null(STdata) ){
@@ -122,6 +152,9 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
   type <- tolower(type)
   ##check if type is valid
   stCheckType(type)
+  ##args for transform
+  transform <- match.arg(transform)
+  if( transform=="none" ){ transform <- NULL }
 
   if( inherits(x,"estimateSTmodel") ){
     x <- coef(x,"all")$par
@@ -151,54 +184,75 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
   }
   ##only.pars, and we can ignore a bunch of things
   if( only.pars ){
-    only.obs <- FALSE
-    combine.data <- FALSE
-    pred.covar <- FALSE
-  }
-  ##check if only.obs is valid
-  if( only.obs && is.null(STdata) ){
-    stop("only.obs=TRUE requires STdata.")
-  }
-  ##do we have an object to combine with
-  if( combine.data && is.null(STdata) ){
-    warning("No data to combine with; predicting for 'object'", immediate. = TRUE)
-    combine.data <- FALSE
-  }
-  ##can't combine data if we're predicting at only obs.
-  if(only.obs && combine.data){
-    warning("only.obs=TRUE implies combine.data=FALSE.", immediate. = TRUE)
-    combine.data <- FALSE
-  }
-  ##computing prediction covariates require !only.obs and pred.var
-  if(pred.covar && !pred.var){
-    warning("pred.covar=TRUE implies pred.var=TRUE.", immediate. = TRUE)
-    pred.var <- TRUE
-  }
-  if(pred.covar && only.obs){
-    warning("only.obs=TRUE implies pred.covar=FALSE.", immediate. = TRUE)
-    pred.covar <- FALSE
-  }
-  ##computing beta covariates require pred.var
-  if(beta.covar && !pred.var){
-    warning("beta.covar=TRUE implies pred.var=TRUE.", immediate. = TRUE)
-    pred.var <- TRUE
-  }
+    only.obs <- pred.covar <- beta.covar <- combine.data <- LTA <-FALSE
+    transform <- NULL
+  }else{
+    ##check if only.obs is valid
+    if( only.obs && is.null(STdata) ){
+      stop("only.obs=TRUE requires STdata.")
+    }
+    ##do we have an object to combine with
+    if( combine.data && is.null(STdata) ){
+      warning("No data to combine with; predicting for 'object'", immediate. = TRUE)
+      combine.data <- FALSE
+    }
+    ##can't combine data if we're predicting at only obs.
+    if(only.obs && combine.data){
+      warning("only.obs=TRUE implies combine.data=FALSE.", immediate. = TRUE)
+      combine.data <- FALSE
+    }
+    ##computing prediction covariates require !only.obs and pred.var
+    if(pred.covar && !pred.var){
+      warning("pred.covar=TRUE implies pred.var=TRUE.", immediate. = TRUE)
+      pred.var <- TRUE
+    }
+    if(pred.covar && only.obs){
+      warning("only.obs=TRUE implies pred.covar=FALSE.", immediate. = TRUE)
+      pred.covar <- FALSE
+    }
+    ##computing beta covariances requires pred.var
+    if(beta.covar && !pred.var){
+      warning("beta.covar=TRUE implies pred.var=TRUE.", immediate. = TRUE)
+      pred.var <- TRUE
+    }
+    if( !is.null(transform) ){
+      if( type!="r" && transform!="unbiased" ){
+        warning("transform 'unbiased' and 'mspe' are equivalent when type!='r'",
+                immediate. = TRUE)
+        transform <- "unbiased"
+      }
+      if(pred.covar){
+        warning("transform implies pred.covar=FALSE.", immediate. = TRUE)
+        pred.covar <- FALSE
+      }
+    }##if( !is.null(transform) )
+  }##if( only.pars ){...}else{...}
   
   ##create the STdata used for predictions
   if( is.null(STdata) ){
     ##pure copy, predict in the data set
     STdata <- object
+  }else if(combine.data){
+    ##combine the two datasets, and use for predictions (expands object with
+    ##ONLY locations from STdata)
+    STdata <- c(object, STdata)
   }else{
-    if(combine.data){
-      ##combine the two datasets, and use for predictions
-      STdata <- c(object, STdata)
-    }else if( !inherits(STdata,"STmodel") ){
+    if( is.null(object$trend.fnc) && dim(object$trend)[2]!=1 ){
+      ##trend.fnc missing and trend is more than a constant
+      ##(backwards compability)
+      object$trend.fnc <- internalCreateTrendFnc(object$trend)
+    }
+    
+    if( !inherits(STdata,"STmodel") ){
       ##predict only at STdata, and STdata not of class STmodel: need to cast.
-      if( is.null(STdata$trend) ){
-        warning("STdata lacking a trend element, using trend from object.",
-                immediate.=TRUE)
-        STdata$trend <- object$trend
+      ##First drop ST covariate if no covariate in object
+      if(dimensions$L==0){
+        STdata$SpatioTemporal <- NULL
       }
+      ##and fix the trend (right no of trends, names and dates)
+      suppressMessages(STdata <- updateTrend(STdata, fnc=object$trend.fnc,
+                                             extra.dates=STdata$trend$date))
+      
       ##since we're not using covariances for the prediction locations
       ##(specified seperately in nugget.unobs), we just pick a simple covariance
       ##structure, avoiding problems with missing covariates/levels.
@@ -214,9 +268,79 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
       ##STdata is an STmodel object ->
       ##test for consistent covariates and scaling (only equal scaling allowed).
       areSTmodelsConsistent(object, STdata, "STdata")
+    }##if( !inherits(STdata,"STmodel") ){...}{else{...}
+
+    ##STdata is now of type STmodel, lets fix the trend
+    suppressMessages(STdata <- updateTrend.STmodel(STdata, fnc=object$trend.fnc))
+  }##if( is.null(STdata) ){...}else if(...){...}else{...}
+
+  ##Should we compute LTAs?
+  if( !is.list(LTA) && LTA ){
+    ##yes, create list
+    if( only.obs ){
+      ##averages over observtions only,
+      ##i.e. split observation dates by their locations.
+      LTA.list <- split(STdata$obs$date, STdata$obs$ID)
+    }else{
+      ##averages over all predictions
+      LTA.list <- lapply(STdata$locations$ID,
+                         function(x){ return(STdata$trend$date) })
+      names(LTA.list) <- STdata$locations$ID
     }
-  }##if( is.null(STdata) ){...}else{...}
+  }else if( is.list(LTA) ){
+    ##yes, list given
+    LTA.list <- LTA
+    LTA <- TRUE
+  }else{
+    ##no, empty list and set LTA=FALSE
+    LTA.list <- NULL
+    LTA <- FALSE
+  }##if( !is.list(LTA) && LTA ){...}else if(...){...}else{...}
   
+  ##check the validity of LTA.list
+  if( LTA ){
+    ##check validity of sites
+    LTA.missing <- !(names(LTA.list) %in% STdata$locations$ID)
+    if( any(LTA.missing) ){
+      warning("Removed ", sum(LTA.missing),
+              " elements from LTA not found in STdata$locations$ID",
+              immediate. = TRUE)
+      LTA.list <- LTA.list[ !LTA.missing ]
+    }
+
+    if( length(LTA.list)!=0 ){
+      ##convert components to lists
+      LTA.list <- lapply(LTA.list,
+                         function(x){ switch(is.list(x)+1, list(x), x) })
+      ##check validity of dates
+      LTA.tot <- 0
+      for(i in 1:length(LTA.list)){
+        for(j in length(LTA.list[[i]])){
+          LTA.missing <- !(LTA.list[[i]][[j]] %in% STdata$trend$date)
+          LTA.list[[i]][[j]] <- LTA.list[[i]][[j]][ !LTA.missing ]
+          LTA.tot <- LTA.tot + sum(LTA.missing)
+        }
+        ##drop empty points
+        LTA.list[[i]] <- LTA.list[[i]][ sapply(LTA.list[[i]], length)!=0 ]
+      }##for(i in 1:length(LTA.list))
+      if( LTA.tot!=0 ){
+        warning("Removed ", LTA.tot,
+                " dates not found in STdata$trend$date from all LTA elements",
+                immediate. = TRUE)
+      }
+      ##drop empty points
+      LTA.list <- LTA.list[ sapply(LTA.list, length)!=0 ]
+    }##if( length(LTA.list)!=0 )
+
+    ##nothing left -> don't compute LTA's
+    if( length(LTA.list)==0 ){
+      LTA <- FALSE
+      LTA.list <- NULL
+    }
+  }##if( LTA )
+
+#########################################
+### COMPUTE COVARIANCE MATRICES FOR Y ###
   ##extract parameters from x
   tmp <- loglikeSTgetPars(x, object)
   if(type=="f"){
@@ -226,41 +350,62 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
   cov.pars.beta <- tmp$cov.beta
   cov.pars.nu <- tmp$cov.nu
 
-  ##nugget for unobserved sites
-  nugget.unobs <- internalFixNuggetUnobs(nugget.unobs, STdata,
-                                         cov.pars.nu$nugget)
+  ##the following only needed for type!="f", or predictions
+  if(type!="f" || !only.pars){
+    ##nugget for unobserved sites
+    nugget.unobs <- internalFixNuggetUnobs(nugget.unobs, STdata,
+                                           cov.pars.nu$nugget)
+    ##extract sparse matrices
+    Fobs <- expandF(object$F, object$obs$idx, n.loc=dimensions$n.obs)
   
-  ##Create the Xtilde = [M FX] matrix
-  Xtilde <- calc.FX(object$F, object$LUR, object$obs$idx)
-  ##Add the spatio-temporal covariate (if it exists)
-  if( dimensions$L!=0 ){
-    Xtilde <- cbind(object$ST, Xtilde)
-  }
-  ##create covariance matrices, beta-field
-  i.sigma.B <- makeSigmaB(cov.pars.beta$pars, dist = object$D.beta,
-                          type = object$cov.beta$covf,
-                          nugget = cov.pars.beta$nugget)
-  ##and nu-field
-  i.sigma.nu <- makeSigmaNu(cov.pars.nu$pars, dist = object$D.nu,
-                          type = object$cov.nu$covf,
-                          nugget = cov.pars.nu$nugget,
-                          random.effect = cov.pars.nu$random.effect,
-                          blocks1 = object$nt, ind1 = object$obs$idx)
-  ##calculate block cholesky factor of the matrices, in-place to conserve memory
-  i.sigma.B <- makeCholBlock(i.sigma.B, n.blocks=dimensions$m)
-  i.sigma.nu <- makeCholBlock(i.sigma.nu, block.sizes=object$nt)
-  ##invert the matrices, in-place to conserve memory
-  i.sigma.B <- invCholBlock(i.sigma.B, n.blocks=dimensions$m)
-  i.sigma.nu <- invCholBlock(i.sigma.nu, block.sizes=object$nt)
-  ##F'*inv(sigma.nu)*F
-  tF.iS.F <- calc.tFXF(object$F, i.sigma.nu, object$obs$idx,
-                       block.sizes=object$nt, n.loc=dimensions$n.obs)
-  ##inv(sigma.B|Y) = F'*inv(sigma.nu)*F + inv(sigma.B)
-  R.i.sigma.B.Y <- tF.iS.F + i.sigma.B
-  ##calculate cholesky factor of inv(sigma.B|Y)
-  R.i.sigma.B.Y <- makeCholBlock(R.i.sigma.B.Y)
+    ##Create the Xtilde = [M FX] matrix
+    Xtilde <- as.matrix( Fobs %*% Matrix::bdiag(object$LUR) )
+    ##Add the spatio-temporal covariate (if it exists)
+    if( dimensions$L!=0 ){
+      Xtilde <- cbind(object$ST, Xtilde)
+    }
+    ##create covariance matrices, beta-field
+    i.sigma.B <- makeSigmaB(cov.pars.beta$pars, dist = object$D.beta,
+                            type = object$cov.beta$covf,
+                            nugget = cov.pars.beta$nugget)
+    ##and nu-field
+    i.sigma.nu <- makeSigmaNu(cov.pars.nu$pars, dist = object$D.nu,
+                              type = object$cov.nu$covf,
+                              nugget = cov.pars.nu$nugget,
+                              random.effect = cov.pars.nu$random.effect,
+                              blocks1 = object$nt, ind1 = object$obs$idx,
+                              sparse=TRUE)
+    ##calculate block cholesky factor of the matrices, in-place to conserve memory
+    i.sigma.B <- makeCholBlock(i.sigma.B, n.blocks=dimensions$m)
+    i.sigma.nu <- chol(i.sigma.nu)
+    ##invert the matrices, in-place to conserve memory
+    i.sigma.B <- invCholBlock(i.sigma.B, n.blocks=dimensions$m)
+    i.sigma.nu <- chol2inv(i.sigma.nu)
 
-  ##First lets compute the regression parameters (alpha and gamma)
+    ##F'*inv(sigma.nu)
+    tF.iS <- t(Fobs) %*% i.sigma.nu
+    ##F'*inv(sigma.nu)*F
+    tF.iS.F <- as.matrix(tF.iS %*% Fobs)
+    ##inv(sigma.B|Y) = F'*inv(sigma.nu)*F + inv(sigma.B)
+    R.i.sigma.B.Y <- tF.iS.F + i.sigma.B
+    ##calculate cholesky factor of inv(sigma.B|Y)
+    R.i.sigma.B.Y <- chol(R.i.sigma.B.Y)
+    
+    ##compute iSigma.nu*Xtilde and iSigma.nu*Xtilde
+    iS.X <- i.sigma.nu %*% Xtilde
+    iS.Y <- i.sigma.nu %*% object$obs$obs
+  
+    ##compute F'*iSigma.nu*Xtilde and F'*iSigma.nu*Y
+    tF.iS.X <- as.matrix(t(Fobs) %*% iS.X)
+    tF.iS.Y <- as.matrix(t(Fobs) %*% iS.Y)
+    
+    ##compute inv(sigma.B|Y)*F'*iSigma.nu*Xtilde
+    iSBY.tF.iS.X <- solveTriBlock(R.i.sigma.B.Y, tF.iS.X, transpose=TRUE)
+    iSBY.tF.iS.X <- solveTriBlock(R.i.sigma.B.Y, iSBY.tF.iS.X, transpose=FALSE)
+  }#if(type!="f" || !only.pars)
+  
+###############################################
+### REGRESISON PARAMETERS (alpha and gamma) ###
   if(type=="f"){
     ##regression parameters given
     gamma.E <- c(tmp$gamma)
@@ -272,31 +417,16 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
     ##create a combined vector
     gamma.alpha <- as.matrix(c(gamma.E,alpha.E))
   }else{
-    ##compute iSigma.nu*Xtilde
-    iS.nu.X <- blockMult(i.sigma.nu, Xtilde, block.sizes=object$nt)
-    ##compute F'*iSigma.nu*Xtilde
-    tF.iS.nu.X <- calc.tFX(object$F, iS.nu.X, object$obs$idx,
-                           n.loc=dimensions$n.obs)
-    ##compute inv(sigma.B|Y)*F'*iSigma.nu*Xtilde
-    iSBY.tF.iS.X <- solveTriBlock(R.i.sigma.B.Y, tF.iS.nu.X, transpose=TRUE)
-    iSBY.tF.iS.X <- solveTriBlock(R.i.sigma.B.Y, iSBY.tF.iS.X, transpose=FALSE)
-    ##compute inv(Xtilde'*Sigma^-1*Xtilde)
-    i.XSX <- t(Xtilde) %*% iS.nu.X
-    i.XSX <- i.XSX - t(tF.iS.nu.X) %*% iSBY.tF.iS.X
-  
-    ##compute iSigma.nu*Y
-    iS.nu.Y <- blockMult(i.sigma.nu, object$obs$obs, block.sizes=object$nt)
-    ##compute F'*iSigma.nu*Y
-    tF.iS.nu.Y <- calc.tFX(object$F, iS.nu.Y, object$obs$idx,
-                           n.loc=dimensions$n.obs)
+    ##compute inv(Xtilde'*Sigma^-1*Xtilde) (and force symmetric)
+    i.XSX <- as.matrix( t(Xtilde) %*% iS.X )
+    i.XSX <- symmpart(i.XSX - t(tF.iS.X) %*% iSBY.tF.iS.X)
+    
     ##compute t(Xtilde'*Sigma^-1*Y)
-    tmp2 <- object$obs$obs %*% iS.nu.X
-    tmp2 <- tmp2 - t(tF.iS.nu.Y) %*% iSBY.tF.iS.X
+    tmp2 <- as.matrix( object$obs$obs %*% iS.X )
+    tmp2 <- tmp2 - t(tF.iS.Y) %*% iSBY.tF.iS.X
+    
     ##compute alpha and gamma
     gamma.alpha <- solve(i.XSX, t(tmp2))
-
-    ##remove variables not needed
-    rm(iS.nu.X, tF.iS.nu.X, iSBY.tF.iS.X, iS.nu.Y, tF.iS.nu.Y, tmp2)
 
     ##extract computed parameters
     if(dimensions$L!=0){
@@ -338,14 +468,16 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
   colnames(alpha.V) <- rownames(alpha.V) <- rownames(alpha.E)
   colnames(gamma.alpha.C) <- rownames(alpha.E)
   
-  ##construct return object
+###############################
+### CONSTRUCT RETURN OBJECT ###
   out <- list()
   ##set class
   class(out) <- "predictSTmodel"
   ##save options used for predict.
   out$opts <- list(only.pars=only.pars, nugget.unobs=nugget.unobs,
                    only.obs=only.obs, pred.var=pred.var, pred.covar=pred.covar,
-                   beta.covar=beta.covar, combine.data=combine.data, type=type)
+                   beta.covar=beta.covar, combine.data=combine.data, type=type,
+                   transform=transform, LTA=LTA, LTA.list=LTA.list)
   ##collect the regression results
   out$pars <- list(gamma.E=gamma.E, alpha.E=alpha.E, 
                    gamma.V=gamma.V, alpha.V=alpha.V,
@@ -359,29 +491,33 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
   rm(gamma.E, alpha.E, gamma.V, alpha.V, gamma.alpha.C, names.tmp)
   ##and options stored elsewhere
   rm(only.pars, nugget.unobs, only.obs, pred.var, pred.covar,
-     beta.covar, combine.data, type)
+     beta.covar, combine.data, type, LTA, LTA.list, transform)
     
-  ##observations minus the mean value of the field
-  C.minus.mu <- object$obs$obs - (Xtilde %*% gamma.alpha)
-
-  ##compute iSigma.nu*(C-mu)
-  iS.nu.C <- blockMult(i.sigma.nu, C.minus.mu, block.sizes=object$nt)
-  ##compute F'*iSigma.nu*(C-mu)
-  tF.iS.nu.C <- calc.tFX(object$F, iS.nu.C, object$obs$idx,
-                         n.loc=dimensions$n.obs)
+####################################
+### COMPUTE inv(Sigma_oo)*(Y-mu) ###
+  
+  ##compute F'*iSigma.nu*(C-mu) and iSigma.nu*(C-mu)
+  tF.iS.C <- tF.iS.Y - tF.iS.X %*% gamma.alpha
+  iS.C <- iS.Y - iS.X %*% gamma.alpha
+  
   ##compute inv(sigma.B|Y)*F'*iSigma.nu*(C-mu)
-  iSBY.tF.iS.C <- solveTriBlock(R.i.sigma.B.Y, tF.iS.nu.C, transpose=TRUE)
+  iSBY.tF.iS.C <- solveTriBlock(R.i.sigma.B.Y, tF.iS.C, transpose=TRUE)
   iSBY.tF.iS.C <- solveTriBlock(R.i.sigma.B.Y, iSBY.tF.iS.C, transpose=FALSE)
-  ##compute F'*i.sigma.nu
-  tF.iS <- calc.tFX(object$F, i.sigma.nu, object$obs$idx,
-                    n.loc=dimensions$n.obs)
+  
   ##compute iSigma.tilde*(C-mu)
   ##this is the same for all the conditionals...
-  obs.mu <- iS.nu.C - t(tF.iS) %*% iSBY.tF.iS.C
+  iSoo.C <- as.matrix( iS.C - t( tF.iS ) %*% iSBY.tF.iS.C )
+
+  ##for REML we also need iSigma.tilde*Xtilde
+  if( out$opts$type=="r" ){
+    iSoo.Xtilde <- as.matrix( iS.X - t(tF.iS) %*% iSBY.tF.iS.X )
+  }
 
   ##remove variables not needed
-  rm(C.minus.mu, iS.nu.C, tF.iS.nu.C, iSBY.tF.iS.C)
+  rm(iS.X, iS.Y, tF.iS.X, tF.iS.Y, iSBY.tF.iS.X, tF.iS.C, iS.C, iSBY.tF.iS.C)
 
+###################################
+### DEFINE PREDICTION LOCAITONS ###
   ##create matrices with site index and temporal trends for all
   ##OBS date has to be INCREASING, i.e. same sorting as for STdata$obs...
   if( out$opts$only.obs ){
@@ -390,7 +526,7 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
     ##time of observation for each site
     T1 <- STdata$obs$date
     ##trend functions for all points matrix
-    F <- STdata$F
+    Funobs <- STdata$F
     if( dimensions$L!=0 ){
       ##extract the spatio-temporal trends
       ST.unobs <- STdata$ST
@@ -408,21 +544,19 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
     ##time of observation for each site
     T1 <- rep(STdata$trend$date, N.unobs)
     ##trend functions for all points matrix
-    F <- matrix(1, (T.unobs*N.unobs), dimensions$m)
+    Funobs <- matrix(1, (T.unobs*N.unobs), dimensions$m)
     for(i in (1:dimensions$m)){
       ##if not constant, find relevant row in $trend
       if(colnames(STdata$F)[i] != "const"){
-        F[,i] <- rep(STdata$trend[,colnames(STdata$F)[i]], N.unobs)
+        Funobs[,i] <- rep(STdata$trend[,colnames(STdata$F)[i]], N.unobs)
       }
     }##for(i in (1:dimensions$m))
     if( dimensions$L!=0 ){
       ##extract the spatio-temporal trends
       ST.unobs <- matrix(STdata$ST.all, (T.unobs*N.unobs), dimensions$L)
     }##if( dimensions$L!=0 )
-    if(out$opts$pred.covar){
-      Nmax <- T.unobs
-    }
   }##if( out$opts$only.obs ) ... else ...
+  
   ##compute number of observations for each time-point,
   ##taking into account that there might be missing dates.
   date.all <- sort(unique( c(object$trend$date, STdata$trend$date) ))
@@ -431,41 +565,22 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
     nt.obs[i] <- sum( object$obs$date==date.all[i] )
   }
 
+  ##extract sparse matrices
+  Funobs <- expandF(Funobs, idx.unobs, n.loc=N.unobs)
   ##compute LUR times the temporal trends [M F*X] for unobserved
-  Xtilde.unobs <- calc.FX(F, STdata$LUR.all, idx.unobs)
+  Xtilde.unobs <- as.matrix( Funobs %*% Matrix::bdiag(STdata$LUR.all) )
   if( dimensions$L!=0 ){
     Xtilde.unobs <- cbind(ST.unobs, Xtilde.unobs)
   }
-  ##mean value of the field
-  out$EX <- as.matrix( Xtilde.unobs %*% gamma.alpha )
-  ##reshape out$EX to match T-by-N
-  if( !out$opts$only.obs ){
-    dim(out$EX) <- c(T.unobs, N.unobs)
-  }
-  ##lets save the contribution from the mean.
-  out$EX.mu <- out$EX
-  ##Create a matrix containing pointwise variance
-  if(out$opts$pred.var){
-    out$VX <- matrix(NA, dim(out$EX)[1], dim(out$EX)[2])
-    out$VX.pred <- matrix(NA, dim(out$EX)[1], dim(out$EX)[2])
-  }
-  ##and a list of covariances.
-  if(out$opts$pred.covar){
-    out$VX.full <- list()
-  }
   
+###########################
+### COMPUTE BETA FIELDS ###
   ##compute LUR*alpha (mean values for the beta fields)
-  alpha <- vector("list", dimensions$m)
-  offset <- 1
-  for(i in 1:length(alpha)){
-    alpha[[i]] <- out$pars$alpha.E[offset:sum(dimensions$p[1:i])]
-    offset <- sum(dimensions$p[1:i])+1
-  }
-  ##we need the dimension of the prediction object.
   out$beta <- list()
-  out$beta$mu <- calc.mu.B(STdata$LUR.all, alpha)
-  ##remove variables not needed
-  rm(alpha, gamma.alpha)
+  out$beta$mu <- matrix(Matrix::bdiag(STdata$LUR.all) %*% out$pars$alpha.E,
+                        ncol=length(STdata$LUR.all))
+  colnames(out$beta$mu) <- names(STdata$LUR.all)
+  rownames(out$beta$mu) <- rownames( STdata$LUR.all[[1]] )
   
   ##create distance matrix between unobserved and observed elements
   ##unobserved locations
@@ -486,21 +601,34 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
                           dist = crossDist(loc.unobs.beta, loc.obs.beta),
                           type = object$cov.beta$covf,
                           nugget = cov.pars.beta$nugget,
-                          ind2.to.1=Ind.2.1)
+                          ind2.to.1=Ind.2.1, sparse=TRUE)
+
+  ##The right most part is F'*iSigma.tilde*(C-mu)
+  out$beta$EX <- out$beta$mu + matrix(sigma.B.C %*% (t(Fobs) %*% iSoo.C),
+                                      ncol=dim(out$beta$mu)[2])
   
-  ##compute beta fields - right most part is F'*iSigma.tilde*(C-mu)
-  out$beta$EX <- (c(out$beta$mu) + (sigma.B.C %*%
-                                    calc.tFX(object$F, obs.mu,
-                                             object$obs$idx, 
-                                             n.loc=dimensions$n.obs) ))
-  dim(out$beta$EX) <- dim(out$beta$mu)
-  dimnames(out$beta$EX) <- dimnames(out$beta$mu)
   ##and variances
   if( out$opts$pred.var ){
-    Sby.iSb.Sou <- i.sigma.B %*% t(sigma.B.C)
+    Sby.iSb.Sou <- as.matrix( i.sigma.B %*% t(sigma.B.C) )
     Sby.iSb.Sou <- solveTriBlock(R.i.sigma.B.Y, Sby.iSb.Sou, transpose=TRUE)
     Sby.iSb.Sou <- solveTriBlock(R.i.sigma.B.Y, Sby.iSb.Sou, transpose=FALSE)
 
+    ##contribution from REML estimate
+    if( out$opts$type=="r" ){
+      var.beta.REML <- (cBind(rep(0,dimensions$L), Matrix::bdiag(STdata$LUR.all)) -
+                        sigma.B.C %*% (t(Fobs)%*%iSoo.Xtilde))
+      var.beta.REML <- as.matrix(var.beta.REML)
+      if( out$opts$beta.covar ){
+        ##full matrix
+        V.REML <- (var.beta.REML %*% i.XSX) %*% t(var.beta.REML)
+      }else{
+        ##only diagonal elements
+        V.REML <- rowSums( (var.beta.REML %*% i.XSX) * var.beta.REML )
+      }
+    }else{
+      V.REML <- 0
+    }##if( out$opts$type=="r" ){...}else{...}
+    
     if( out$opts$beta.covar ){
       ##sigma.B for unobserved locations
       sigma.B.uu <- makeSigmaB(cov.pars.beta$pars,
@@ -508,11 +636,12 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
                                type = object$cov.beta$covf,
                                nugget = cov.pars.beta$nugget)
       ##compute variance matrix
-      tmp <- sigma.B.uu - sigma.B.C %*% tF.iS.F %*% Sby.iSb.Sou
+      tmp <- sigma.B.uu - sigma.B.C %*% tF.iS.F %*% Sby.iSb.Sou + V.REML
+      
       out$beta$VX.full <- list()
       for(i in 1:dim(out$beta$EX)[2]){
         Ind <- (1:dim(out$beta$EX)[1]) + (i-1)*dim(out$beta$EX)[1]
-        out$beta$VX.full[[i]] <- tmp[Ind, Ind, drop=FALSE]
+        out$beta$VX.full[[i]] <- as.matrix(tmp[Ind, Ind, drop=FALSE])
         rownames(out$beta$VX.full[[i]]) <- rownames(out$beta$EX)
         colnames(out$beta$VX.full[[i]]) <- rownames(out$beta$EX)
       }
@@ -527,26 +656,99 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
       sigma.B.uu <- matrix(diag(sigma.B.uu), ncol=dim(sigma.B.uu)[1],
                            nrow=dim(loc.unobs.beta)[1], byrow=TRUE)
       ##and compute the relevant covariance
-      tmp <- c(sigma.B.uu) - rowSums(sigma.B.C * t(tF.iS.F %*% Sby.iSb.Sou))
-    }
+      tmp <- (c(sigma.B.uu) - rowSums(sigma.B.C * t(tF.iS.F %*% Sby.iSb.Sou)) +
+              V.REML)
+    }##if( out$opts$beta.covar ){...}else{...}
     
     out$beta$VX <- matrix(tmp, ncol=dim(out$beta$EX)[2])
     dimnames(out$beta$VX) <- dimnames(out$beta$EX)
     
     ##remove variables not needed
-    rm(tmp, Sby.iSb.Sou, tF.iS.F, sigma.B.uu)
-  }
+    rm(tmp, Sby.iSb.Sou, sigma.B.uu, V.REML)
+  }##  if( out$opts$pred.var )
   ##remove variables not needed
-  rm(i.sigma.B)
+  rm(i.sigma.B, tF.iS.F)
+
+######################################
+### MATRICES HOLDING RETURN VALUES ###
+  ##mean value of the field
+  out$EX.mu <- as.matrix( Xtilde.unobs %*% gamma.alpha )
+  ##compute predicitons based on the beta fields
+  out$EX.mu.beta <- as.matrix( Funobs %*% c(out$beta$EX) )
+  ##Add the spatio-temporal covariates, if any
+  if( dimensions$L!=0 ){
+    out$EX.mu.beta <- out$EX.mu.beta + (ST.unobs %*% out$pars$gamma.E)
+  }
   
+  if( !out$opts$only.obs ){
+    ##reshape out$EX.mu and out$EX.mu.beta to match T-by-N
+    dim(out$EX.mu.beta) <- dim(out$EX.mu) <- c(T.unobs, N.unobs)
+    ##and add names
+    colnames(out$EX.mu) <- STdata$locations$ID
+    rownames(out$EX.mu) <- as.character(STdata$trend$date)
+    dimnames(out$EX.mu.beta) <- dimnames(out$EX.mu)
+  }else{
+    dimnames(out$EX.mu.beta) <- dimnames(out$EX.mu) <- NULL
+  }
+  ##lets save the contribution from the mean.
+  out$EX <- out$EX.mu
+  ##additional fields for log-transformation
+  if( !is.null(out$opts$transform) ){
+    ##temporary variables for transformed data
+    EX.trans <- out$EX.mu
+    EX.trans.pred <- out$EX.mu
+    ##reserve places in the out structure
+    out$log.EX <- out$EX.pred <- NA
+  }
+  
+  ##Create matrices containing pointwise variances
+  ##needed if a) variances requested OR b) log-transform
+  if( out$opts$pred.var || !is.null(out$opts$transform) ){
+    out$VX <- matrix(NA, dim(out$EX)[1], dim(out$EX)[2])
+    out$VX.pred <- matrix(NA, dim(out$EX)[1], dim(out$EX)[2])
+    ##add names
+    if( !out$opts$only.obs ){
+      dimnames(out$VX) <- dimnames(out$VX.pred) <- dimnames(out$EX)
+    }
+    ##and a list of covariances.
+    if( out$opts$pred.covar ){
+      out$VX.full <- list()
+    }
+    ##additional fields for log-transformation
+    ##(only if variances requested AND log-transform)
+    if( out$opts$pred.var && !is.null(out$opts$transform) ){
+      out$MSPE <- out$MSPE.pred <- out$VX
+    }
+  }##if( out$opts$pred.var )
+
+  ##list holding LTA elements
+  if( out$opts$LTA ){
+    out$LTA <- vector("list", length(out$opts$LTA.list))
+    names(out$LTA) <- names(out$opts$LTA.list)
+  }
+  
+################################
+### COMPUTE PREDICITONS OF X ###
   ##cross distance for the nu coordinates
   cross.D.nu <- crossDist(loc.unobs.nu, loc.obs.nu)
+
+  ## sigma.B.C * F'
+  sigma.B.C.tF <- sigma.B.C %*% t(Fobs)
   
   ##now we need to split the conditional expectation into parts to
-  ##reduce memory footprint
-  for( i in 1:ceiling(length(out$EX)/Nmax) ){
+  ##reduce the memory footprint
+  if( out$opts$pred.covar || out$opts$LTA ){
+    Ind.list <- split(1:length(out$EX), idx.unobs)
+  }else{
+    Ind.list <- split(1:length(out$EX),
+                      rep(1:ceiling(length(out$EX)/Nmax),
+                          each=Nmax)[1:length(out$EX)])
+  }
+  
+  ##loop over the parts
+  for( i in 1:length(Ind.list) ){
     ##index of the points we want to get conditional expectations for
-    Ind <- c((1+(i-1)*Nmax):min(i*Nmax,length(out$EX)))
+    Ind <- Ind.list[[i]]
     ##compute number of unobserved per block for this subset
     T1.Ind <- T1[Ind]
     for(j in c(1:length(date.all))){
@@ -556,9 +758,7 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
     T1.order <- order(T1.Ind)
     
     ##create full cross-covariance matrix for all the observations
-    sigma.B.full.C <- calc.FXtF2(F[Ind,,drop=FALSE], sigma.B.C,
-                                 loc.ind=idx.unobs[Ind], F2=object$F,
-                                 loc.ind2=object$obs$idx)
+    sigma.B.full.C <- as.matrix(Funobs[Ind,,drop=FALSE] %*% sigma.B.C.tF)
     ##parameter order is sill, nugget, range (always predict with nugget=0)
     sigma.nu.C <- makeSigmaNu(cov.pars.nu$pars, dist = cross.D.nu,
                               type = object$cov.nu$covf, nugget = 0,
@@ -570,34 +770,35 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
     sigma.nu.C[T1.order,] <- sigma.nu.C
     sigma.nu.C <- sigma.nu.C + sigma.B.full.C
     ##calculate conditional expectation
-    out$EX[Ind] <- out$EX.mu[Ind] + sigma.nu.C %*% obs.mu
+    out$EX[Ind] <- out$EX.mu[Ind] + sigma.nu.C %*% iSoo.C
+
+    if( out$opts$LTA ){
+      ##which site are we at and does it have a matching LTA request?
+      ##asked here to avoid unnescesary VX.full computations.
+      ID.tmp <- STdata$locations$ID[unique(idx.unobs[Ind])]
+      ##sanity check
+      if( length(ID.tmp)!=1 ){
+        stop("Something wrong with LTA-computations.")
+      }
+      LTA.tmp <- out$opts$LTA.list[[ID.tmp]]
+    }else{
+      LTA.tmp <- NULL
+    }
     
     ##calculate pointwise variance
-    if(out$opts$pred.var){
-###OLD VERSION
-#      sigma.B.uu <- makeSigmaB(cov.pars.beta$pars,
-#                               dist = crossDist(loc.unobs.beta),
-#                               type = object$cov.beta$covf,
-#                               nugget = cov.pars.beta$nugget)
-      ##first the unobserved covariance matrix
-#      V.uu <- calc.FXtF2(F[Ind,,drop=FALSE], sigma.B.uu,
-#                         loc.ind=idx.unobs[Ind])
-#      unobs.D.nu <- crossDist(loc.unobs.nu)
-#      V.uu <- V.uu + makeSigmaNu(cov.pars.nu$pars, dist = unobs.D.nu,
-#                                 type = object$cov.nu$covf, nugget = 0,
-#                                 random.effect = cov.pars.nu$random.effect,
-#                                 ind1 = idx.unobs[Ind], blocks1 = nt.unobs)
-###NEW VERSION
+    if( out$opts$pred.var || !is.null(out$opts$transform) ){
       ##pick out the observed locations in this iteration
       I.loc <- sort(unique( idx.unobs[Ind] ))
+      I.loc2 <- (rep(I.loc,dimensions$m) +
+                 rep((0:(dimensions$m-1)) * N.unobs, each=length(I.loc)))
       ##compute relevant part of the covariance matrix
       unobs.D.beta <- crossDist(loc.unobs.beta[I.loc,,drop=FALSE])
       sigma.B.uu <- makeSigmaB(cov.pars.beta$pars, dist = unobs.D.beta,
                                type = object$cov.beta$covf,
-                               nugget = cov.pars.beta$nugget)
+                               nugget = cov.pars.beta$nugget, sparse=TRUE)
       ##first the unobserved covariance matrix
-      V.uu <- calc.FXtF2(F[Ind,,drop=FALSE], sigma.B.uu,
-                         loc.ind=idx.unobs[Ind]-min(I.loc)+1)
+      V.uu <- (Funobs[Ind,I.loc2,drop=FALSE] %*%
+               Matrix(sigma.B.uu %*% t(Funobs[Ind,I.loc2,drop=FALSE])))
       ##distance matrices for the unobserved nu locations
       unobs.D.nu <- crossDist(loc.unobs.nu[I.loc,,drop=FALSE])
       V.uu <- V.uu + makeSigmaNu(cov.pars.nu$pars, dist = unobs.D.nu,
@@ -606,88 +807,191 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
                                  ind1 = idx.unobs[Ind]-min(I.loc)+1,
                                  blocks1 = nt.unobs)
       
-      ##transpose of corss-covariance matrix
-      t.sigma.nu.C <- t(sigma.nu.C)
       ##compute iSigma.nu*Sigma.ou
-      iS.Sou <- blockMult(i.sigma.nu, t.sigma.nu.C, block.sizes=object$nt)
+      iS.Sou <- i.sigma.nu %*% t(sigma.nu.C)
       ##compute F'*iSigma.nu*Sigma.ou
-      tF.iS.Sou <- tF.iS %*% t.sigma.nu.C
+      tF.iS.Sou <- as.matrix(tF.iS %*% t(sigma.nu.C))
       ##compute chol(inv(sigma.B.Y))' * (F'*iSigma.nu*Sigma.ou)
       Sby.tF.iS.Sou <- solveTriBlock(R.i.sigma.B.Y, tF.iS.Sou, transpose=TRUE)
-      if( out$opts$pred.covar ){
+
+      ##contribution from REML estimate
+      if( out$opts$type=="r" ){
+        tmp <- Xtilde.unobs[Ind,,drop=FALSE] - sigma.nu.C %*% iSoo.Xtilde
+        if( out$opts$pred.covar || !is.null(LTA.tmp) ){
+          ##full matrix
+          V.REML <- (tmp %*% i.XSX) %*% t(tmp)
+          if( !is.null(out$opts$transform) ){
+            ##also compute LAMBDA correction for transform
+            lambda.full <- (tmp %*% i.XSX) %*% t(Xtilde.unobs[Ind,,drop=FALSE])
+            lambda <- diag(lambda.full)
+          }
+        }else{
+          ##only diagonal elements
+          V.REML <- rowSums( (tmp %*% i.XSX) * tmp)
+          if( !is.null(out$opts$transform) ){
+            ##also compute LAMBDA correction for transform
+            lambda <- rowSums((tmp %*% i.XSX) * (Xtilde.unobs[Ind,,drop=FALSE]))
+          }
+        }
+      }else{
+        V.REML <- 0
+        lambda <- 0
+      }
+
+      ##combine parts, either to covariance matrix or VX for each estimate.
+      if( out$opts$pred.covar || !is.null(LTA.tmp) ){
         ##full matrix
         tmp <- - sigma.nu.C %*% iS.Sou + t(Sby.tF.iS.Sou) %*% Sby.tF.iS.Sou
-        V.cond <- V.cond.0 <- V.uu + tmp
+        V.cond <- V.cond.0 <- as.matrix(V.uu + tmp + V.REML)
         ##add nugget to the diagonal
         diag(V.cond) <- diag(V.cond) + out$opts$nugget.unobs[idx.unobs[Ind]]
+        
+        ##extract diagonal elements and store in output structure
+        out$VX[Ind] <- diag(V.cond.0)
+        out$VX.pred[Ind] <- diag(V.cond)
+        if(out$opts$pred.covar){
+          out$VX.full[[i]] <- V.cond.0
+        }
+        
       }else{
         ##only diagonal elements
         tmp <- (- colSums(t(sigma.nu.C) * iS.Sou) +
                 colSums(Sby.tF.iS.Sou * Sby.tF.iS.Sou))
-        V.cond <- V.cond.0 <- diag(V.uu) + tmp
-        V.cond <- V.cond + out$opts$nugget.unobs[idx.unobs[Ind]]
+        out$VX[Ind] <- diag(V.uu) + tmp + V.REML
+        out$VX.pred[Ind] <- out$VX[Ind] + out$opts$nugget.unobs[idx.unobs[Ind]]
       }
-      if( out$opts$type=="r" ){
-        stop("NOT YET IMPLEMENTED. Use type=\"p\" instead.")
-#        tmp <- Xtilde.unobs[Ind,,drop=FALSE] - t(V.ou) %*% Xtilde
-#        if(out$opts$pred.covar){
-#          ##full matrix
-#          V.cond <- V.cond + (tmp %*% i.XSX) %*% t(tmp)
-#        }else{
-#          ##only diagonal elements
-#          V.cond <- V.cond + rowSums( (tmp %*% i.XSX) * tmp)
-#        }
-      }
-      ##extract diagonal elements
-      if(out$opts$pred.covar){
-        out$VX[Ind] <- diag(V.cond.0)
-        out$VX.pred[Ind] <- diag(V.cond)
-        out$VX.full[[i]] <- V.cond.0
+
+      ##ensure positive variances
+      out$VX[Ind] <- pmax(out$VX[Ind], 0)
+      out$VX.pred[Ind] <- pmax(out$VX.pred[Ind], 0)
+    }else{
+      V.cond <- V.cond.0 <- NULL
+    }##if( out$opts$pred.var || !is.null(out$opts$transform) ){...}else{...}
+    
+    ##compute log-transform, store in EX.trans, EX.trans.pred
+    if( !is.null(out$opts$transform) ){
+      ##use -lambda or -2*lambda, lambda=0 if type!="r"
+      if( out$opts$transform=="unbiased" ){ c <- 1 }else{ c <- 2 }
+
+      ##expectations
+      EX.trans[Ind] <- exp( out$EX[Ind] + out$VX[Ind]/2 - c*lambda )
+      EX.trans.pred[Ind] <- exp( out$EX[Ind] + out$VX.pred[Ind]/2 - c*lambda )
+
+      ##compute MSPE
+      if( out$opts$pred.var ){
+        ##first compute/extract the unbiased estimate for each location
+        if( out$opts$transform=="mspe" ){
+          EX.ub <- exp( out$EX[Ind] + out$VX[Ind]/2 - lambda )
+          EX.ub.pred <- exp( out$EX[Ind] + out$VX.pred[Ind]/2 - lambda )
+        }else{
+          EX.ub <- EX.trans[Ind]
+          EX.ub.pred <- EX.trans.pred[Ind]
+        }
+        
+        ##prediction variance for unobserved locations (add nugget)
+        V.uu.pred <- V.uu + diag(out$opts$nugget.unobs[idx.unobs[Ind]])
+        
+        if( !is.null(LTA.tmp) ){
+          ##LTA to be computed, we'll need the full matrix
+
+          ##then find the adjustment factor for the second term, only relevant for
+          ##"unbiased" and type="r" (set to 1 o.w.)
+          if(out$opts$transform=="unbiased" && out$opts$type=="r"){
+            Z <- exp(lambda.full)
+            Z <- Z+t(Z) - exp(lambda.full + t(lambda.full))
+          }else{
+            Z <- 1
+          }
+          MSPE.part <- exp(V.uu) * (1 - exp(-V.cond.0)*Z)
+          MSPE.part.pred <- exp(V.uu.pred) * (1 - exp(-V.cond)*Z)
+          ##Compute MSPE for EX and EX.pred
+          out$MSPE[Ind] <- (EX.ub*EX.ub * diag(MSPE.part))
+          out$MSPE.pred[Ind] <- (EX.ub.pred*EX.ub.pred * diag(MSPE.part.pred))
+        }else{
+          ##then find the adjustment factor for the second term, only relevant for
+          ##"unbiased" and type="r" (set to 1 o.w.)
+          if(out$opts$transform=="unbiased" && out$opts$type=="r"){
+            Z <- 2*exp(lambda)-exp(2*lambda)
+          }else{
+            Z <- 1
+          }
+          ##Compute MSPE for EX and EX.pred
+          out$MSPE[Ind] <- (EX.ub*EX.ub * exp( diag(V.uu) ) *
+                            ( 1 - exp(-out$VX[Ind])*Z ))
+          out$MSPE.pred[Ind] <- (EX.ub.pred*EX.ub.pred * exp( diag(V.uu.pred) ) *
+                                 ( 1 - exp(-out$VX.pred[Ind])*Z ))
+        }##if( !is.null(LTA.tmp) ){...}else{...}
+        
+        ##ensure positive MSPE
+        out$MSPE[Ind] <- pmax(out$MSPE[Ind], 0)
+        out$MSPE.pred[Ind] <- pmax(out$MSPE.pred[Ind], 0)
       }else{
-        out$VX[Ind] <- V.cond.0
-        out$VX.pred[Ind] <- V.cond
-      }
-    }##if(out$opts$pred.var)
-  }##for(i in c(1:ceiling(length(out$EX)/Nmax)))
-  ##ensure positive variances
-  if(out$opts$pred.var){
-    out$VX <- pmax(out$VX, 0)
-    out$VX.pred <- pmax(out$VX.pred, 0)
+        MSPE.part <- MSPE.part.pred <- NULL
+      }##if( out$opts$pred.var ){...}else{...}
+
+      if( !is.null(LTA.tmp) ){
+        ##observatiosn for this location
+        EX.tmp <- cbind(exp(out$EX.mu[Ind]), exp(out$EX.mu.beta[Ind]),
+                        EX.trans[Ind], EX.trans.pred[Ind])
+        colnames(EX.tmp) <- c("EX.mu", "EX.mu.beta", "EX", "EX.pred")
+        ##compute mean value
+        out$LTA[[ID.tmp]] <- internalComputeLTA(LTA.tmp, EX.tmp, T1[Ind],
+                                                V=MSPE.part, 
+                                                V.pred=MSPE.part.pred,
+                                                E.vec=EX.ub, 
+                                                E.vec.pred=EX.ub.pred)
+      }##if( !is.null(LTA.tmp) )
+    }else{
+      ##if not transform, seperate code for LTA (differences are too big...)
+      if( !is.null(LTA.tmp) ){
+        ##observatiosn for this location
+        EX.tmp <- cbind(out$EX.mu[Ind], out$EX.mu.beta[Ind], out$EX[Ind])
+        colnames(EX.tmp) <- c("EX.mu", "EX.mu.beta", "EX")
+        ##compute mean value
+        out$LTA[[ID.tmp]] <- internalComputeLTA(LTA.tmp, EX.tmp, T1[Ind],
+                                                V=V.cond.0, V.pred=V.cond)
+      }##if( !is.null(LTA.tmp) )
+    }##if( !is.null(out$opts$transform) ){...} else {...}
+    
+  }##for( i in 1:length(Ind.list) )
+
+  ##combine LTA results
+  if(out$opts$LTA){
+    ##bind results
+    out$LTA <- do.call(cbind, out$LTA)
+    ##and add names
+    tmp <- sapply(out$opts$LTA.list, length)
+    if( all(tmp==1) ){
+      colnames(out$LTA) <- names(tmp)
+    }else{
+      colnames(out$LTA) <- paste(rep(names(tmp),times=tmp),
+                                 unlist(lapply(tmp,seq)), sep=".")
+    }
+    ##convert to data.frame
+    out$LTA <- as.data.frame(t(out$LTA))
+  }##if(out$opts$LTA)
+
+  if( !is.null(out$opts$transform) ){
+    ##move EX of log-field
+    out$log.EX <- out$EX
+    ##store EX of transformed field
+    out$EX <- EX.trans
+    out$EX.pred <- EX.trans.pred
+    ##transform partial fields
+    out$EX.mu <- exp(out$EX.mu)
+    out$EX.mu.beta <- exp(out$EX.mu.beta)
+    ##rename VX/VX.pred to log-fields
+    I <- grep("^VX",names(out))
+    names(out)[I] <- paste("log.",names(out)[I],sep="")
   }
 
-  ##compute predicitons based on the beta fields
-  EX.beta.list <- list()
-  for(i in 1:dim(out$beta$EX)[2]){
-    EX.beta.list[[i]] <- out$beta$EX[,i,drop=FALSE]
-  }
-  ##compute beta-fields times the temporal trends
-  out$EX.mu.beta <- calc.FX(F, EX.beta.list, idx.unobs)
-  ##add the contributions from the different temporal trends
-  out$EX.mu.beta <- matrix( rowSums(out$EX.mu.beta) )
-  ##Add the spatio-temporal covariates, if any
-  if( dimensions$L!=0 ){
-    out$EX.mu.beta <- out$EX.mu.beta + (ST.unobs %*% out$pars$gamma.E)
-  }
-  ##reshape EX.mu.beta to match T-by-N
-  if(!out$opts$only.obs){
-    dim(out$EX.mu.beta) <- c(T.unobs, N.unobs)
-  }
+  ##add names to full prediction variances
+  if( out$opts$pred.covar ){
+    names(out$VX.full) <- colnames(out$EX)
+    for(i in 1:length(out$VX.full))
+      colnames(out$VX.full[[i]]) <- rownames(out$VX.full[[i]]) <- rownames(out$EX)
+  }##if(out$opts$pred.covar)
   
-  if( !out$opts$only.obs ){
-    ##add names to the EX and VX matrices
-    colnames(out$EX) <- STdata$locations$ID
-    rownames(out$EX) <- as.character(STdata$trend$date)
-    dimnames(out$EX.mu.beta) <- dimnames(out$EX.mu) <- dimnames(out$EX)
-    if(out$opts$pred.var){
-      dimnames(out$VX) <- dimnames(out$VX.pred) <- dimnames(out$EX)
-    }
-    ##add names to full prediction variances
-    if(out$opts$pred.covar){
-      names(out$VX.full) <- colnames(out$EX)
-      for(i in 1:length(out$VX.full))
-        colnames(out$VX.full[[i]]) <- rownames(out$VX.full[[i]]) <- rownames(out$EX)
-    }
-  }##if( !out$opts$only.obs )
   ##index for the unobserved values into the predicted values
   if( length(STdata$obs$obs)!=0 ){
     if( out$opts$only.obs ){
@@ -702,6 +1006,7 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
 
   return( out )
 }##function predict.STmodel
+
 
 ###################################
 ## S3 methods for predictSTmodel ##
@@ -745,28 +1050,55 @@ print.predictSTmodel <- function(x, ...){
     return(invisible())
   }
 
+  if( x$opts$type=="r" ){
+    cat("Regression parameters are assumed to be unknown and\n")
+    cat("\tprediction variances include uncertainties\n")
+    cat("\tin regression parameters.\n\n")
+  }else{
+    cat("Regression parameters are assumed to be known and\n")
+    cat("\tprediction variances do NOT include\n")
+    cat("\tuncertainties in regression parameters.\n\n")
+  }
+  
   cat("Prediction of beta-fields, (x$beta):\n")
   str(x$beta,1)
   cat("\n")
   
+  if( !is.null(x$opts$transform) ){
+    cat("Predictions for log-Gaussian field of type:",
+        x$opts$transform, "\n\n")
+  }
+
   if( x$opts$only.obs ){
     cat("Predictions only for", length(x$EX), "observations.\n")
   }else{
     cat("Predictions for", dim(x$EX)[1], "times at",
         dim(x$EX)[2], "locations.\n")
   }
-  str(x[c("EX.mu","EX.mu.beta","EX")],1)
+  str(x[grep("EX",names(x))],1)
   cat("\n")
   
-  if( x$opts$pred.covar ){
-    cat("Variances and temporal covariances for each location\n")
-    cat("\thave been computed.\n")
-    str(x[c("VX","VX.pred","VX.full")],1)
-  }else if( x$opts$pred.var ){
+  if( length(grep("VX",names(x)))!=0 ){
     cat("Variances have been computed.\n")
-    str(x[c("VX","VX.pred")],1)
+    str(x[grep("VX",names(x))],1)
   }else{
     cat("Variances have NOT been computed.\n")
+  }
+  cat("\n")
+
+  if( !is.null(x$opts$transform) ){
+    if( length(grep("MSPE",names(x)))!=0 ){
+      cat("Mean squared prediciton errors have been computed.\n")
+      str(x[grep("MSPE",names(x))],1)
+    }else{
+      cat("Mean squared prediciton errors NOT been computed.\n")
+    }
+    cat("\n")
+  }
+  
+  if( isTRUE(x$opts$LTA) ){
+    cat(dim(x$LTA)[1], "temporal averages have been compute.\n")
+    str(x["LTA"],1)
   }
   cat("\n")
   
@@ -794,7 +1126,10 @@ print.predictSTmodel <- function(x, ...){
 ##'   \code{y} must be \code{"obs"}.
 ##' @param col A vector of three colours: The first is the colour of the
 ##'   predictions, second for the observations and third for the polygon
-##'   illustrating the confidence bands.
+##'   illustrating the confidence bands. \cr For \code{y="obs"} the colours are
+##'   1) colour of the points, 2) colour of the 1-1 line, and 3) colour of the
+##'   polygon. If \code{ID="all"}, picking \code{col[1]="ID"} will colour code
+##'   the observations-prediction points by site ID.
 ##' @param pch,cex,lty,lwd Vectors with two elements giving the point type,
 ##'   size, line type and line width to use when plotting the predictions and
 ##'   observations respectively. Setting a value to \code{NA} will give no
@@ -806,15 +1141,16 @@ print.predictSTmodel <- function(x, ...){
 ##' @param p Width of the plotted confidence bands (as coverage percentage,
 ##'   used to find appropriate two-sided normal quantiles).
 ##' @param pred.type Which type of prediction to plot, one of
-##'   \code{"EX"}, \code{"EX.mu"}, or \code{"EX.mu.beta"}, see the 
-##'   output from \code{\link{predict.STmodel}}
+##'   \code{"EX"}, \code{"EX.mu"}, \code{"EX.mu.beta"}, or \code{"EX.pred"};
+##'   see the output from \code{\link{predict.STmodel}}
 ##' @param pred.var Should we plot confidence bands based on prediction (TRUE)
 ##'   or confidence intrevalls (FALSE), see \code{\link{predict.STmodel}}.
-##'   Only relevant if \code{pred.type="EX"}. \cr
+##'   Only relevant if \code{pred.type="EX"} or \code{pred.type="EX.pred"}. \cr
 ##'   \strong{NOTE:} \emph{The default differs for \code{plot.predictSTmodel}
-##'   and \code{plot.predCVSTmodel}!} 
+##'   and \code{plot.predCVSTmodel}!}
 ##' @param add Add to existing plot?
-##' @param ... Ignored additional arguments.
+##' @param ... Additional parameters passed to
+##'   \code{\link[graphics:plot]{plot}}.
 ##' 
 ##' @return Nothing
 ##'
@@ -842,8 +1178,11 @@ plot.predictSTmodel <- function(x, y="time", STmodel=NULL, ID=x$I$ID[1],
     return(invisible())
   }
   ##we have to use y, cast to resonable name
-  plot.type <- y
-  pred.var <- internalPlotPredictChecks(plot.type, pred.type, pred.var)
+  tmp <- internalPlotPredictChecks(y, pred.type, pred.var, x$opts$transform)
+  plot.type <- tmp$plot.type
+  pred.type <- tmp$pred.type
+  pred.var <- tmp$pred.var
+
   ##check ID
   ID <- internalFindIDplot(ID, colnames(x$EX))
   ID.all <- internalCheckIDplot(ID, y)
@@ -856,9 +1195,9 @@ plot.predictSTmodel <- function(x, y="time", STmodel=NULL, ID=x$I$ID[1],
       I2 <- 1
       date <- x$I$date[I1]
     }else{
-      I1 <- 1:dim(x[[pred.type]])[1]
+      I1 <- 1:dim(x[[ pred.type[1] ]])[1]
       I2 <- ID
-      date <- rownames(x[[pred.type]])
+      date <- rownames(x[[ pred.type[1] ]])
     }
     sd <- x[[pred.var]][I1,I2]
     if( is.null(sd) ){
@@ -866,8 +1205,11 @@ plot.predictSTmodel <- function(x, y="time", STmodel=NULL, ID=x$I$ID[1],
     }else{
       sd <- sqrt(sd)
     }
-    pred <- data.frame(x=x[[pred.type]][I1, I2], sd=sd, date=date,
-                       stringsAsFactors=FALSE)
+    pred <- data.frame(x=x[[ pred.type[1] ]][I1, I2], sd=sd, date=date,
+                       x.log=NA, stringsAsFactors=FALSE)
+    if( length(pred.type)==2 ){
+      pred$x.log <- x[[ pred.type[2] ]][I1, I2]
+    }
     ##pick out observations, if any
     obs <- STmodel$obs[STmodel$obs$ID==ID,,drop=FALSE]
     if( !is.null(obs) ){
@@ -890,8 +1232,13 @@ plot.predictSTmodel <- function(x, y="time", STmodel=NULL, ID=x$I$ID[1],
     }else{
       sd <- sqrt(sd)
     }
-    pred <- data.frame(x=x[[pred.type]][I], sd=sd, date=x$I$date[I.ID],
-                       stringsAsFactors=FALSE)
+    pred <- data.frame(x=x[[ pred.type[1] ]][I], sd=sd,
+                       date=x$I$date[I.ID], ID=x$I$ID[I.ID],
+                       x.log=NA, stringsAsFactors=FALSE)
+    if( length(pred.type)==2 ){
+      pred$x.log <- x[[ pred.type[2] ]][I]
+    }
+    
     ##pick out observations, if any
     obs <- createDataMatrix(STmodel)
     I <- (match(x$I$ID[I.ID],colnames(obs))-1)*dim(obs)[1] +
@@ -902,7 +1249,13 @@ plot.predictSTmodel <- function(x, y="time", STmodel=NULL, ID=x$I$ID[1],
     }
   }##if( !ID.all ){...}else{...}
 
-  internalPlotPredictions(plot.type, ID, pred, obs, col, pch, cex, lty, lwd, p, add)
+  if( !is.null(x$opts$transform) && !is.null(obs) ){
+    ##log-field, first fix observations
+    obs <- exp(obs)
+  }
+  
+  internalPlotPredictions(plot.type, ID, pred, obs, col, pch, cex, lty, lwd, p,
+                          add, x$opts$transform, ...)
   
   ##return
   return(invisible())

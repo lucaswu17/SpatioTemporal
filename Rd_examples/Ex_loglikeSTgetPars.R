@@ -1,5 +1,4 @@
 ##load the data
-data(mesa.data)
 data(mesa.model)
 
 ##Compute dimensions for the data structure
@@ -16,10 +15,11 @@ str( loglikeSTgetPars(x, mesa.model) )
 str( loglikeSTgetPars(x.all, mesa.model) )
 
 ##Try a somewhat more interesting covariance structure
-mesa.model.alt <- createSTmodel(mesa.data, LUR=mesa.model$LUR.list, ST=1,
-                                cov.beta=list(covf=c("exp","exp2","matern"),
-                                  nugget=c(TRUE,FALSE,TRUE)),
-                                cov.nu=list(nugget="type", random.effect=TRUE))
+mesa.model.alt <- updateCovf(mesa.model,
+                            cov.beta=list(covf=c("exp","exp2","matern"),
+                              nugget=c(TRUE,FALSE,TRUE)),
+                             cov.nu=list(covf="exp", nugget="type",
+                               random.effect=TRUE))
 ##Compute dimensions for the data structure
 dim <- loglikeSTdim(mesa.model.alt)
 

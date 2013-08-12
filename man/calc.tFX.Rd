@@ -65,7 +65,7 @@ print( cbind(tFobs,tFobs.alt) )
   }
 }
 
-##some examples using the mesa.data
+##some examples using real data
 data(mesa.model)
 
 ##Some information about the size(s) of the model.

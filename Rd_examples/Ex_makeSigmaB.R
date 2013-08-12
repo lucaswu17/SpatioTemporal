@@ -35,5 +35,16 @@ Sigma.cross <- makeSigmaB(pars, Dcross, type="exp", nugget=nugget,
   if( abs(max(Sigma.cross-Sigma.alt.cross)) > 1e-13){
     stop("makeSigmaB: Results not equal, cross-covariance")
   }
+
+  Sigma2.s <- makeSigmaB(pars, D, type=c("exp","exp2","cubic"),
+                         nugget=nugget, sparse=TRUE)
+  if( max(abs(Sigma2.s-Sigma2)) > 1e-14 ){
+    stop("makeSigmaB: Sparse matrix not equal, covariance")
+  }
+  Sigma.cross.s <- makeSigmaB(pars, Dcross, type="exp", nugget=nugget,
+                              ind2.to.1=c(1,1,2,2), sparse=TRUE)
+  if( max(abs(Sigma.cross.s-Sigma.cross)) > 1e-14 ){
+    stop("makeSigmaB: Sparse matrix not equal, cross-covariance")
+  }
 }
 

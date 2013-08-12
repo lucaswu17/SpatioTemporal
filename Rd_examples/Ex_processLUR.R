@@ -1,5 +1,8 @@
 ##load the data
-data(mesa.data)
+data(mesa.data.raw)
+##and create STdata-object
+mesa.data <- createSTdata(mesa.data.raw$obs, mesa.data.raw$X, n.basis=2,
+                          SpatioTemporal=mesa.data.raw["lax.conc.1500"])
 
 ##create a simple set of covariates
 processLUR(mesa.data, list(c(7:9),7,8))

@@ -84,10 +84,14 @@ head(tmp$cov.nu$nugget.matrix)
   Other STmodel functions: \code{\link{createCV}},
   \code{\link{createDataMatrix}},
   \code{\link{createSTmodel}},
-  \code{\link{dropObservations}}, \code{\link{loglikeST}},
-  \code{\link{loglikeSTdim}}, \code{\link{loglikeSTnaive}},
-  \code{\link{predictNaive}},
+  \code{\link{dropObservations}},
+  \code{\link{estimateBetaFields}},
+  \code{\link{loglikeST}}, \code{\link{loglikeSTdim}},
+  \code{\link{loglikeSTnaive}}, \code{\link{predictNaive}},
   \code{\link{processLocation}}, \code{\link{processLUR}},
-  \code{\link{processST}}
+  \code{\link{processST}}, \code{\link{updateSTdataTrend}},
+  \code{\link{updateTrend}},
+  \code{\link{updateTrend.STdata}},
+  \code{\link{updateTrend.STmodel}}
 }
 

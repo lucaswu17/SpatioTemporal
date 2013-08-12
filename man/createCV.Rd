@@ -3,7 +3,8 @@
 \title{Define Cross-Validation Groups}
 \usage{
   createCV(STmodel, groups = 10, min.dist = 0.1,
-    random = FALSE, subset = NA, option = "all",
+    random = FALSE, subset = NA,
+    option = c("all", "fixed", "comco", "snapshot", "home"),
     Icv.vector = TRUE)
 }
 \arguments{
@@ -135,16 +136,22 @@ ID.cv <- apply(I.cv, 2, function(x){ unique(mesa.model$obs$ID[x]) })
 \seealso{
   Other cross-validation functions:
   \code{\link{computeLTA}}, \code{\link{dropObservations}},
+  \code{\link{estimateCV}},
   \code{\link{estimateCV.STmodel}},
-  \code{\link{predictCV.STmodel}},
+  \code{\link{predictCV}}, \code{\link{predictCV.STmodel}},
   \code{\link{predictNaive}}
 
   Other STmodel functions: \code{\link{createDataMatrix}},
   \code{\link{createSTmodel}},
-  \code{\link{dropObservations}}, \code{\link{loglikeST}},
-  \code{\link{loglikeSTdim}}, \code{\link{loglikeSTnaive}},
-  \code{\link{predictNaive}},
+  \code{\link{dropObservations}},
+  \code{\link{estimateBetaFields}},
+  \code{\link{loglikeST}}, \code{\link{loglikeSTdim}},
+  \code{\link{loglikeSTnaive}}, \code{\link{predictNaive}},
   \code{\link{processLocation}}, \code{\link{processLUR}},
-  \code{\link{processST}}, \code{\link{updateCovf}}
+  \code{\link{processST}}, \code{\link{updateCovf}},
+  \code{\link{updateSTdataTrend}},
+  \code{\link{updateTrend}},
+  \code{\link{updateTrend.STdata}},
+  \code{\link{updateTrend.STmodel}}
 }
 

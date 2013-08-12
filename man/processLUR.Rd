@@ -9,7 +9,8 @@
 }
 \arguments{
   \item{STdata}{\code{STdata} object with observations,
-  covariates, trends, etc; see \code{\link{mesa.data}}.}
+  covariates, trends, etc; see
+  \code{\link{mesa.data.raw}}.}
 
   \item{LUR.in}{A vector or list indicating which
   geographic covariates to use.}
@@ -65,7 +66,10 @@
 }
 \examples{
 ##load the data
-data(mesa.data)
+data(mesa.data.raw)
+##and create STdata-object
+mesa.data <- createSTdata(mesa.data.raw$obs, mesa.data.raw$X, n.basis=2,
+                          SpatioTemporal=mesa.data.raw["lax.conc.1500"])
 
 ##create a simple set of covariates
 processLUR(mesa.data, list(c(7:9),7,8))
@@ -103,9 +107,14 @@ processST(mesa.data, "lax.conc.1500")
   Other STmodel functions: \code{\link{createCV}},
   \code{\link{createDataMatrix}},
   \code{\link{createSTmodel}},
-  \code{\link{dropObservations}}, \code{\link{loglikeST}},
-  \code{\link{loglikeSTdim}}, \code{\link{loglikeSTnaive}},
-  \code{\link{predictNaive}},
-  \code{\link{processLocation}}, \code{\link{updateCovf}}
+  \code{\link{dropObservations}},
+  \code{\link{estimateBetaFields}},
+  \code{\link{loglikeST}}, \code{\link{loglikeSTdim}},
+  \code{\link{loglikeSTnaive}}, \code{\link{predictNaive}},
+  \code{\link{processLocation}}, \code{\link{updateCovf}},
+  \code{\link{updateSTdataTrend}},
+  \code{\link{updateTrend}},
+  \code{\link{updateTrend.STdata}},
+  \code{\link{updateTrend.STmodel}}
 }
 

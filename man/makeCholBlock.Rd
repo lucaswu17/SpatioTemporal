@@ -132,7 +132,8 @@ t(B) \%*\% i.mat \%*\% B
 \seealso{
   Other basic linear algebra: \code{\link{blockMult}},
   \code{\link{crossDist}}, \code{\link{dotProd}},
-  \code{\link{norm2}}, \code{\link{sumLogDiag}}
+  \code{\link{norm2}}, \code{\link{sumLog}},
+  \code{\link{sumLogDiag}}
 
   Other block matrix functions: \code{\link{blockMult}},
   \code{\link{calc.FX}}, \code{\link{calc.FXtF2}},

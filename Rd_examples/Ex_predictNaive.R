@@ -3,38 +3,28 @@ data(mesa.model)
 
 ##naive predictions based on either AQS,
 pred.aqs <- predictNaive(mesa.model, type="AQS")
-##...FIXED sites,
-pred.fixed <- predictNaive(mesa.model, type="FIXED")
 ##...or only one sites,
 pred.1site <- predictNaive(mesa.model, locations="60372005")
 
 ##plot the predictions - The two cases that are constant in space
-par(mfcol=c(3,1), mar=c(4.5,4.5,1,.5))
+par(mfcol=c(2,1), mar=c(4.5,4.5,1,.5))
+
 ##observations as a function of date
 plot(mesa.model, "loc.obs", type=as.factor(mesa.model$locations$ID),
      legend.loc=NULL, pch=19, cex=.25)
-
 ##Add the predictions based on the smooth fitted to all sites
-lines(pred.aqs$pred$date, pred.aqs$pred$smooth.fixed, col=1, lwd=2)
-lines(pred.fixed$pred$date, pred.fixed$pred$smooth.fixed, col=2, lwd=2)
-lines(pred.1site$pred$date, pred.1site$pred$smooth.fixed, col=3, lwd=2)
-
-
-plot(mesa.model, "loc.obs", type=as.factor(mesa.model$locations$ID),
-     legend.loc=NULL, pch=19, cex=.25)
-##Add predictions based on the temporal average
-lines(pred.aqs$pred$date, pred.aqs$pred$avg.fixed, col=1, lwd=2)
-lines(pred.fixed$pred$date, pred.fixed$pred$avg.fixed, col=2, lwd=2)
+with(pred.aqs$pred, lines(date, smooth.fixed, col=1, lwd=2) )
+with(pred.1site$pred, lines(date, smooth.fixed, col=2, lwd=2) )
 
 ##plot the predictions - One of the cases that vary in space, i.e. the smooth
 ##fit to the closest site.
 ##first extract as a data matrix
-D <- createDataMatrix(obs=pred.aqs$pred$smooth.closest.fixed,
-                      date=pred.aqs$pred$date, ID=pred.aqs$pred$ID)
+D <- with(pred.aqs$pred, createDataMatrix(obs=smooth.closest.fixed,
+                                          date=date, ID=ID) )
 
 ##observations as a function of date
 ##(only five sites for clarity)
-mesa.model <- dropObservations(mesa.model, !(mesa.model$obs$idx %in% c(1:5)))
+mesa.model <- dropObservations(mesa.model, !(mesa.model$obs$idx %in% c(1,2,3,23,24)))
 plot(mesa.model, "loc.obs", type=as.factor(mesa.model$locations$ID),
      legend.loc=NULL, pch=19, cex=.25)
 ##Add the predictions based on the smooth

@@ -171,21 +171,11 @@ calc.FXtF2 <- function(F, mat, loc.ind, F2=F, loc.ind2=loc.ind){
   ##compute F*mat (using block structure in mat)
   FX <- calc.FX(F, mat.list, loc.ind)
 
-  ##split result into two blocks
-  FX.list <- vector( "list", dim(F)[2])
-  for(i in 1:length(FX.list)){
-    FX.list[[i]] <- t(FX[,(1:block.size[2])+(i-1)*block.size[2],drop=FALSE])
-  }
-  ##compute F2 * t(F*X) using blocks
-  tmp <- calc.FX(F2, FX.list, loc.ind2)  ##TODO: time-sink
-  ##result matrix
-  FXtF <- matrix(0, dim(F2)[1], dim(F)[1])
-  ##Now add the blocks together and transpose back.
-  for(i in 1:dim(F)[2]){
-    FXtF <- FXtF + tmp[,(1:dim(F)[1])+(i-1)*dim(F)[1],drop=FALSE]  ##TODO: time-sink
-  }
-  return( t(FXtF) )
+  ##compute (F*mat) %*% F2', using sparse matrices
+  F2 <- expandF(F2, loc.ind2, n.loc=block.size[2])
+  return( as.matrix(FX %*% t(F2)) )
 }##function calc.FXtF2
+
 
 ##' Expands the temporal trends in F to a full matrix (with lots of zeros).
 ##' Mainly used for testing, and illustration in examples.

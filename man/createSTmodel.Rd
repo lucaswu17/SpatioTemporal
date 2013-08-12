@@ -5,13 +5,14 @@
   createSTmodel(STdata, LUR = NULL, ST = NULL,
     cov.beta = list(covf = "exp", nugget = FALSE),
     cov.nu = list(covf = "exp", nugget = TRUE, random.effect = FALSE),
-    locations = list(coords = c("x", "y"), long.lat = NULL, coords.beta = NULL, coords.nu = NULL, others = NULL),
+    locations = list(coords = c("x", "y"), long.lat = NULL, coords.beta = NULL,
+                     coords.nu = NULL, others = NULL),
     strip = FALSE, scale = FALSE, scale.covars = NULL)
 }
 \arguments{
   \item{STdata}{\code{STdata} object with observations,
   covariates, trends, etc; see \code{\link{createSTdata}}
-  or \code{\link{mesa.data}} for an example.}
+  or \code{\link{mesa.data.raw}} for an example.}
 
   \item{LUR}{Specification of covariates for the
   beta-fields, see \code{\link{processLUR}}.}
@@ -59,11 +60,14 @@
 }
 \examples{
 ##load the data
-data(mesa.data)
+data(mesa.data.raw)
+##and create STdata-object
+mesa.data <- createSTdata(mesa.data.raw$obs, mesa.data.raw$X, n.basis=2,
+                          SpatioTemporal=mesa.data.raw["lax.conc.1500"])
 
 ##define land-use covariates
-LUR <-  list(c("log10.m.to.a1", "s2000.pop.div.10000", "km.to.coast"),
-             "km.to.coast", "km.to.coast")
+LUR <-  list(~log10.m.to.a1+s2000.pop.div.10000+km.to.coast,
+             ~km.to.coast, ~km.to.coast)
 ##and covariance model
 cov.beta <- list(covf="exp", nugget=FALSE)
 cov.nu <- list(covf="exp", nugget=TRUE, random.effect=FALSE)
@@ -71,8 +75,9 @@ cov.nu <- list(covf="exp", nugget=TRUE, random.effect=FALSE)
 locations <- list(coords=c("x","y"), long.lat=c("long","lat"), others="type")
 
 ##create object
-mesa.model <- createSTmodel(mesa.data, LUR=LUR, cov.beta=cov.beta,
-                            cov.nu=cov.nu, locations=locations)
+mesa.model <- createSTmodel(mesa.data, LUR=LUR, ST="lax.conc.1500",
+                            cov.beta=cov.beta, cov.nu=cov.nu,
+                            locations=locations)
 print(mesa.model)
 ##This is the same as data(mesa.model)
 
@@ -100,29 +105,45 @@ print(model.same)
   Johan Lindström
 }
 \seealso{
-  Other STdata functions: \code{\link{createDataMatrix}},
-  \code{\link{createSTdata}}, \code{\link{c.STmodel}},
-  \code{\link{detrendSTdata}},
+  Other STdata functions: \code{\link{c.STmodel}},
+  \code{\link{createDataMatrix}},
+  \code{\link{createSTdata}}, \code{\link{detrendSTdata}},
+  \code{\link{estimateBetaFields}},
   \code{\link{removeSTcovarMean}},
-  \code{\link{updateSTdataTrend}}
+  \code{\link{updateSTdataTrend}},
+  \code{\link{updateTrend}},
+  \code{\link{updateTrend.STdata}},
+  \code{\link{updateTrend.STmodel}}
 
   Other STmodel functions: \code{\link{createCV}},
   \code{\link{createDataMatrix}},
-  \code{\link{dropObservations}}, \code{\link{loglikeST}},
-  \code{\link{loglikeSTdim}}, \code{\link{loglikeSTnaive}},
-  \code{\link{predictNaive}},
+  \code{\link{dropObservations}},
+  \code{\link{estimateBetaFields}},
+  \code{\link{loglikeST}}, \code{\link{loglikeSTdim}},
+  \code{\link{loglikeSTnaive}}, \code{\link{predictNaive}},
   \code{\link{processLocation}}, \code{\link{processLUR}},
-  \code{\link{processST}}, \code{\link{updateCovf}}
+  \code{\link{processST}}, \code{\link{updateCovf}},
+  \code{\link{updateSTdataTrend}},
+  \code{\link{updateTrend}},
+  \code{\link{updateTrend.STdata}},
+  \code{\link{updateTrend.STmodel}}
 
   Other STmodel methods: \code{\link{c.STmodel}},
-  \code{\link{estimateCV.STmodel}},
-  \code{\link{estimate.STmodel}},
+  \code{\link{estimate}}, \code{\link{estimate.STmodel}},
+  \code{\link{estimateCV}},
+  \code{\link{estimateCV.STmodel}}, \code{\link{MCMC}},
   \code{\link{MCMC.STmodel}}, \code{\link{plot.STdata}},
   \code{\link{plot.STmodel}},
+  \code{\link{predict.STmodel}}, \code{\link{predictCV}},
   \code{\link{predictCV.STmodel}},
-  \code{\link{predict.STmodel}},
   \code{\link{print.STmodel}},
   \code{\link{print.summary.STmodel}},
+  \code{\link{qqnorm.predCVSTmodel}},
+  \code{\link{qqnorm.STdata}},
+  \code{\link{qqnorm.STmodel}},
+  \code{\link{scatterPlot.predCVSTmodel}},
+  \code{\link{scatterPlot.STdata}},
+  \code{\link{scatterPlot.STmodel}},
   \code{\link{simulate.STmodel}},
   \code{\link{summary.STmodel}}
 }

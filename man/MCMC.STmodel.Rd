@@ -1,10 +1,13 @@
 \name{MCMC.STmodel}
+\alias{MCMC}
 \alias{MCMC.STmodel}
 \title{MCMC Inference of Parameters in the Spatio-Temporal Model}
 \usage{
   \method{MCMC}{STmodel} (object, x, x.fixed = NULL,
     type = "f", N = 1000, Hessian.prop = NULL,
     Sigma.prop = NULL, info = min(ceiling(N/50), 100), ...)
+
+  MCMC(object, ...)
 }
 \arguments{
   \item{object}{\code{STmodel} for which to run MCMC.}
@@ -35,7 +38,7 @@
 
   \item{Sigma.prop}{Proposal matrix for the MCMC.}
 
-  \item{info}{Outputs status information every silent:th
+  \item{info}{Outputs status information every info:th
   iteration.  If \code{info=0} no output.}
 
   \item{...}{ignored additional arguments.}
@@ -89,12 +92,11 @@ x <- coef(est.mesa.model)
 H <- est.mesa.model$res.best$hessian.all
 \dontrun{
   ##run MCMC
-  MCMC.mesa.model <- MCMC(mesa.model, x$par, N = 5000, Hessian.prop = H)
+  MCMC.mesa.model <- MCMC(mesa.model, x$par, N = 2500, Hessian.prop = H)
 }
 ##lets load precomputed results instead
 data(MCMC.mesa.model)
 
-####TODO: NEEDS S3-update
 ##Examine the results
 print(MCMC.mesa.model)
 
@@ -106,25 +108,9 @@ summary(MCMC.mesa.model)
 
 ##MCMC tracks for four of the parameters
 par(mfrow=c(5,1),mar=c(2,2,2.5,.5))
-plot(MCMC.mesa.model$l, ylab="", xlab="", type="l",
-     main="log-likelihood")
+plot(MCMC.mesa.model, ylab="", xlab="", type="l")
 for(i in c(4,9,13,15)){
-  plot(MCMC.mesa.model$par[,i], ylab="", xlab="", type="l",
-       main=colnames(MCMC.mesa.model$par)[i])
-}
-
-##And estimated densities for the log-covariance parameters.
-##The red line is the approximate normal distribution given by
-##the maximum-likelihood estimates, e.g. ML-estimate and standard 
-##deviation from the observed information matrix.
-par(mfrow=c(3,3),mar=c(4,4,2.5,.5))
-for(i in 9:17){
-  xd <- sort(unique(MCMC.mesa.model$par[,i]))
-  yd <- dnorm(xd, mean=x$par[i],sd=x$sd[i])
-  dens <- density(MCMC.mesa.model$par[,i])
-  plot(dens, ylim=c(0,max(c(dens$y,yd))), main =
-       colnames(MCMC.mesa.model$par)[i])
-  lines(xd,yd,col=2)
+  plot(MCMC.mesa.model, i, ylab="", xlab="", type="l")
 }
 }
 \author{
@@ -132,19 +118,28 @@ for(i in 9:17){
 }
 \seealso{
   Other mcmcSTmodel methods:
+  \code{\link{density.mcmcSTmodel}},
+  \code{\link{plot.density.mcmcSTmodel}},
+  \code{\link{plot.mcmcSTmodel}},
   \code{\link{print.mcmcSTmodel}},
   \code{\link{print.summary.mcmcSTmodel}},
   \code{\link{summary.mcmcSTmodel}}
 
-  Other STmodel methods: \code{\link{createSTmodel}},
-  \code{\link{c.STmodel}},
+  Other STmodel methods: \code{\link{c.STmodel}},
+  \code{\link{createSTmodel}}, \code{\link{estimate}},
+  \code{\link{estimate.STmodel}}, \code{\link{estimateCV}},
   \code{\link{estimateCV.STmodel}},
-  \code{\link{estimate.STmodel}},
   \code{\link{plot.STdata}}, \code{\link{plot.STmodel}},
+  \code{\link{predict.STmodel}}, \code{\link{predictCV}},
   \code{\link{predictCV.STmodel}},
-  \code{\link{predict.STmodel}},
   \code{\link{print.STmodel}},
   \code{\link{print.summary.STmodel}},
+  \code{\link{qqnorm.predCVSTmodel}},
+  \code{\link{qqnorm.STdata}},
+  \code{\link{qqnorm.STmodel}},
+  \code{\link{scatterPlot.predCVSTmodel}},
+  \code{\link{scatterPlot.STdata}},
+  \code{\link{scatterPlot.STmodel}},
   \code{\link{simulate.STmodel}},
   \code{\link{summary.STmodel}}
 }

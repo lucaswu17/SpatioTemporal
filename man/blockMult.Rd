@@ -57,7 +57,8 @@ mat \%*\% X
   Other basic linear algebra: \code{\link{crossDist}},
   \code{\link{dotProd}}, \code{\link{invCholBlock}},
   \code{\link{makeCholBlock}}, \code{\link{norm2}},
-  \code{\link{solveTriBlock}}, \code{\link{sumLogDiag}}
+  \code{\link{solveTriBlock}}, \code{\link{sumLog}},
+  \code{\link{sumLogDiag}}
 
   Other block matrix functions: \code{\link{calc.FX}},
   \code{\link{calc.FXtF2}}, \code{\link{calc.iS.X}},

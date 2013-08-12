@@ -68,16 +68,22 @@ print(mesa.model.new)
 \seealso{
   Other cross-validation functions:
   \code{\link{computeLTA}}, \code{\link{createCV}},
+  \code{\link{estimateCV}},
   \code{\link{estimateCV.STmodel}},
-  \code{\link{predictCV.STmodel}},
+  \code{\link{predictCV}}, \code{\link{predictCV.STmodel}},
   \code{\link{predictNaive}}
 
   Other STmodel functions: \code{\link{createCV}},
   \code{\link{createDataMatrix}},
-  \code{\link{createSTmodel}}, \code{\link{loglikeST}},
-  \code{\link{loglikeSTdim}}, \code{\link{loglikeSTnaive}},
-  \code{\link{predictNaive}},
+  \code{\link{createSTmodel}},
+  \code{\link{estimateBetaFields}},
+  \code{\link{loglikeST}}, \code{\link{loglikeSTdim}},
+  \code{\link{loglikeSTnaive}}, \code{\link{predictNaive}},
   \code{\link{processLocation}}, \code{\link{processLUR}},
-  \code{\link{processST}}, \code{\link{updateCovf}}
+  \code{\link{processST}}, \code{\link{updateCovf}},
+  \code{\link{updateSTdataTrend}},
+  \code{\link{updateTrend}},
+  \code{\link{updateTrend.STdata}},
+  \code{\link{updateTrend.STmodel}}
 }
 

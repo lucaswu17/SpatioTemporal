@@ -4,6 +4,7 @@
 ##INTERNAL functions in this file:
 ## commonPrintST
 ## commonSummaryST
+## internalComputeLTA
 ## internalPlotPredictions
 ## internalPlotPredictChecks
 ## internalFindIDplot
@@ -14,6 +15,10 @@
 ## internalFixNuggetUnobs
 ## checkDimInternal
 ## createSTmodelInternalDistance
+## internalQQnormPlot
+## internalScatterPlot
+## internalSTmodelCreateF
+## internalSummaryPredCVSTmodel
 
 ########################################################################
 ## Parts of S3 print that are common for STdata and STmodel, INTERNAL ##
@@ -111,31 +116,76 @@ commonSummaryST <- function(object, type=NULL){
   return(out)
 }##function commonSummaryST
 
+#################################################
+## Common helper functions for predict.STmodel ##
+#################################################
+internalComputeLTA <- function(LTA, EX, T, V=NULL, V.pred=NULL,
+                               E.vec=NULL, E.vec.pred=NULL){
+  if( is.null(V) ){
+    ##only compute mean(EX)
+    res <- matrix(NA, dim(EX)[2], length(LTA))
+    rownames(res) <- colnames(EX)
+  }else{
+    ##also compute V( mean(EX) )
+    res <- matrix(NA, dim(EX)[2]+2, length(LTA))
+    rownames(res) <- c(colnames(EX),"VX","VX.pred")
+    if( is.null(E.vec) ){ E.vec <- rep(1,dim(V)[1]) }
+    if( is.null(E.vec.pred) ){ E.vec.pred <- E.vec }
+  }
+  
+  for(j in 1:length(LTA)){
+    Ind.LTA <- T %in% LTA[[j]]
+    LTA.tmp.res <- colMeans(EX[Ind.LTA,])
+    
+    if( !is.null(V) ){
+      LTA.tmp.res <- c(LTA.tmp.res,
+                       sum(E.vec[Ind.LTA] *
+                           (V[Ind.LTA,Ind.LTA,drop=FALSE] %*%
+                            E.vec[Ind.LTA])) / sum(Ind.LTA)^2,
+                       sum(E.vec.pred[Ind.LTA] *
+                           (V.pred[Ind.LTA,Ind.LTA,drop=FALSE] %*%
+                            E.vec.pred[Ind.LTA])) / sum(Ind.LTA)^2)
+    }
+    res[,j] <- LTA.tmp.res
+  }##for(j in 1:length(LTA.tmp))
+  return(res)
+}##function internalComputeLTA
+      
+
+#########################################################################
+## Parts of S3 plot that appends suitable ylab, xlab, main to ... args ##
+#########################################################################
+internalPlotFixArgs <- function(args, default=NULL, add=NULL){
+  if( is.null(default) || !is.list(default) ){
+    return( c(args,add) )
+  }
+  for(i in names(default)){
+    ##does the name exist in args, if not use default value.
+    if( is.null(args[[i]]) ){
+      args[[i]] <- default[[i]]
+    }
+  }
+  return( c(args,add) )
+}##function internalPlotFixArgs
+
 ###########################################################################
 ## Parts of S3 plot that are common for predictSTmodel and predCVSTmodel ##
 ###########################################################################
 internalPlotPredictions <- function(plot.type, ID, pred, obs, col, pch, cex,
-                                    lty, lwd, p, add){
+                                    lty, lwd, p, add, transform=NULL, ...){
   ##compute the quantile
   q <- qnorm((1-p)/2, lower.tail=FALSE)
   ##ensure that lty, lwd, pch, and cex are of length==2
-  if( length(lty)==1 ){
-    lty = c(lty,lty)
-  }
-  if( length(lwd)==1 ){
-    lwd = c(lwd,lwd)
-  }
-  if( length(pch)==1 ){
-    pch = c(pch,pch)
-  }
-  if( length(cex)==1 ){
-    cex = c(cex,cex)
-  }
+  if( length(lty)==1 ){ lty = c(lty,lty) }
+  if( length(lwd)==1 ){ lwd = c(lwd,lwd) }
+  if( length(pch)==1 ){ pch = c(pch,pch) }
+  if( length(cex)==1 ){ cex = c(cex,cex) }
 
   if( plot.type=="obs" ){
-    ##drop unobserved
-    pred <- pred[!is.na(obs),,drop=FALSE]
-    obs <- obs[!is.na(obs)]
+    ##drop unobserved (or unpredicted)
+    I <- !is.na(obs) & !is.na(pred$x)
+    pred <- pred[I,,drop=FALSE]
+    obs <- obs[I]
     ##plot as a function of sorted observations
     I <- order(obs)
     ##reorder
@@ -153,6 +203,15 @@ internalPlotPredictions <- function(plot.type, ID, pred, obs, col, pch, cex,
     stop( paste("No observations for ID =", paste(ID,collapse=", ")) )
   }
   
+  ##compute CI:s
+  if( !is.null(transform) ){
+    CI.u <- exp( pred$x.log + q*pred$sd )
+    CI.l <- exp( pred$x.log - q*pred$sd )
+  }else{
+    CI.u <- pred$x + q*pred$sd
+    CI.l <- pred$x - q*pred$sd
+  }
+  
   if( length(ID)==1 ){
     ID.name <- ID
   }else{
@@ -160,18 +219,26 @@ internalPlotPredictions <- function(plot.type, ID, pred, obs, col, pch, cex,
   }
   ##plot the results
   if(!add){
-    plot(t, pred$x, type="n", ylab="predictions", xlab=xlab, main=ID.name,
-         ylim=range(c(pred$x+q*pred$sd, pred$x-q*pred$sd, obs, pred$x),
-           na.rm=TRUE))
+    args <- internalPlotFixArgs(list(...),
+                                default=list(main=ID.name, xlab=xlab,
+                                  ylab="predictions",
+                                  ylim=range(c(CI.u, CI.l, obs, pred$x),
+                                    na.rm=TRUE)),
+                                add=list(x=t, y=pred$x, type="n"))
+    do.call(plot, args)
   }
   ##Plot the polygon, NA if missing -> no polygon
-  polygon(c(t,rev(t)), c(pred$x+q*pred$sd, rev(pred$x-q*pred$sd)),
+  polygon(c(t,rev(t)), c(CI.u, rev(CI.l)),
           border=col[3], col=col[3])
   ##plot the predictions
+  col.1 <- col[1]
+  if( col.1=="ID" ){
+    col.1 <- as.double( as.factor(pred$ID) )
+  }
   if( !is.na(lty[1]) )
-    lines(t, pred$x, col=col[1], lty=lty[1], lwd=lwd[1])
+    lines(t, pred$x, col=col.1, lty=lty[1], lwd=lwd[1])
   if( !is.na(pch[1]) )
-    points(t, pred$x, col=col[1], pch=pch[1], cex=cex[1])
+    points(t, pred$x, col=col.1, pch=pch[1], cex=cex[1])
   if( plot.type=="time" ){
     ##and the observations
     if( !is.na(lty[2]) )
@@ -191,15 +258,18 @@ internalPlotPredictions <- function(plot.type, ID, pred, obs, col, pch, cex,
 ###########################################################################
 ## Common helper functions for S3 plot.predictSTmodel/plot.predCVSTmodel ##
 ###########################################################################
-internalPlotPredictChecks <- function(plot.type, pred.type, pred.var){
-  if( !(plot.type %in% c("time", "obs")) ){
-    stop("Unknown option for 'y'; should be time, obs")
-  }
+internalPlotPredictChecks <- function(plot.type, pred.type,
+                                      pred.var, transform=NULL){
+  plot.type <- match.arg(arg=plot.type, choices=c("time", "obs"))
   ##check pred.type to use
-  if( !(pred.type %in% c("EX", "EX.mu", "EX.mu.beta")) ){
-    stop("Unknown option for 'pred.type'; should be EX, EX.mu, EX.mu.beta")
+  if( is.null(transform) ){
+    pred.type <- match.arg(arg=pred.type,
+                           choices=c("EX", "EX.mu", "EX.mu.beta"))
+  }else{
+    pred.type <- match.arg(arg=pred.type,
+                           choices=c("EX", "EX.pred", "EX.mu", "EX.mu.beta"))
   }
-  if( pred.type!="EX" ){
+  if( !(pred.type %in% c("EX","EX.pred")) ){
     pred.var <- "DO NOT USE"
   }else{
     if( pred.var ){
@@ -207,8 +277,16 @@ internalPlotPredictChecks <- function(plot.type, pred.type, pred.var){
     }else{
       pred.var <- "VX"
     }
+    if( !is.null(transform) ){
+      pred.var <- paste("log.", pred.var, sep="")
+      if( sum( grepl(".pred$", c(pred.type,pred.var)) )==1 ){
+        warning("Using VX.pred with EX (or vice versa)")
+      }
+      ##also add log.EX for computations of CI
+      pred.type <- c(pred.type, "log.EX")
+    }
   }
-  return(pred.var)
+  return( list(plot.type=plot.type, pred.type=pred.type, pred.var=pred.var) )
 }##function internalPlotPredictChecks
 
 internalFindIDplot <- function(ID, names){
@@ -374,3 +452,219 @@ createSTmodelInternalDistance <- function(STmodel){
   }
   return( STmodel )
 }##function createSTmodelInternalDistance
+
+########################################################################
+## Common helper functions for S3 qqnorm.STdata/STmodel/predCVSTmodel ##
+########################################################################
+internalQQnormPlot <- function(Y, ID, main, group, col, norm, line, ...){
+  ##check inputs, first ID
+  ID.unique <- unique(Y$ID)
+  ID <- internalFindIDplot(ID, ID.unique)
+  ID.all <- internalCheckIDplot(ID, "obs")
+
+  ##if ID="all", find all possible ID names
+  if(ID.all && length(ID)==1 && ID=="all"){
+    ID <- ID.unique
+  }
+  ##extract residuals
+  Ind <- Y$ID %in% ID
+  Y <- Y$obs[Ind]
+  
+  ##extract group and colour information
+  if( length(group)==length(Ind) ){
+    group <- group[Ind]
+  }else if( length(group)!=0 && length(group)!=sum(Ind) ){
+    stop( sprintf("length(group) should be 0, %d, or %d", length(Ind), sum(Ind)) )
+  }
+  if( length(col)==1 ){
+    col <- rep(col, sum(Ind))
+  }else if( length(col)==length(Ind) ){
+    col <- col[Ind]
+  }else if( length(col)!=sum(Ind) ){
+    stop( sprintf("length(col) should be 1, %d, or %d", length(Ind), sum(Ind)) )
+  }
+
+  ##standard QQ-plot
+  qqnorm(Y, col=col, main=main, ...)
+  if( norm ){
+    abline(0, 1, lty=1)
+  }
+  if( line!=0 ){
+    qqline(Y, lty=line)
+  }
+
+  ##QQ-plot for each sub-group
+  if( !is.null(group) && length(unique(group))>1 ){
+    for(i in unique(group)){
+      qqnorm(Y[group==i], col=col[group==i], main=paste(main, i), ...)
+      if( norm ){
+        abline(0, 1, lty=1)
+      }
+      if( line!=0 ){
+        qqline(Y[group==i], lty=line)
+      }
+    }##for(i in unique(group))
+  }##if( !is.null(group) && length(unique(group))>1 )
+
+  return(invisible())
+}##function internalQQnormPlot
+
+#############################################################################
+## Common helper functions for S3 scatterPlot.STdata/STmodel/predCVSTmodel ##
+#############################################################################
+internalScatterPlot <- function(obs, covar, trend, data, subset, group, pch,
+                                col, cex, lty, add, smooth.args, ...){
+  ##need to specify either covar or trend
+  if( is.null(covar) && is.null(trend) ){
+    message("Both covar and trend are NULL, assuming trend=1")
+    trend <- 1
+  }
+  if( !is.null(covar) && !is.null(trend) ){
+    warning("Both covar and trend specified, ignoring trend")
+    trend <- NULL
+  }
+  if( !is.null(group) ){
+    ##ensure group is a factor
+    group <- as.factor(group)
+    if( length(group)!=dim(obs)[1] ){
+      stop("length(group) must match the number of observations.")
+    }
+  }else{
+    group <- as.factor( rep(1, dim(obs)[1]) )
+  }#if( !is.null(group) ){...}else{...}
+  ##adjust pch/col/cex/lty
+  if( length(pch)==1 ){
+    pch <- rep(pch, nlevels(group))
+  }else if( length(pch)!=nlevels(group) ){
+    stop("length(pch) should be 1 or nlevels(group)")
+  }
+  if( length(col)==1 ){
+    col <- rep(col, nlevels(group)+1)
+  }else if( length(col) != (nlevels(group)+1) ){
+    stop("length(col) should be 1 or nlevels(group)+1")
+  }
+  if( length(cex)==1 ){
+    cex <- rep(cex, nlevels(group))
+  }else if( length(cex)!=nlevels(group) ){
+    stop("length(cex) should be 1 or nlevels(group)")
+  }
+  if( length(lty)==1 ){
+    lty <- rep(lty, nlevels(group)+1)
+  }else if( length(lty) != (nlevels(group)+1) ){
+    stop("length(lty) should be 1 or nlevels(group)+1")
+  }
+
+  ##subset the data
+  if( !is.null(subset) ){
+    I <- obs$ID %in% subset
+    obs <- obs[I,,drop=FALSE]
+    if( dim(obs)[1]==0 ){
+      stop("No observations left after subsettting")
+    }
+    ##and the grouping
+    if( !is.null(group) ){ group <- group[I] }
+  }
+
+  ##extract x and y for plotting (keeping names to get xlab/ylab right)
+  y <- obs[,1,drop=FALSE]
+  if( !is.null(covar) ){
+    x <- data$covars[,covar,drop=FALSE]
+    x <- x[match(obs$ID, data$covars$ID),,drop=FALSE]
+    ##coerc x to numeric (i.e. first, and only, element of the data.frame)
+    x[[1]] <- as.numeric(x[[1]])
+  }else{
+    if( trend==0 ){
+      x <- data.frame(const=rep(1, length(y)))
+    }else{
+      x <- data$trend[,trend,drop=FALSE]
+      x <- x[match(obs$date, data$trend$date),,drop=FALSE]
+    }
+  }
+  ##stack x,y and create vectors fro loess.smooth
+  XY <- cbind(x,y)
+  x <- x[,1]
+  y <- y[,1]
+
+  ##plotting
+  if(add==FALSE){
+    plot(XY, type="n", ...)
+  }
+  points(XY, pch=pch[group], col=col[group], cex=cex[group])
+  
+  ##add smooths
+  if( nlevels(group)!=1 ){
+    for(i in 1:nlevels(group)){
+      I <- group==levels(group)[i]
+      if( !is.na(lty[i]) && sum(I)>0){
+        prediction <- do.call(loess.smooth,
+                              args=c(list(x=x[I], y=y[I]),
+                                smooth.args))
+        lines(prediction, col=col[i], lty=lty[i])
+      }
+    }
+  }
+  if( !is.na(lty[nlevels(group)+1]) ){
+    prediction <- do.call(loess.smooth, args=c(list(x=x, y=y),
+                                          smooth.args))
+    lines(prediction, col=col[nlevels(group)+1], lty=lty[nlevels(group)+1])
+  }
+  
+  return(invisible())
+}##function internalScatterPlot
+
+############################################################################
+## Common helper functions createSTmodel and updateTrend.STmodel, fixes F ##
+############################################################################
+internalSTmodelCreateF <- function(STmodel){
+  ##match times with observations
+  F <- STmodel$trend[ match(STmodel$obs$date, STmodel$trend$date),,drop=FALSE]
+  ##add intercept
+  if( dim(F)[1]!=0 ){
+    F <- cbind(1, F)
+  }else{
+    ##edge case for no data models (used for prediction)
+    F <- cbind(matrix(0,0,1), F)
+  }
+  names(F)[1] <- "const"
+  ##drop date column
+  F <- F[,-which(names(F)=="date"),drop=FALSE]
+  ##cast to matrix
+  F <- data.matrix(F)
+  rownames(F) <- as.character(STmodel$obs$date)
+  return(F)
+}##function internalSTmodelCreateF
+
+###################################################################
+## Common helper functions for predictCV, computes CV-statistics ##
+###################################################################
+internalSummaryPredCVSTmodel <- function(pred.struct, EX.names, transform,
+                                         opts, I.n, out){
+  obs <- transform( pred.struct$obs )
+  EX.all <- lapply( pred.struct[EX.names], transform)
+  ##and normalised residuals (these differ for transform and not transformed)
+  if( !is.null(opts$transform) ){
+    res <- (log(pred.struct$obs) - pred.struct$log.EX) /
+      sqrt(pred.struct$log.VX.pred)
+  }else if( opts$pred.var ){
+    res <- pred.struct$res.norm
+  }
+  
+  ##drop NA:s
+  I <- apply(sapply(EX.all, is.na), 1, any)
+  
+  ##compute stats for raw observations
+  for(i in EX.names){
+    out$RMSE[I.n, i] <- sqrt(mean( (obs[!I] - EX.all[[i]][!I])^2 ))
+  }
+  out$R2[I.n, ] <- 1 - out$RMSE[I.n, ]^2 / var( obs[!I] )
+  
+  if( opts$pred.var || !is.null(opts$transform) ){
+    ##recompute p for a two-sided CI
+    q <- qnorm( (1+out$p)/2 )
+    ##compute coverage
+    out$coverage[I.n,1] <- mean( abs(res[!I]) < q )
+  }
+  return(out)
+}##function internalSummaryPredCVSTmodel
+
+

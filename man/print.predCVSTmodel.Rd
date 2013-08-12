@@ -19,7 +19,7 @@
 }
 \examples{
 ##load some data
-data(CV.mesa.model)
+data(pred.cv.mesa)
 ##print basic information for the CV-predictions
 print(pred.cv.mesa)
 }
@@ -27,12 +27,18 @@ print(pred.cv.mesa)
   Johan Lindström
 }
 \seealso{
-  Other predCVSTmodel methods:
+  Other predCVSTmodel methods: \code{\link{estimateCV}},
   \code{\link{estimateCV.STmodel}},
   \code{\link{plot.predCVSTmodel}},
   \code{\link{plot.predictSTmodel}},
-  \code{\link{predictCV.STmodel}},
+  \code{\link{predictCV}}, \code{\link{predictCV.STmodel}},
   \code{\link{print.summary.predCVSTmodel}},
+  \code{\link{qqnorm.predCVSTmodel}},
+  \code{\link{qqnorm.STdata}},
+  \code{\link{qqnorm.STmodel}},
+  \code{\link{scatterPlot.predCVSTmodel}},
+  \code{\link{scatterPlot.STdata}},
+  \code{\link{scatterPlot.STmodel}},
   \code{\link{summary.predCVSTmodel}}
 }
 

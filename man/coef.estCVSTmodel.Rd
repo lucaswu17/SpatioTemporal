@@ -2,7 +2,8 @@
 \alias{coef.estCVSTmodel}
 \title{Returns estimated parameters for each CV-group.}
 \usage{
-  \method{coef}{estCVSTmodel} (object, pars = "all", ...)
+  \method{coef}{estCVSTmodel} (object,
+    pars = c("all", "cov", "reg"), ...)
 }
 \arguments{
   \item{object}{\code{estCVSTmodel} object from which to
@@ -22,7 +23,7 @@
 }
 \examples{
 ##load data
-  data(CV.mesa.model)
+  data(est.cv.mesa)
   ##extract all parameters
   coef(est.cv.mesa)
   ##extract only covariance parameters
@@ -34,8 +35,9 @@
 \seealso{
   Other estCVSTmodel methods:
   \code{\link{boxplot.estCVSTmodel}},
+  \code{\link{estimateCV}},
   \code{\link{estimateCV.STmodel}},
-  \code{\link{predictCV.STmodel}},
+  \code{\link{predictCV}}, \code{\link{predictCV.STmodel}},
   \code{\link{print.estCVSTmodel}},
   \code{\link{print.summary.estCVSTmodel}},
   \code{\link{summary.estCVSTmodel}}

@@ -6,7 +6,7 @@
 }
 \arguments{
   \item{STdata}{A \code{STdata} object, see
-  \code{\link{mesa.data}}.}
+  \code{\link{mesa.data.raw}}.}
 
   \item{region}{Vector of the same length and order as
   \code{STdata$covars$ID}.  Indicates region(s) in which
@@ -69,7 +69,10 @@
 }
 \examples{
 ##load the data
-data(mesa.data)
+data(mesa.data.raw)
+##and create STdata-object
+mesa.data <- createSTdata(mesa.data.raw$obs, mesa.data.raw$X, n.basis=2,
+                          SpatioTemporal=mesa.data.raw["lax.conc.1500"])
 
 ##plot time-series for the first site,
 par(mfrow=c(3,2),mar=c(2.5,2.5,3,1))
@@ -103,9 +106,14 @@ print(mesa.data.detrend2$fit.trend)
   Assaf P. Oron and Johan Lindström
 }
 \seealso{
-  Other STdata functions: \code{\link{createDataMatrix}},
+  Other STdata functions: \code{\link{c.STmodel}},
+  \code{\link{createDataMatrix}},
   \code{\link{createSTdata}}, \code{\link{createSTmodel}},
-  \code{\link{c.STmodel}}, \code{\link{removeSTcovarMean}},
-  \code{\link{updateSTdataTrend}}
+  \code{\link{estimateBetaFields}},
+  \code{\link{removeSTcovarMean}},
+  \code{\link{updateSTdataTrend}},
+  \code{\link{updateTrend}},
+  \code{\link{updateTrend.STdata}},
+  \code{\link{updateTrend.STmodel}}
 }
 

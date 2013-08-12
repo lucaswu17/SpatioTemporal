@@ -61,6 +61,6 @@ dotProd(v1,c(v2,2))
   Other basic linear algebra: \code{\link{blockMult}},
   \code{\link{crossDist}}, \code{\link{invCholBlock}},
   \code{\link{makeCholBlock}}, \code{\link{solveTriBlock}},
-  \code{\link{sumLogDiag}}
+  \code{\link{sumLog}}, \code{\link{sumLogDiag}}
 }
 

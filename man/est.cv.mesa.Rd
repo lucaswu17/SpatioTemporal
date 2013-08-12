@@ -2,7 +2,7 @@
 \name{est.cv.mesa}
 \alias{est.cv.mesa}
 \alias{pred.cv.mesa}
-\title{Example of \code{estCVSTmodel} and \code{predCVSTmodel} Structures}
+\title{Example of \code{estCVSTmodel} and \code{predCVSTmodel} structures}
 \format{A list with elements, see the return description in
   \code{\link{estimateCV.STmodel}} and \code{\link{predictCV.STmodel}}.}
 \source{
@@ -20,46 +20,55 @@
 \examples{
 ##load data
 data(mesa.model)
+data(est.mesa.model)
 
+################
+## estimateCV ##
+################
 ##create the CV structure defining 10 different CV-groups
 Ind.cv <- createCV(mesa.model, groups=10, min.dist=.1)
 
-##create vector of initial values
-dim <- loglikeSTdim(mesa.model)
-x.init <- cbind(rep(2,dim$nparam.cov),c(rep(c(1,-3),dim$m+1),-3))
+##use the best parameters and there starting values as
+x.init <- coef(est.mesa.model, pars="cov")[,c("par","init")]
 
 \dontrun{
   ##estimate different parameters for each CV-group
   est.cv.mesa <- estimateCV(mesa.model, x.init, Ind.cv)
-  ##Do cross-validated predictions using the just estimated parameters
-  pred.cv.mesa <- predictCV(mesa.model, est.cv.mesa$par.cov, 
-                            est.cv.mesa$Ind.cv)
 }
 ##lets load precomputed results instead
-data(CV.mesa.model)
-##and results of estimation
-data(est.mesa.model)
+data(est.cv.mesa)
 
-##examining the estimation results
+##examine the estimation results
 print( est.cv.mesa )
-names( est.cv.mesa )
- 
-##boxplot of the different estimates from the CV
-par(mfrow=c(1,1), mar=c(12,2.5,2,.5), las=2)
-boxplot( est.cv.mesa, plot.type="cov")
-points( coef(est.mesa.model,"cov")$par, pch=19, col=2)
- 
-##examining the prediction
+##estimated parameters for each CV-group
+coef(est.cv.mesa, pars="cov")
+
+###############
+## predictCV ##
+###############
+\dontrun{
+  ##Do cross-validated predictions using the just estimated parameters
+  ##Ind.cv is infered from est.cv.mesa as est.cv.mesa$Ind.cv
+  pred.cv.mesa <- predictCV(mesa.model, est.cv.mesa, LTA=TRUE)
+}
+##lets load precomputed results instead
+data(pred.cv.mesa)
+
+##prediction results
 print( pred.cv.mesa )
-names( pred.cv.mesa )
- 
-##Plot observations with CV-predictions and prediction intervals
-##TODO TODO TODO
-#par(mfcol=c(4,1),mar=c(2.5,2.5,2,.5))
-#plotCV(mesa.data.res$pred.cv,  1, mesa.data.model)
-#plotCV(mesa.data.res$pred.cv, 10, mesa.data.model)
-#plotCV(mesa.data.res$pred.cv, 17, mesa.data.model)
-#plotCV(mesa.data.res$pred.cv, 22, mesa.data.model)
+
+##and CV-statistics
+print( summary( pred.cv.mesa, LTA=TRUE) )
+
+
+\dontrun{
+  ##A faster option is to only consider the observations and not to compute
+  ##variances
+  pred.cv.fast <- predictCV(mesa.model, est.cv.mesa, only.obs=TRUE,
+                            pred.var=FALSE)
+  print( pred.cv.fast )
+  summary( pred.cv.fast )
+}
 }
 \references{
   M. A. Cohen, S. D. Adar, R. W. Allen, E. Avol, C. L.
@@ -78,7 +87,7 @@ names( pred.cv.mesa )
   originating \code{STmodel} object.
 
   Other example data: \code{\link{est.mesa.model}},
-  \code{\link{MCMC.mesa.model}}, \code{\link{mesa.data}},
+  \code{\link{MCMC.mesa.model}},
   \code{\link{mesa.data.raw}}, \code{\link{mesa.model}},
   \code{\link{pred.mesa.model}}
 }

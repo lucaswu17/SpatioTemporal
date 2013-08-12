@@ -1,5 +1,8 @@
-##load data
-data(mesa.data)
+##load the data
+data(mesa.data.raw)
+##and create STdata-object
+mesa.data <- createSTdata(mesa.data.raw$obs, mesa.data.raw$X, n.basis=2,
+                          SpatioTemporal=mesa.data.raw["lax.conc.1500"])
 
 mesa.data.mean0 <- removeSTcovarMean(mesa.data)
 
@@ -13,10 +16,6 @@ summary(mesa.data.mean0$covars)
 cbind(colMeans(mesa.data$SpatioTemporal),
       colMeans(mesa.data.mean0$SpatioTemporal))
 
-##mean of the spatio-temporal covariate
-##compared to the added mean covariate
-plot(mesa.data.mean0$covars$mean.lax.conc.1500,
-     colMeans(mesa.data$SpatioTemporal))
 \dontshow{
   if( max(abs(colMeans(mesa.data.mean0$SpatioTemporal[,,2]))) > 1e-10 ){
     stop("remove.ST.mean 1: mean(centred ST) != 0")

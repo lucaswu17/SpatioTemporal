@@ -14,7 +14,7 @@
   \code{conv.reldiff} criteria is met.}
 
   \item{ncomp}{Number of SVD components to use in the
-  reconstruction.}
+  reconstruction (>0).}
 
   \item{conv.reldiff}{Assume the iterative procedure has
   converged when the relative difference between two
@@ -75,7 +75,6 @@ for(i in 1:4){
     stop("SVD.miss: Points not interpolated")
   }
 }
-
 }
 \author{
   Paul D. Sampson and Johan Lindström
@@ -88,13 +87,17 @@ for(i in 1:4){
 }
 \seealso{
   Other data matrix: \code{\link{createDataMatrix}},
+  \code{\link{estimateBetaFields}},
   \code{\link{mesa.data.raw}}, \code{\link{SVDsmooth}},
   \code{\link{SVDsmoothCV}}
 
-  Other SVD for missing data:
+  Other SVD for missing data: \code{\link{boxplot.SVDcv}},
   \code{\link{calcSmoothTrends}}, \code{\link{plot.SVDcv}},
-  \code{\link{print.SVDcv}}, \code{\link{SVDsmooth}},
-  \code{\link{SVDsmoothCV}},
-  \code{\link{updateSTdataTrend}}
+  \code{\link{print.SVDcv}}, \code{\link{summary.SVDcv}},
+  \code{\link{SVDsmooth}}, \code{\link{SVDsmoothCV}},
+  \code{\link{updateSTdataTrend}},
+  \code{\link{updateTrend}},
+  \code{\link{updateTrend.STdata}},
+  \code{\link{updateTrend.STmodel}}
 }
 

@@ -59,7 +59,8 @@ Dcross.R3 <- crossDist(C1, C2)
   Other basic linear algebra: \code{\link{blockMult}},
   \code{\link{dotProd}}, \code{\link{invCholBlock}},
   \code{\link{makeCholBlock}}, \code{\link{norm2}},
-  \code{\link{solveTriBlock}}, \code{\link{sumLogDiag}}
+  \code{\link{solveTriBlock}}, \code{\link{sumLog}},
+  \code{\link{sumLogDiag}}
 
   Other covariance functions: \code{\link{evalCovFuns}},
   \code{\link{makeSigmaB}}, \code{\link{makeSigmaNu}},

@@ -63,18 +63,6 @@ x.all <- runif( dim$nparam )
 ##Evaluate the log-likelihood for these values
 loglikeST(x.all, mesa.model, "f")
 loglikeST(x, mesa.model, "p")
-loglikeST(x, mesa.model, "r")
-
-\dontshow{
-  ##check that profile and full give the same results
-  data(est.mesa.model)
-  x.all <- coef(est.mesa.model)$par
-  x <- coef(est.mesa.model, "cov")$par
-  if( abs(loglikeST(x.all, mesa.model, "f") -
-          loglikeST(x, mesa.model, "p")) > 1e-8 ){
-    stop("loglike: full and profile not equal")
-  }
-}
 
 }
 \author{
@@ -90,8 +78,13 @@ loglikeST(x, mesa.model, "r")
   \code{\link{createDataMatrix}},
   \code{\link{createSTmodel}},
   \code{\link{dropObservations}},
+  \code{\link{estimateBetaFields}},
   \code{\link{loglikeSTdim}}, \code{\link{predictNaive}},
   \code{\link{processLocation}}, \code{\link{processLUR}},
-  \code{\link{processST}}, \code{\link{updateCovf}}
+  \code{\link{processST}}, \code{\link{updateCovf}},
+  \code{\link{updateSTdataTrend}},
+  \code{\link{updateTrend}},
+  \code{\link{updateTrend.STdata}},
+  \code{\link{updateTrend.STmodel}}
 }
 

@@ -9,10 +9,11 @@
   \item{object}{A \code{predCVSTmodel} object, the result
   of \code{\link{predictCV.STmodel}}.}
 
-  \item{transform}{Transform observations and predictions
-  \emph{before} computing averages; e.g.
-  \code{transform=exp} gives the long term averages as
-  \code{mean( exp(obs) )} and \code{mean( exp(pred) )}.}
+  \item{transform}{Transform observations (\emph{without}
+  bias correction) and predictions \emph{before} computing
+  averages; e.g. \code{transform=exp} gives the long term
+  averages as \code{mean( exp(obs) )} and \code{mean(
+  exp(pred) )}.}
 }
 \value{
   Returns a (number of locations) - by - 4 matrix with the
@@ -30,7 +31,7 @@
 }
 \examples{
 ##load data
-data(CV.mesa.model)
+data(pred.cv.mesa)
 
 ##compute long term averages of predictions and observations
 pred.lta <- computeLTA(pred.cv.mesa)
@@ -60,13 +61,13 @@ abline(0,1)
 }
 \seealso{
   Other cross-validation functions: \code{\link{createCV}},
-  \code{\link{dropObservations}},
+  \code{\link{dropObservations}}, \code{\link{estimateCV}},
   \code{\link{estimateCV.STmodel}},
-  \code{\link{predictCV.STmodel}},
+  \code{\link{predictCV}}, \code{\link{predictCV.STmodel}},
   \code{\link{predictNaive}}
 
-  Other predCVSTmodel functions:
+  Other predCVSTmodel functions: \code{\link{estimateCV}},
   \code{\link{estimateCV.STmodel}},
-  \code{\link{predictCV.STmodel}}
+  \code{\link{predictCV}}, \code{\link{predictCV.STmodel}}
 }
 

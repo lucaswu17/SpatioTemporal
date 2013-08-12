@@ -19,7 +19,7 @@
 }
 \examples{
 ##load some data
-data(CV.mesa.model)
+data(est.cv.mesa)
 ##print basic information for the CV-predictions
 summary(est.cv.mesa)
 }
@@ -30,8 +30,9 @@ summary(est.cv.mesa)
   Other estCVSTmodel methods:
   \code{\link{boxplot.estCVSTmodel}},
   \code{\link{coef.estCVSTmodel}},
+  \code{\link{estimateCV}},
   \code{\link{estimateCV.STmodel}},
-  \code{\link{predictCV.STmodel}},
+  \code{\link{predictCV}}, \code{\link{predictCV.STmodel}},
   \code{\link{print.estCVSTmodel}},
   \code{\link{print.summary.estCVSTmodel}}
 }

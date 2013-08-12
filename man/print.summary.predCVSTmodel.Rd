@@ -22,12 +22,18 @@
   Johan Lindström
 }
 \seealso{
-  Other predCVSTmodel methods:
+  Other predCVSTmodel methods: \code{\link{estimateCV}},
   \code{\link{estimateCV.STmodel}},
   \code{\link{plot.predCVSTmodel}},
   \code{\link{plot.predictSTmodel}},
-  \code{\link{predictCV.STmodel}},
+  \code{\link{predictCV}}, \code{\link{predictCV.STmodel}},
   \code{\link{print.predCVSTmodel}},
+  \code{\link{qqnorm.predCVSTmodel}},
+  \code{\link{qqnorm.STdata}},
+  \code{\link{qqnorm.STmodel}},
+  \code{\link{scatterPlot.predCVSTmodel}},
+  \code{\link{scatterPlot.STdata}},
+  \code{\link{scatterPlot.STmodel}},
   \code{\link{summary.predCVSTmodel}}
 }
 

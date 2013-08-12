@@ -22,14 +22,14 @@
 }
 \examples{
 ##load data
-  data(mesa.data)
+  data(mesa.model)
   ##names present in dta
-  names(mesa.data$covars)
+  names(mesa.model$locations)
 
   ##check for some names
-  stCheckFields(mesa.data$covars, c("ID","x","lat"))
+  stCheckFields(mesa.model$locations, c("ID","x","lat"))
   ##check for non-existant names
-  try( stCheckFields(mesa.data$covars, c("ID","x","test")) )
+  try( stCheckFields(mesa.model$locations, c("ID","x","test")) )
 }
 \author{
   Johan Lindström

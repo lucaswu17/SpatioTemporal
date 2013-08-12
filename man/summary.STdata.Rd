@@ -22,12 +22,6 @@
   \code{\link[base:summary]{summary}} method for class
   \code{STdata}.
 }
-\examples{
-##load some data
-data(mesa.data)
-##Summary of data fields.
-summary(mesa.data)
-}
 \author{
   Johan Lindström
 }
@@ -35,6 +29,12 @@ summary(mesa.data)
   Other STdata methods: \code{\link{createSTdata}},
   \code{\link{plot.STdata}}, \code{\link{plot.STmodel}},
   \code{\link{print.STdata}},
-  \code{\link{print.summary.STdata}}
+  \code{\link{print.summary.STdata}},
+  \code{\link{qqnorm.predCVSTmodel}},
+  \code{\link{qqnorm.STdata}},
+  \code{\link{qqnorm.STmodel}},
+  \code{\link{scatterPlot.predCVSTmodel}},
+  \code{\link{scatterPlot.STdata}},
+  \code{\link{scatterPlot.STmodel}}
 }
 

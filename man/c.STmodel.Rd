@@ -17,7 +17,7 @@
 \description{
   Combines several locations and covariates for several
   STmodel/STdata objects. Temporal trend, observations and
-  covariance model (both spatial and spatio-temporal) is
+  covariance model (both spatial and spatio-temporal) are
   taken from the first object in the call. Any additional
   covariates/trends/observations not present in the first
   argument are dropped from the additional arguments
@@ -35,7 +35,10 @@
 }
 \examples{
 ##load the data
-data(mesa.data)
+data(mesa.data.raw)
+##and create STdata-object
+mesa.data <- createSTdata(mesa.data.raw$obs, mesa.data.raw$X, n.basis=2,
+                          SpatioTemporal=mesa.data.raw["lax.conc.1500"])
 
 ##keep only observations from the AQS sites
 ID.AQS <- mesa.data$covars$ID[ mesa.data$covars$type=="AQS" ]
@@ -46,7 +49,7 @@ LUR <- list(~log10.m.to.a1 + s2000.pop.div.10000 + km.to.coast,
             ~km.to.coast, ~km.to.coast)
 locations <- list(coords=c("x","y"), long.lat=c("long","lat"), others="type")
 
-##create a stripped mesa.model
+##create reduced model, without and with a spatio-temporal covariate.
 mesa.model <- createSTmodel(mesa.data, LUR=LUR, locations=locations,
                             strip=TRUE)
 mesa.model.ST <- createSTmodel(mesa.data, LUR=LUR, ST=1,
@@ -76,18 +79,29 @@ print(c(mesa.model, mesa.model.full))
   Other STdata functions: \code{\link{createDataMatrix}},
   \code{\link{createSTdata}}, \code{\link{createSTmodel}},
   \code{\link{detrendSTdata}},
+  \code{\link{estimateBetaFields}},
   \code{\link{removeSTcovarMean}},
-  \code{\link{updateSTdataTrend}}
+  \code{\link{updateSTdataTrend}},
+  \code{\link{updateTrend}},
+  \code{\link{updateTrend.STdata}},
+  \code{\link{updateTrend.STmodel}}
 
   Other STmodel methods: \code{\link{createSTmodel}},
-  \code{\link{estimateCV.STmodel}},
-  \code{\link{estimate.STmodel}},
+  \code{\link{estimate}}, \code{\link{estimate.STmodel}},
+  \code{\link{estimateCV}},
+  \code{\link{estimateCV.STmodel}}, \code{\link{MCMC}},
   \code{\link{MCMC.STmodel}}, \code{\link{plot.STdata}},
   \code{\link{plot.STmodel}},
+  \code{\link{predict.STmodel}}, \code{\link{predictCV}},
   \code{\link{predictCV.STmodel}},
-  \code{\link{predict.STmodel}},
   \code{\link{print.STmodel}},
   \code{\link{print.summary.STmodel}},
+  \code{\link{qqnorm.predCVSTmodel}},
+  \code{\link{qqnorm.STdata}},
+  \code{\link{qqnorm.STmodel}},
+  \code{\link{scatterPlot.predCVSTmodel}},
+  \code{\link{scatterPlot.STdata}},
+  \code{\link{scatterPlot.STmodel}},
   \code{\link{simulate.STmodel}},
   \code{\link{summary.STmodel}}
 }

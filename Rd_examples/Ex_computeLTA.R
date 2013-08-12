@@ -1,5 +1,5 @@
 ##load data
-data(CV.mesa.model)
+data(pred.cv.mesa)
 
 ##compute long term averages of predictions and observations
 pred.lta <- computeLTA(pred.cv.mesa)

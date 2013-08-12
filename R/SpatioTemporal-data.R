@@ -1,12 +1,11 @@
 ### Raw data ###
-##' The raw data that was used to create the \code{\link{mesa.data}} and
-##' \code{\link{mesa.model}} structures.
+##' The raw data that was used to create the \code{\link{mesa.model}} structures.
 ##' \cr
 ##' The data structure contains raw data from the \strong{MESA Air} project. The
-##' example below describes how to create the \code{\link{mesa.data}} structure
+##' example below describes how to create the \code{\link{mesa.model}} structure
 ##' from raw data.
 ##' 
-##' @title Example of raw data
+##' @title Data used in the examples
 ##' @name mesa.data.raw
 ##' @docType data
 ##' @format The structure contains observations, temporal trends, locations,
@@ -36,80 +35,6 @@
 ##' 
 ##' @seealso \code{\link{createSTdata}} for creation of \code{STdata} objects.
 ##' @family data matrix
-##' @family example data
-NULL
-
-### STdata ###
-##' Example of a data structure holding observations, geographic covariates
-##' (including observation locations), smooth temporal trends, and
-##' spatio-temporal covariates.
-##'
-##' A \code{STdata} object consists of a list with, some or all of, the following
-##' elements:
-##' \describe{
-##'   \item{covars}{Geographic covariates, locations and names
-##'     of the observation locations (the later in \code{covars$ID}),
-##'     \code{\link{createSTmodel}} will extract covariates (land use regressors),
-##'     observations locations, etc from this data.frame when constructing the
-##'     model specification.}
-##'   \item{trend}{The temporal trends with \emph{one of the} columns
-##'     being named \code{date}, preferably of class \code{\link[base:Date]{Date}}
-##'     providing the time alignment for the temporal trends.}
-##'   \item{obs}{A data.frame with columns:
-##'     \describe{
-##'       \item{obs}{The value of each observation.}
-##'       \item{date}{The observations time, preferably of class
-##'                   \code{\link[base:Date]{Date}}.}
-##'       \item{ID}{A \code{character}-class giving observation locations;
-##'                 should match elements in \code{locations$ID}.}
-##'     }
-##'   }
-##'   \item{SpatioTemporal}{A 3D-array of spatio-temporal covariates, or \code{NULL}
-##'                     if no covariates exist. The array should be
-##'                     (number of timepoints) - by - (number of locations) -
-##'                     by - (number of covariates) and provide spatio-temporal
-##'                     covariates for \emph{all} space-time locations, even
-##'                     unobserved ones (needed for prediction).
-##'                     The \code{rownames} of the array should represent dates/times
-##'                     and \code{colnames} should match the observation location
-##'                     names in \code{covars$ID}.}
-##'   \item{old.trend,fit.trend}{Additional components added if the observations
-##'                              have been detrended, see
-##'                              \code{\link{detrendSTdata}}.}
-##' }
-##' 
-##' @title Example of a \code{STdata} Structure
-##' @name mesa.data
-##' @docType data
-##' @format A list with elements, a detailed description of each elements is
-##' given below (see details):
-##'   \describe{
-##'     \item{covars}{A data.frame with geographic covariates, including location
-##'       should include a column \code{covars$ID} that gives the names of
-##'       observations locations, matching those in \code{obs$ID}.}
-##'     \item{trend}{A data.frame containing the smooth temporal trends.}
-##'     \item{obs}{A data.frame containing the observations, along with
-##'        information regarding where and when the observation was taken.}
-##'     \item{SpatioTemporal}{A 3D array containing the spatio-temporal covariates;
-##'        \code{NULL} if no covariates exist.}
-##'   }
-##' 
-##' @source Contains monitoring data from the \strong{MESA Air} project, see
-##'   Cohen et.al. (2009) and \code{\link{mesa.data.raw}} for details.
-##' @keywords datasets
-##' 
-##' @example Rd_examples/Ex_mesa_data.R
-##' 
-##' @references M. A. Cohen, S. D. Adar, R. W. Allen, E. Avol, C. L. Curl, T.
-##'   Gould, D. Hardie, A. Ho, P. Kinney, T. V. Larson, P. D. Sampson, L.
-##'   Sheppard, K. D. Stukovsky, S. S. Swan, L. S. Liu, J. D. Kaufman. (2009)
-##'   Approach to Estimating Participant Pollutant Exposures in the Multi-Ethnic
-##'   Study of Atherosclerosis and Air Pollution (MESA Air). Environmental Science
-##'   & Technology: 43(13), 4687-4693.
-##' 
-##' @seealso \code{\link{createSTmodel}} for creation of \code{STmodel}
-##'   objects. \cr \code{\link{createSTdata}} for creation of \code{STdata}
-##'   objects. 
 ##' @family example data
 NULL
 
@@ -148,7 +73,7 @@ NULL
 ##'     a list with covariates for each of the beta-fields, see
 ##'     \code{\link{processLUR}} and \code{\link{createLUR}}.
 ##'   }
-##'   \item{trend}{The temporal trends with \emph{one of the} columns
+##'   \item{trend,trend.fnc}{The temporal trends with \emph{one of the} columns
 ##'     being named \code{date}, preferably of class \code{\link[base:Date]{Date}}
 ##'     providing the time alignment for the temporal trends.}
 ##'   \item{F}{A matrix contaning  smooth temporal trends for each observation;
@@ -164,7 +89,7 @@ NULL
 ##'   }
 ##' }
 ##' 
-##' @title Example of a \code{STmodel} Structure
+##' @title Example of a \code{STmodel} structure
 ##' @name mesa.model
 ##' @docType data
 ##' @format A list with elements, a detailed description of each elements is
@@ -194,10 +119,8 @@ NULL
 ##' \code{\link{mesa.model}} using \code{\link{estimate.STmodel}}. Estimation
 ##' results are also provided for models including spatio-temporal covariates.
 ##' 
-##' @title Examples of \code{estimateSTmodel} Structure
+##' @title Examples of \code{estimateSTmodel} structure
 ##' @name est.mesa.model
-##' @aliases est.mesa.model.ST
-##' @aliases est.mesa.model.ST.0
 ##' @docType data
 ##' @format A list with elements, see the return description in
 ##'   \code{\link{estimate.STmodel}}.
@@ -207,7 +130,7 @@ NULL
 ##'   Cohen et.al. (2009) and \code{\link{mesa.data.raw}} for details.
 ##' @keywords datasets
 ##'
-##' @example Rd_examples/Ex_est_mesa_model.R
+##' @example Rd_examples/Ex_estimate_STmodel.R
 ##' 
 ##' @references M. A. Cohen, S. D. Adar, R. W. Allen, E. Avol, C. L. Curl, T.
 ##'   Gould, D. Hardie, A. Ho, P. Kinney, T. V. Larson, P. D. Sampson, L.
@@ -227,9 +150,8 @@ NULL
 ##' \code{\link{predict.STmodel}}. Two sets of predictions are presented,
 ##' \code{pred.mesa.model} and \code{pred.mesa.model.obs}.
 ##' 
-##' @title Example of a \code{predictSTmodel} Structure
+##' @title Example of a \code{predictSTmodel} structure
 ##' @name pred.mesa.model
-##' @aliases pred.mesa.model.obs
 ##' @docType data
 ##' @format A list with elements, see the return description in
 ##'   \code{\link{predict.STmodel}}.
@@ -239,7 +161,7 @@ NULL
 ##'   Cohen et.al. (2009) and \code{\link{mesa.data.raw}} for details.
 ##' @keywords datasets
 ##'
-##' @example Rd_examples/Ex_pred_mesa_model.R
+##' @example Rd_examples/Ex_predict_STmodel.R
 ##' 
 ##' @references M. A. Cohen, S. D. Adar, R. W. Allen, E. Avol, C. L. Curl, T.
 ##'   Gould, D. Hardie, A. Ho, P. Kinney, T. V. Larson, P. D. Sampson, L.
@@ -258,7 +180,7 @@ NULL
 ##' Example of 10-fold cross-validated for the model in \code{\link{mesa.model}}
 ##' using \code{\link{estimateCV.STmodel}} and \code{\link{predictCV.STmodel}}.
 ##' 
-##' @title Example of \code{estCVSTmodel} and \code{predCVSTmodel} Structures
+##' @title Example of \code{estCVSTmodel} and \code{predCVSTmodel} structures
 ##' @name est.cv.mesa
 ##' @aliases pred.cv.mesa
 ##' @docType data
@@ -270,7 +192,7 @@ NULL
 ##'   Cohen et.al. (2009) and \code{\link{mesa.data.raw}} for details.
 ##' @keywords datasets
 ##'
-##' @example Rd_examples/Ex_CV_mesa_model.R
+##' @example Rd_examples/Ex_estimateCV_STmodel.R
 ##' 
 ##' @references M. A. Cohen, S. D. Adar, R. W. Allen, E. Avol, C. L. Curl, T.
 ##'   Gould, D. Hardie, A. Ho, P. Kinney, T. V. Larson, P. D. Sampson, L.
@@ -290,7 +212,7 @@ NULL
 ##' The output from a Metropolis-Hastings algorithm, implemented in
 ##' \code{\link{MCMC.STmodel}}), run for the model in \code{\link{mesa.model}}
 ##' 
-##' @title Example of a \code{mcmcSTmodel} Structure
+##' @title Example of a \code{mcmcSTmodel} structure
 ##' @name MCMC.mesa.model
 ##' @docType data
 ##' @format A list with elements, see the return description in

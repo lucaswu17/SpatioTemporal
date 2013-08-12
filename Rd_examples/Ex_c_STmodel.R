@@ -1,5 +1,8 @@
 ##load the data
-data(mesa.data)
+data(mesa.data.raw)
+##and create STdata-object
+mesa.data <- createSTdata(mesa.data.raw$obs, mesa.data.raw$X, n.basis=2,
+                          SpatioTemporal=mesa.data.raw["lax.conc.1500"])
 
 ##keep only observations from the AQS sites
 ID.AQS <- mesa.data$covars$ID[ mesa.data$covars$type=="AQS" ]
@@ -10,7 +13,7 @@ LUR <- list(~log10.m.to.a1 + s2000.pop.div.10000 + km.to.coast,
             ~km.to.coast, ~km.to.coast)
 locations <- list(coords=c("x","y"), long.lat=c("long","lat"), others="type")
 
-##create a stripped mesa.model
+##create reduced model, without and with a spatio-temporal covariate.
 mesa.model <- createSTmodel(mesa.data, LUR=LUR, locations=locations,
                             strip=TRUE)
 mesa.model.ST <- createSTmodel(mesa.data, LUR=LUR, ST=1,

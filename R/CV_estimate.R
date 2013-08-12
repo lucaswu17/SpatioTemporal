@@ -2,7 +2,7 @@
 ## Functions for crossvalidation ##
 ###################################
 ##Functions in this file:
-## estimateCV.STmodel          EX:ok TODO-plots of predictions
+## estimateCV.STmodel          EX:ok
 ## estimateCV                  EX:S3 method
 ## print.estCVSTmodel          EX:ok
 ## summary.estCVSTmodel        EX:ok
@@ -42,11 +42,16 @@
 ##'   \code{\link{estimate.STmodel}}, can be used. 
 ##' @param Ind.cv \code{Ind.cv} defines the cross-validation scheme.  Either a
 ##'   (number or observations) - by - (groups) logical matrix or an \emph{integer
-##'   valued} vector with length equal to (number or observations). See further
-##'   \code{\link{createCV}}.
+##'   valued} vector with length equal to (number or observations). For
+##'   \code{predictCV.STmodel} \code{Ind.cv} can be infered from \code{x} if
+##'   \code{x} is a \code{estCVSTmodel} object
+##'   See further \code{\link{createCV}}.
 ##' @param control A list of control parameters for the optimisation.
 ##'   See \code{\link[stats:optim]{optim}} for details; setting \code{trace}=0
 ##'   eliminates all ouput.
+##' @param verbose.res A \code{TRUE}/\code{FALSE} variable indicating if full
+##'   results from \code{\link{estimate.STmodel}} for each CV group should be
+##'   returned; defaults to \code{FALSE}
 ##' @param ... All additional parameters for \code{\link{estimate.STmodel}}
 ##'   or \code{\link{predict.STmodel}}.
 ##'   For \code{\link{predict.STmodel}} a number of parameters are set in
@@ -60,13 +65,14 @@
 ##'   \item{Ind.cv}{The cross-validation grouping.}
 ##'   \item{x.fixed}{Fixed parameters in the estimation, see
 ##'                  \code{\link{estimate.STmodel}}.}
+##'   \item{x.init}{Matrix of inital values used, i.e. \code{x} from the input.}
 ##'   \item{par.all, par.cov}{Matrices with estimated parameters for each
 ##'                           cross-validation group.}
 ##'   \item{par.all.sd, par.cov.sd}{Standard deviations computed from the
 ##'     Hessian/information matrix for set of estimated parameters.}
 ##'   \item{res.all}{Estimation results for each cross-validation group,
-##'                  contains the \code{res.best} and \code{summary} fields from
-##'                  the \code{\link{estimate.STmodel}} results.}
+##'                  contains the output from the \code{\link{estimate.STmodel}}
+##'                  calls, only included if \code{verbose.res=TRUE}.}
 ##' Or a \code{predCVSTmodel} object with elements:
 ##'   \item{opts}{Copy of the \code{opts} field in the output from
 ##'               \code{\link{predict.STmodel}}.}
@@ -89,7 +95,8 @@
 ##' @family estCVSTmodel methods
 ##' @method estimateCV STmodel
 ##' @export
-estimateCV.STmodel <- function(object, x, Ind.cv, control=list(trace=3), ...){
+estimateCV.STmodel <- function(object, x, Ind.cv, control=list(trace=3),
+                               verbose.res=FALSE, ...){
   ##check class belonging
   stCheckClass(object, "STmodel", name="object")
   ##check cross-validation groups
@@ -121,9 +128,10 @@ estimateCV.STmodel <- function(object, x, Ind.cv, control=list(trace=3), ...){
     
     ##lets estimate parameters for this set
     if( control$trace!=0 ){
+      message( "\n***************************")
       message( paste("Estimation of CV-set ", i, "/", N.CV.sets, sep="") )
     }
-    res[[i]] <- estimate(object.aux, x, ...)
+    res[[i]] <- estimate(object=object.aux, x=x, control=control, ...)
   }##for(i in 1:dim(Ind.cv)[2])
 
   ##status of optimisations
@@ -146,27 +154,36 @@ estimateCV.STmodel <- function(object, x, Ind.cv, control=list(trace=3), ...){
   par.cov.sd <- matrix(NA, dim(res[[1]]$res.best$par.cov)[1], N.CV.sets)
   par.all <- matrix(NA, dim(res[[1]]$res.best$par.all)[1], N.CV.sets)
   par.all.sd <- matrix(NA, dim(res[[1]]$res.best$par.all)[1], N.CV.sets)
-  ##list of results.
-  res.all <- list()
-  
+
+  ##best estimates for each CV-group
   for(i in 1:N.CV.sets){
     par.cov[,i] <- res[[i]]$res.best$par.cov$par
     par.cov.sd[,i] <- res[[i]]$res.best$par.cov$sd
     par.all[,i] <- res[[i]]$res.best$par.all$par
     par.all.sd[,i] <- res[[i]]$res.best$par.all$sd
-    ##and the best results
-    res.all[[i]] <- list(res.best=res[[i]]$res.best,
-                         summary=res[[i]]$summary)
   }
+  ##all initial values
+  x.init <- sapply(res[[1]]$res.all, function(x){ x$par.all$init})
+  ##also return a list with all optimisation results?
+  if( verbose.res ){
+    res.all <- res
+  }else{
+    res.all <- NULL
+  }
+  
   rownames(par.cov) <- rownames(res[[1]]$res.best$par.cov)
   rownames(par.cov.sd) <- rownames(res[[1]]$res.best$par.cov)
   rownames(par.all) <- rownames(res[[1]]$res.best$par.all)
   rownames(par.all.sd) <- rownames(res[[1]]$res.best$par.all)
+  rownames(x.init) <- rownames(res[[1]]$res.best$par.all)
+  ##drop NA's from x.init (occurs if only covariance parameters where given)
+  x.init <- x.init[!apply(is.na(x.init),1,all),,drop=FALSE]
   ##Return the estimated parameters from the cross-validation
   out <- list(par.cov=par.cov, par.cov.sd=par.cov.sd,
               par.all=par.all, par.all.sd=par.all.sd,
               res.all=res.all, status=status, Ind.cv=Ind.cv,
-              x.fixed=res.all[[1]]$summary$x.fixed)
+              x.fixed=res[[1]]$summary$x.fixed,
+              x.init=x.init)
   class(out) <- "estCVSTmodel"
 
   return( out )
@@ -176,19 +193,7 @@ estimateCV.STmodel <- function(object, x, Ind.cv, control=list(trace=3), ...){
 ## General S3 methods for estimateCV ##
 #######################################
 
-##' General cross-validation, estimation and prediction, for a model defined by
-##' object. 
-##'
-##' @title Model cross-validation
-##' @param object model to do cross-validation for
-##' @param x parameter values for estimation (initial) / predictions (predict
-##'   given x)
-##' @param Ind.cv Structure definig the cross-validation groups.
-##' @param ... additional parameters
-##' 
-##' @return Estimation / prediction result
-##' 
-##' @author Johan Lindström
+##' @rdname estimateCV.STmodel
 ##' @export
 estimateCV <- function(object, x, Ind.cv, ...){
   UseMethod("estimateCV")
@@ -207,7 +212,7 @@ estimateCV <- function(object, x, Ind.cv, ...){
 ##' 
 ##' @examples
 ##' ##load some data
-##' data(CV.mesa.model)
+##' data(est.cv.mesa)
 ##' ##print basic information for the CV-predictions
 ##' print(est.cv.mesa)
 ##' 
@@ -220,8 +225,8 @@ print.estCVSTmodel <- function(x, ...){
   ##check class belonging
   stCheckClass(x, "estCVSTmodel", name="x")
 
-  N.cv <- length(x$res.all)
-  N.opt <- length(x$res.all[[1]]$summary$status$value)
+  N.cv <- dim(x$status)[1]
+  N.opt <- dim(x$x.init)[2]
   N.conv <- sum(x$status$conv)
 
   cat("Cross-validation parameter estimation for STmodel\n")
@@ -254,7 +259,7 @@ print.estCVSTmodel <- function(x, ...){
 ##' 
 ##' @examples
 ##' ##load some data
-##' data(CV.mesa.model)
+##' data(est.cv.mesa)
 ##' ##print basic information for the CV-predictions
 ##' summary(est.cv.mesa)
 ##'
@@ -323,7 +328,7 @@ print.summary.estCVSTmodel <- function(x, ...){
 ##'
 ##' @examples
 ##'   ##load data
-##'   data(CV.mesa.model)
+##'   data(est.cv.mesa)
 ##'   ##extract all parameters
 ##'   coef(est.cv.mesa)
 ##'   ##extract only covariance parameters
@@ -333,13 +338,11 @@ print.summary.estCVSTmodel <- function(x, ...){
 ##' @importFrom stats coef
 ##' @method coef estCVSTmodel
 ##' @export
-coef.estCVSTmodel <- function(object, pars="all", ...){
+coef.estCVSTmodel <- function(object, pars=c("all", "cov", "reg"), ...){
   ##check class belonging
   stCheckClass(object, "estCVSTmodel", name="object")
 
-  if( !(pars %in% c("cov", "reg", "all")) ){
-    stop("Unknown option for 'pars' should be cov, reg or all")
-  }
+  pars <- match.arg(pars)
 
   ##pick which parameters
   if( pars=="cov" ){
@@ -371,13 +374,11 @@ coef.estCVSTmodel <- function(object, pars="all", ...){
 ##' @importFrom graphics boxplot
 ##' @method boxplot estCVSTmodel
 ##' @export
-boxplot.estCVSTmodel <- function(x, plot.type="cov", ...){
+boxplot.estCVSTmodel <- function(x, plot.type=c("cov", "reg", "all"), ...){
   ##check class belonging
   stCheckClass(x, "estCVSTmodel", name="x")
 
-  if( !(plot.type %in% c("cov", "reg", "all")) ){
-    stop("Unknown option for 'y' should be cov, reg or all")
-  }
+  plot.type <- match.arg(plot.type)
 
   ##pick which parameters
   if( plot.type=="cov" ){

@@ -1,5 +1,5 @@
 ##cross-validation load data
-data(CV.mesa.model)
+data(est.cv.mesa)
 ##...and old estimates
 data(est.mesa.model)
 ##estimated parameters
@@ -7,17 +7,17 @@ par.cov <- coef(est.mesa.model, "cov")
 par.all <- coef(est.mesa.model)
  
 ##boxplot of the different estimates from the CV
-par(mfrow=c(1,1), mar=c(12,2.5,2,.5), las=2)
-boxplot( est.cv.mesa, plot.type="cov")
+par(mfrow=c(1,1), mar=c(13,2.5,2,.5), las=2)
+boxplot( est.cv.mesa, plot.type="cov", boxwex=.5)
 ##compare with estimates for all data
-points(par.cov$par, pch=19, col=2)
+points((1:length(par.cov$par))+.35, par.cov$par, pch=19, col=2)
 ##and uncertainties
 for(i in 1:length(par.cov$par)){
-  lines(c(i,i), par.cov$par[i]+c(-1,1)*1.96*par.cov$sd[i], col=2, lwd=2)
+  lines(c(i,i)+.35, par.cov$par[i]+c(-1,1)*1.96*par.cov$sd[i], col=2, lwd=2)
 }
 
 ##For all the parameters but with offset lines
-par(mfrow=c(1,1), mar=c(12,2.5,2,.5), las=2)
+par(mfrow=c(1,1), mar=c(13,2.5,2,.5), las=2)
 boxplot(est.cv.mesa, plot.type="all", boxwex=.4, col="grey",
         main="Cross-validation estimates")
 ##compare with estimates for all data

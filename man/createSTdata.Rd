@@ -4,7 +4,7 @@
 \usage{
   createSTdata(obs, covars, SpatioTemporal = NULL,
     transform.obs = function(x) {     return(x) },
-    mean.0.ST = FALSE, n.basis = NULL, extra.dates = NULL,
+    mean.0.ST = FALSE, n.basis = 0, extra.dates = NULL,
     ..., detrend = FALSE, region = NULL, method = NULL)
 }
 \arguments{
@@ -31,17 +31,17 @@
 
   \item{n.basis}{Number of temporal components in the
   smooth trends computed by
-  \code{\link{updateSTdataTrend}}, if \code{NULL} no trend
+  \code{\link{updateTrend.STdata}}, if \code{NULL} no trend
   is computed (implies only a constant).}
 
   \item{extra.dates}{Additional dates for which smooth
   trends should be computed, used by
-  \code{\link{updateSTdataTrend}}. If \code{n.basis=NULL}
+  \code{\link{updateTrend.STdata}}. If \code{n.basis=NULL}
   this will force n.basis=0; since the dates are stored in
   the trend..}
 
   \item{...}{Additional parameters passed to
-  \code{\link{updateSTdataTrend}}.}
+  \code{\link{updateTrend.STdata}}.}
 
   \item{detrend}{Use \code{\link{detrendSTdata}} to remove
   a termporal trend from the observations; requires
@@ -51,8 +51,34 @@
   \code{\link{detrendSTdata}}.}
 }
 \value{
-  A \code{STdata} object, see \code{\link{mesa.data}} for
-  an example.
+  A \code{STdata} object with, some or all of, the
+  following elements: \item{covars}{Geographic covariates,
+  locations and names of the observation locations (the
+  later in \code{covars$ID}), \code{\link{createSTmodel}}
+  will extract covariates (land use regressors),
+  observations locations, etc from this data.frame when
+  constructing the model specification.} \item{trend}{The
+  temporal trends with \emph{one of the} columns being
+  named \code{date}, preferably of class
+  \code{\link[base:Date]{Date}} providing the time
+  alignment for the temporal trends.} \item{obs}{A
+  data.frame with columns: \describe{ \item{obs}{The value
+  of each observation.} \item{date}{The observations time,
+  preferably of class \code{\link[base:Date]{Date}}.}
+  \item{ID}{A \code{character}-class giving observation
+  locations; should match elements in \code{locations$ID}.}
+  } } \item{SpatioTemporal}{A 3D-array of spatio-temporal
+  covariates, or \code{NULL} if no covariates exist. The
+  array should be (number of timepoints) - by - (number of
+  locations) - by - (number of covariates) and provide
+  spatio-temporal covariates for \emph{all} space-time
+  locations, even unobserved ones (needed for prediction).
+  The \code{rownames} of the array should represent
+  dates/times and \code{colnames} should match the
+  observation location names in \code{covars$ID}.}
+  \item{old.trend,fit.trend}{Additional components added if
+  the observations have been detrended, see
+  \code{\link{detrendSTdata}}.}
 }
 \description{
   Creates a \code{STdata} object that can be used as input
@@ -93,15 +119,25 @@ print(mesa.data.3)
   Johan Lindström and Assaf P. Oron
 }
 \seealso{
-  Other STdata functions: \code{\link{createDataMatrix}},
-  \code{\link{createSTmodel}}, \code{\link{c.STmodel}},
-  \code{\link{detrendSTdata}},
+  Other STdata functions: \code{\link{c.STmodel}},
+  \code{\link{createDataMatrix}},
+  \code{\link{createSTmodel}}, \code{\link{detrendSTdata}},
+  \code{\link{estimateBetaFields}},
   \code{\link{removeSTcovarMean}},
-  \code{\link{updateSTdataTrend}}
+  \code{\link{updateSTdataTrend}},
+  \code{\link{updateTrend}},
+  \code{\link{updateTrend.STdata}},
+  \code{\link{updateTrend.STmodel}}
 
   Other STdata methods: \code{\link{plot.STdata}},
   \code{\link{plot.STmodel}}, \code{\link{print.STdata}},
   \code{\link{print.summary.STdata}},
+  \code{\link{qqnorm.predCVSTmodel}},
+  \code{\link{qqnorm.STdata}},
+  \code{\link{qqnorm.STmodel}},
+  \code{\link{scatterPlot.predCVSTmodel}},
+  \code{\link{scatterPlot.STdata}},
+  \code{\link{scatterPlot.STmodel}},
   \code{\link{summary.STdata}}
 }
 

@@ -74,6 +74,8 @@ loglikeST <- function(x=NULL, STmodel, type="p", x.fixed=NULL){
 
   ##extract the observations
   Y <- STmodel$obs$obs
+  ##extract sparse matrices
+  F <- expandF(STmodel$F, STmodel$obs$idx, n.loc=dimensions$n.obs)
   if( type=="f" ){
     ##calculate the land use regression for the temporal trends, as column
     mu.B <- matrix(calc.mu.B(STmodel$LUR, alpha), ncol=1)
@@ -91,7 +93,8 @@ loglikeST <- function(x=NULL, STmodel, type="p", x.fixed=NULL){
                           type = STmodel$cov.nu$covf,
                           nugget = cov.pars.nu$nugget,
                           random.effect = cov.pars.nu$random.effect,
-                          blocks1 = STmodel$nt, ind1 = STmodel$obs$idx)
+                          blocks1 = STmodel$nt, ind1 = STmodel$obs$idx,
+                          sparse=TRUE)
   ##calculate block cholesky factor of the matrices
   ##storing in-place to conserve memory
   sigma.B <- try( makeCholBlock(sigma.B, n.blocks=dimensions$m),
@@ -99,8 +102,7 @@ loglikeST <- function(x=NULL, STmodel, type="p", x.fixed=NULL){
   if(class(sigma.B)=="try-error"){
     return(-.Machine$double.xmax)
   }
-  sigma.nu <- try( makeCholBlock(sigma.nu, n.blocks=dimensions$T,
-                                 block.sizes=STmodel$nt), silent=TRUE)
+  sigma.nu <- try( chol(sigma.nu), silent=TRUE)
   if(class(sigma.nu)=="try-error"){
     return(-.Machine$double.xmax)
   }
@@ -108,15 +110,15 @@ loglikeST <- function(x=NULL, STmodel, type="p", x.fixed=NULL){
   ##-log(det(sigma.B)^.5)
   l <- -sumLogDiag( sigma.B )
   ##-log(det(sigma.nu)^.5)
-  l <- l -sumLogDiag( sigma.nu )
+  l <- l -sumLog(diag( sigma.nu ))
 
   ##invert the matrices
   ##calculate inverse of sigma.B
   sigma.B <- invCholBlock(sigma.B, n.blocks=dimensions$m)
   ##calculate inverse of sigma.nu
-  sigma.nu <- invCholBlock(sigma.nu, block.sizes=STmodel$nt)
+  sigma.nu <- chol2inv(sigma.nu)
   ##inv(sigma.nu) * Y
-  i.sR.Y <- blockMult(sigma.nu, Y, block.sizes=STmodel$nt)
+  i.sR.Y <- as.matrix(sigma.nu %*% Y)
   
   if(type=="f"){
     ##calculate inv(matrix)*mu
@@ -131,7 +133,7 @@ loglikeST <- function(x=NULL, STmodel, type="p", x.fixed=NULL){
     iS.X <- calc.iS.X(STmodel$LUR, sigma.B)
     ##inv(sigma.nu) * M
     if(dimensions$L!=0){
-      i.sR.M <- blockMult(sigma.nu, STmodel$ST, block.sizes=STmodel$nt)
+      i.sR.M <- as.matrix(sigma.nu %*% STmodel$ST)
     }
     ##F'*inv(sigma.nu)*Y
     F.i.sR.Y <- calc.tFX(STmodel$F, i.sR.Y, STmodel$obs$idx,
@@ -142,13 +144,11 @@ loglikeST <- function(x=NULL, STmodel, type="p", x.fixed=NULL){
                            n.loc=dimensions$n.obs)
     }
   }##if(type=="f"){...}else{...}
-  ##F'*inv(sigma.nu)*F
-  sigma.B.Y <- calc.tFXF(STmodel$F, sigma.nu, STmodel$obs$idx,
-                         block.sizes=STmodel$nt, n.loc=dimensions$n.obs)
+  
   ##inv(sigma.B|Y) = F'*inv(sigma.nu)*F + inv(sigma.B)
-  sigma.B.Y <- sigma.B.Y + sigma.B
+  sigma.B.Y <- as.matrix( t(F) %*% sigma.nu %*% F) + sigma.B
   ##calculate cholesky factor of inv(sigma.B|Y)
-  sigma.B.Y <- try( makeCholBlock(sigma.B.Y, n.blocks=1), silent=TRUE)
+  sigma.B.Y <- try( chol(sigma.B.Y), silent=TRUE)
   if( class(sigma.B.Y)=="try-error" ){
     return(-.Machine$double.xmax)
   }
@@ -180,7 +180,7 @@ loglikeST <- function(x=NULL, STmodel, type="p", x.fixed=NULL){
     i.sigma.alpha.Y <- -t(iS.X) %*% sigma.B.Y.iS.X +
       calc.X.iS.X(STmodel$LUR, iS.X)
     ##calculate cholesky factor of inv(sigma.alpha|Y)
-    i.sigma.alpha.Y <- try( makeCholBlock(i.sigma.alpha.Y), silent=TRUE)
+    i.sigma.alpha.Y <- try( chol(i.sigma.alpha.Y), silent=TRUE)
     if(class(i.sigma.alpha.Y)=="try-error"){
       return(-.Machine$double.xmax)
     }
@@ -208,7 +208,7 @@ loglikeST <- function(x=NULL, STmodel, type="p", x.fixed=NULL){
       M.sigma.hat.M <- (t(STmodel$ST) %*% i.sR.M - t(M.hat) %*% M.hat -
                         t(M.hat.2) %*% M.hat.2)
       ##calculate cholesky factor of M.sigma.hat.M
-      M.sigma.hat.M <- try( makeCholBlock(M.sigma.hat.M), silent=TRUE)
+      M.sigma.hat.M <- try( chol(M.sigma.hat.M), silent=TRUE)
       if(class(M.sigma.hat.M)=="try-error"){
         return(-.Machine$double.xmax)
       }
@@ -231,6 +231,7 @@ loglikeST <- function(x=NULL, STmodel, type="p", x.fixed=NULL){
     l <- -.Machine$double.xmax
   return(l)
 }##function loglikeST
+
 
 ###############################################
 ## Log-likelihood using the full formulation ##
@@ -272,17 +273,12 @@ loglikeSTnaive <- function(x=NULL, STmodel, type="p", x.fixed=NULL){
 
   ##extract the observations
   Y <- STmodel$obs$obs
+  ##extract sparse matrices
+  LUR <- Matrix::bdiag(STmodel$LUR)
+  F <- expandF(STmodel$F, STmodel$obs$idx, n.loc=dimensions$n.obs)
   if( type=="f" ){
-    ##calculate the land use regression for the temporal trends
-    mu.B <- calc.mu.B(STmodel$LUR, alpha)
-    ##multiply the beta fields with appropriate trends and sum to get the
-    ##expectation
-    mean.val <- 0
-    for(i in 1:dimensions$m ){ ##loop over the trends
-      mean.val <- mean.val + mu.B[STmodel$obs$idx,i]*STmodel$F[,i]
-    }
     ##subtract mean value from observations
-    Y <- Y - mean.val
+    Y <- as.matrix( Y - (F %*% (LUR %*% unlist(alpha))) )
     if(dimensions$L!=0){
       ##also subtract spatio-termporal covariate
       Y <- Y - STmodel$ST %*% gamma
@@ -292,22 +288,23 @@ loglikeSTnaive <- function(x=NULL, STmodel, type="p", x.fixed=NULL){
   ##create covariance matrices, beta-field
   sigma.B.full <- makeSigmaB(cov.pars.beta$pars, dist = STmodel$D.beta,
                              type = STmodel$cov.beta$covf,
-                             nugget = cov.pars.beta$nugget)
-  sigma.B.full <- calc.FXtF2(STmodel$F, sigma.B.full, loc.ind=STmodel$obs$idx)
+                             nugget = cov.pars.beta$nugget, sparse=TRUE)
+  sigma.B.full <- F %*% Matrix(sigma.B.full %*% t(F))
 
-  ##and nu-field
+  ##and nu-field (do NOT use sparse, due to the full matrix below)
   sigma.nu <- makeSigmaNu(cov.pars.nu$pars, dist = STmodel$D.nu,
                           type = STmodel$cov.nu$covf,
                           nugget = cov.pars.nu$nugget,
                           random.effect = cov.pars.nu$random.effect,
-                          blocks1 = STmodel$nt, ind1 = STmodel$obs$idx)
+                          blocks1 = STmodel$nt, ind1 = STmodel$obs$idx,
+                          sparse=FALSE)
 
   
   ##Total covariance matrix
-  sigma.nu <- sigma.nu + sigma.B.full
+  sigma.nu <- sigma.nu + as.matrix(sigma.B.full)
   ##calculate (block) cholesky factor of the matrices
   ##storing in-place to conserve memory
-  sigma.nu <- try( makeCholBlock(sigma.nu, n.blocks=1), silent=TRUE)
+  sigma.nu <- try( chol(sigma.nu), silent=TRUE)
   if(class(sigma.nu)=="try-error"){
     return(-.Machine$double.xmax)
   }
@@ -322,7 +319,7 @@ loglikeSTnaive <- function(x=NULL, STmodel, type="p", x.fixed=NULL){
   l <- l - norm2(Y)/2
   if(type!="f"){
     ##Create the Ftmp = [FX M] matrix
-    Ftmp <- calc.FX(STmodel$F, STmodel$LUR, STmodel$obs$idx)
+    Ftmp <- as.matrix( F %*% LUR )
     ##Add the spatio-temporal covariate (if it exists)
     if( dimensions$L!=0 ){
       Ftmp <- cbind(Ftmp, STmodel$ST)
@@ -335,7 +332,7 @@ loglikeSTnaive <- function(x=NULL, STmodel, type="p", x.fixed=NULL){
     ##calculate [FX M]*invSigma*[FX M]'
     sigma.alt <- t(Ftmp) %*% Ftmp
     ##calculate cholesky factor (storing in-place to conserve memory)
-    sigma.alt <- try( makeCholBlock(sigma.alt, n.blocks=1), silent=TRUE)
+    sigma.alt <- try( chol(sigma.alt), silent=TRUE)
     if( class(sigma.alt)=="try-error" ){
       return(-.Machine$double.xmax)
     }

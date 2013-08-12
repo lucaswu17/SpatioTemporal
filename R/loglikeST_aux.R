@@ -96,16 +96,12 @@ loglikeSTdim <- function(STmodel){
 ##' 
 ##' @examples 
 ##' ##load the data
-##' data(mesa.data)
 ##' data(mesa.model)
 ##' 
 ##' ##Find out in which order parameters should be given
 ##' loglikeSTnames(mesa.model)
 ##' ##...and for only the covariance parameters.
 ##' loglikeSTnames(mesa.model, FALSE)
-##' 
-##' ##Including a spatio-temporal covariate
-##' loglikeSTnames( createSTmodel(mesa.data, LUR=mesa.data$LUR.list, ST=1) )
 ##'
 ##' @author Johan Lindström
 ##' 

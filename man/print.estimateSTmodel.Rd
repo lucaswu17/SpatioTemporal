@@ -28,6 +28,6 @@
 \seealso{
   Other estimateSTmodel methods:
   \code{\link{coef.estimateSTmodel}},
-  \code{\link{estimate.STmodel}}
+  \code{\link{estimate}}, \code{\link{estimate.STmodel}}
 }
 

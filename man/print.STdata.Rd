@@ -21,12 +21,6 @@
   \code{\link[base:print]{print}} method for class
   \code{STdata}.
 }
-\examples{
-##load some data
-data(mesa.data)
-##print basic information regarding obs, locations, dates, etc
-print(mesa.data)
-}
 \author{
   Johan Lindström
 }
@@ -34,6 +28,12 @@ print(mesa.data)
   Other STdata methods: \code{\link{createSTdata}},
   \code{\link{plot.STdata}}, \code{\link{plot.STmodel}},
   \code{\link{print.summary.STdata}},
+  \code{\link{qqnorm.predCVSTmodel}},
+  \code{\link{qqnorm.STdata}},
+  \code{\link{qqnorm.STmodel}},
+  \code{\link{scatterPlot.predCVSTmodel}},
+  \code{\link{scatterPlot.STdata}},
+  \code{\link{scatterPlot.STmodel}},
   \code{\link{summary.STdata}}
 }
 

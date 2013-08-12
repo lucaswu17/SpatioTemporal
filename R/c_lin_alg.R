@@ -3,11 +3,12 @@
 ##################################################
 ##Functions in this file:
 ## makeCholBlock  EX:ok
-## invCholBlock   EX:ok
-## solveTriBlock  EX:ok
+## invCholBlock   EX:with makeCholBlock
+## solveTriBlock  EX:with solveTriBlock
 ## blockMult      EX:ok
 ## sumLogDiag     EX:ok
-## norm2          EX:ok
+## sumLog         EX:with sumLogDiag
+## norm2          EX:with dotProd
 ## dotProd        EX:ok
 
 
@@ -146,13 +147,14 @@ blockMult <- function(mat, X, n.blocks=1,
   .Call(C_block_mult, as.integer(block.sizes), mat, X)
 }##function blockMult
 
-##' Computes the sum of the logarithm of the diagonal elements in a matrix. This
-##' corresponds to the logarithm of the determinant for a Cholesky factor.
-##' Behaviour is undefined for any elements that are <=0.
+##' Computes the sum of the logarithm of the diagonal elements in a matrix, or
+##' of elements in a vector. This corresponds to the logarithm of the
+##' determinant for a Cholesky factor.  Behaviour is undefined for any elements
+##' that are <=0. 
 ##'
-##' @title Sum the Logarithm of Diagonal Elements
+##' @title Sum the Logarithm of (Diagonal) Elements
 ##' @param mat A square matrix (preferably a Cholesky factor).
-##' @return Sum of the logarithm of the diagonal elements.
+##' @return Sum of the logarithm of the (diagonal) elements.
 ##' 
 ##' @example Rd_examples/Ex_sumLogDiag.R
 ##' 
@@ -164,6 +166,15 @@ sumLogDiag <- function(mat){
   ##call the c-function, error checking in C-code.
   .Call(C_sum_log_diag, mat)
 }##function sumLogDiag
+
+##' @rdname sumLogDiag
+##' @param v A vector
+##' @export
+##' @useDynLib SpatioTemporal C_sum_log
+sumLog <- function(v){
+  ##call the c-function, error checking in C-code.
+  .Call(C_sum_log, v)
+}##function sumLog
 
 
 ##' @rdname dotProd

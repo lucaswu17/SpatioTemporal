@@ -85,6 +85,9 @@
 ##' @param control A list of control parameters for the optimisation.
 ##'   See \code{\link[stats:optim]{optim}} for details; setting \code{trace}=0
 ##'   eliminates all ouput.
+##' @param restart Number of times to restart each optimisation if
+##'   \code{\link[stats:optim]{optim}} fails to converge; can
+##'   sometimes resolve issues with L-BFGS-B line search.
 ##' @param ... Ignored additional arguments.
 ##' 
 ##' @return \code{estimateSTmodel} object containing:
@@ -108,7 +111,8 @@
 estimate.STmodel <- function(object, x, x.fixed=NULL, type="p",
                              h=1e-3, diff.type=1, hessian.all=FALSE,
                              lower=-15, upper=15, method="L-BFGS-B",
-                             control=list(trace=3, maxit=1000), ...){
+                             control=list(trace=3, maxit=1000),
+                             restart=0, ...){
   ##check class belonging
   stCheckClass(object, "STmodel", name="object")
   
@@ -162,15 +166,32 @@ estimate.STmodel <- function(object, x, x.fixed=NULL, type="p",
       message( paste("Optimisation using starting value ",
                      i, "/", dim(x)[2], sep="") )
     }
-    try( res[[i]] <- optim(x[,i], loglikeST, gr=loglikeSTGrad.loc,
-                           STmodel=object, type=type, x.fixed=x.fixed,
-                           method=method, control=control, hessian=TRUE,
-                           lower=lower, upper=upper), silent=TRUE)
-    ##has optimisation converged?
+    x.start <- x[,i]
+    i.restart <- 0
+    while(i.restart<=restart && !conv[i]){
+      try( res[[i]] <- optim(x.start, loglikeST, gr=loglikeSTGrad.loc,
+                             STmodel=object, type=type, x.fixed=x.fixed,
+                             method=method, control=control, hessian=TRUE,
+                             lower=lower, upper=upper), silent=TRUE)
+      if( all( !is.na(res[[i]]) ) ){
+        ##optim done, let's see if we've converged and update starting point
+        x.start <- res[[i]]$par
+        ##compute convergence criteria
+        conv[i] <- (res[[i]]$convergence==0 &&
+                    all(eigen(res[[i]]$hessian)$value < -1e-10))
+      }else{
+        ##error occured in optim, break
+        break
+      }
+      ##increase counter
+      i.restart <- i.restart+1
+    }##while(i.restart<=restart && !optim.done)
+    if( control$trace!=0 ){
+      message("") ##spacing
+    }
+    
+    ##has optimisation finished with out failing?
     if( all( !is.na(res[[i]]) ) ){
-      ##then compute convergence criteria
-      conv[i] <- (res[[i]]$convergence==0 &&
-                  all(eigen(res[[i]]$hessian)$value < -1e-10))
       ##extract ML-value
       value[i] <- res[[i]]$value
 
@@ -377,13 +398,11 @@ print.estimateSTmodel <- function(x, ...){
 ##' @importFrom stats coef
 ##' @method coef estimateSTmodel
 ##' @export
-coef.estimateSTmodel <- function(object, pars="all", ...){
+coef.estimateSTmodel <- function(object, pars=c("all", "cov", "reg"), ...){
   ##check class belonging
   stCheckClass(object, "estimateSTmodel", name="object")
 
-  if( !(pars %in% c("cov", "reg", "all")) ){
-    stop("Unknown option for 'pars' should be cov, reg or all")
-  }
+  pars <- match.arg(pars)
 
   ##pick which parameters
   if( pars=="cov" ){
@@ -401,16 +420,7 @@ coef.estimateSTmodel <- function(object, pars="all", ...){
 ## S3 methods for estimate ##
 #############################
 
-##' Esimate a model defined by object, using x as a starting point.
-##'
-##' @title Model Estimation
-##' @param object model to estimate
-##' @param x initial values for estimation
-##' @param ... additional parameters
-##' 
-##' @return Estimation result
-##' 
-##' @author Johan Lindström
+##' @rdname estimate.STmodel
 ##' @export
 estimate <- function(object, x, ...){
   UseMethod("estimate")

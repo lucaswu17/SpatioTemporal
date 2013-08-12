@@ -33,15 +33,15 @@
 }
 \examples{
 ##load data
-  data(mesa.data)
+  data(mesa.model)
 
   ##check covariates
-  tmp <- stCheckSTcovars( mesa.data$SpatioTemporal, mesa.data$covars$ID )
+  tmp <- stCheckSTcovars( mesa.model$ST.all, mesa.model$locations$ID )
   str(tmp)
   ##require non-existant site
-  try( stCheckSTcovars( mesa.data$SpatioTemporal, "Bad.Site" ) )
+  try( stCheckSTcovars( mesa.model$ST.all, "Bad.Site" ) )
   ##require non-existant site
-  try( stCheckSTcovars( mesa.data$SpatioTemporal, date.unique=1 ) )
+  try( stCheckSTcovars( mesa.model$ST.all, date.unique=1 ) )
 }
 \author{
   Johan Lindström

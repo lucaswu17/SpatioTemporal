@@ -3,18 +3,17 @@
 ##############################################
 ##Functions in this file:
 ## createDataMatrix    EX:ok
+## estimateBetaFields  EX:ok
 ## removeSTcovarMean   EX:ok
-## updateSTdataTrend   EX:ok
 ## detrendSTdata       EX:ok
 
-##' Creates a data matrix from a \code{STdata}/\code{STmodel} object, e.g.
-##' \code{\link{mesa.data}} or \code{\link{mesa.model}}. Missing
-##' observations are marked as \code{NA}.
+##' Creates a data matrix from a \code{STdata}/\code{STmodel} object.
+##' Missing observations are marked as \code{NA}.
 ##' 
 ##' @title Create a Data Matrix
 ##' @param STdata A \code{STdata}/\code{STmodel} object containing
-##'   observations, see \code{\link{mesa.data}}. Use either this or the \code{obs},
-##'   \code{date}, and \code{ID} inputs.
+##'   observations. Use either this or the \code{obs}, \code{date}, and
+##'   \code{ID} inputs. 
 ##' @param obs A vector of observations.
 ##' @param date A vector of observation times.
 ##' @param ID A vector of observation locations.
@@ -74,13 +73,63 @@ createDataMatrix <- function(STdata=NULL, obs=STdata$obs$obs,
 }## createDataMatrix
 
 
+##' Estimates the latent-beta fields for a \code{STdata}/\code{STmodel} object
+##' by regressing the observations for each site on the temporal trends.
+##' 
+##' @title Regression Estimates of beta-Fields
+##' @param STdata A \code{STdata}/\code{STmodel} object containing
+##'   observations. Use either this or the \code{obs}, \code{date}, and
+##'   \code{ID} inputs. 
+##' @param subset A subset of locations for which to estimate the beta-fields. A
+##'   warning is given for each name not found in \code{ID}.
+##' @return A list with two matrices; the estimated beta-coefficients and
+##'   standard deviations of the estimates.
+##' @author Johan Lindström
+##' 
+##' @example Rd_examples/Ex_estimateBetaFields.R
+##' 
+##' @family data matrix
+##' @family STdata functions
+##' @family STmodel functions
+##' @export
+estimateBetaFields <- function(STdata=NULL, subset=NULL){
+  ##create the data-matrix
+  D <- createDataMatrix(STdata, subset=subset)
+
+  ##check and extract trend
+  if( is.null(STdata$trend) ){
+    message("No trend in STdata, assuming a constant")
+    STdata <- updateTrend(STdata, n.basis=0)
+  }
+
+  F <- STdata$trend
+  ##drop the date column
+  F$date <- NULL
+
+  #create matrix of outputs
+  beta <- matrix(NA, dim(D)[2], dim(STdata$trend)[2])
+  dimnames(beta) <- list(colnames(D), c("const", colnames(F)))
+  beta.sd <- beta
+
+  ##estimate the beta-coeficients at each location
+  for(i in 1:dim(D)[2]){
+    tmp <- lm(D[,i] ~ as.matrix(F))
+    beta[i,] <- coefficients( tmp )
+    if( any(!is.na(coefficients(tmp))) ){
+      beta.sd[i,!is.na(coefficients(tmp))] <- sqrt(diag(vcov(tmp)))
+    }
+  }
+  
+  return( list(beta=beta, beta.sd=beta.sd) )
+}##function estimateBetaFields
+
 
 ##' Removes the temporal mean at each location for the spatio-temporal
 ##' covariares. The means are added to the \code{covar} field in the returned
 ##' object and can be used as geographic covariates.
 ##' 
 ##' @title Mean-Centre the Spatio-Temporal Covariate
-##' @param STdata A \code{STdata} object, see \code{\link{mesa.data}}.
+##' @param STdata A \code{STdata} object, see \code{\link{mesa.data.raw}}.
 ##' @return Returns a modfied version of the input, where the spatio-temporal
 ##'   covariates have been expanded to include covariates where the site by
 ##'   site temporal average has been removed. The averages are seen as geographic
@@ -130,55 +179,6 @@ removeSTcovarMean <- function(STdata){
   return(STdata)
 }## removeSTcovarMean
 
-##' Updates/sets the temporal trend for \code{STdata} objects. It also checks
-##' that the spatio-temporal covariate exists for all dates in the trend (mainly an
-##' issue if \code{extra.dates!=NULL} adding additional times at which to do
-##' predictions.
-##'
-##' @title Update Trend in \code{STdata} Object
-##' 
-##' @param STdata A \code{STdata} object, see \code{\link{mesa.data}}.
-##' @param n.basis number of basis functions for the temporal trend
-##' @param extra.dates Additional dates for which smooth trends should be computed.
-##' @param ... Additional parameters passed to \code{\link{calcSmoothTrends}}.
-##' 
-##' @return Returns a modfied version of the input, with and added/altered
-##'   smooth trend.
-##' 
-##' @example Rd_examples/Ex_updateSTdataTrend.R
-##' 
-##' @author Johan Lindström
-##' @family STdata functions
-##' @family SVD for missing data
-##' @export
-updateSTdataTrend <- function(STdata, n.basis=0, extra.dates=NULL, ...){
-  ##check class belonging
-  stCheckClass(STdata, "STdata", name="STdata")
-  
-  ##is there an existing trend
-  if( !is.null(STdata$trend) ){
-    message("Replacing existing trend.")
-  }
-  
-  if(n.basis==0){
-    ##no temporal trend, just add dates for prediction
-    STdata$trend <- data.frame( date=sort(unique( c(STdata$obs$date,extra.dates) )) )
-  }else{
-    STdata$trend <- calcSmoothTrends(STdata=STdata, n.basis=n.basis,
-                                  extra.dates=extra.dates, ...)$trend
-  }
-  ##ensure that we have all dates (mainly checks that added dates are also in ST-covariate.
-  trend.dates <- STdata$trend$date
-  ST.dates <- convertCharToDate( rownames(STdata$SpatioTemporal) )
-  if( any(!(trend.dates %in% ST.dates)) && !is.null(ST.dates) ){
-    stop( paste("trend dates not found in rownames(STdata$SpatioTemporal):",
-                paste(trend.dates[!(trend.dates %in% ST.dates)],
-                      collapse=", ")) )
-  }
-  
-  ##return modified object
-  return(STdata)
-}
 
 ##' Removes an estimated time-trend from the observations in a
 ##' \code{STdata} object. Returns a modifed \code{STdata} object with no trend;
@@ -206,7 +206,7 @@ updateSTdataTrend <- function(STdata, n.basis=0, extra.dates=NULL, ...){
 ##' 
 ##' @title Removes Temporal Trend from Observations in a \code{STdata} Object
 ##' 
-##' @param STdata A \code{STdata} object, see \code{\link{mesa.data}}.
+##' @param STdata A \code{STdata} object, see \code{\link{mesa.data.raw}}.
 ##' @param region Vector of the same length and order as \code{STdata$covars$ID}.
 ##'   Indicates region(s) in which different trends are to be fitted and removed.
 ##' @param method Method for fitting the trend (set to \code{method=lm} if

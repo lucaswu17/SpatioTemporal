@@ -7,8 +7,8 @@
 ##' \tabular{ll}{
 ##'   Package: \tab SpatioTemporal\cr
 ##'   Type: \tab Package\cr
-##'   Version: \tab 1.1.2\cr
-##'   Date: \tab 2012-10-09\cr
+##'   Version: \tab 1.1.7\cr
+##'   Date: \tab 2013-08-12\cr
 ##'   License: \tab GPL version 2 or newer\cr
 ##'   LazyLoad: \tab yes\cr
 ##' }
@@ -41,6 +41,82 @@
 ##'
 ##' @section Changelog:
 ##' \describe{
+##'   \item{1.1.7}{Upates: Handling of log-Gaussian fields}
+##'   \itemize{
+##'     \item{Updated several functions to allow for prediction and CV of
+##'           log-Gaussian fields. Updated functions:
+##'           \code{\link{predict.STmodel}}, \code{\link{print.predictSTmodel}},
+##'           \code{\link{plot.predictSTmodel}},
+##'           \code{\link{predictCV.STmodel}}, \code{\link{print.predCVSTmodel}},
+##'           \code{\link{summary.predCVSTmodel}}, \code{\link{plot.predCVSTmodel}},
+##'           \code{\link{qqnorm.predCVSTmodel}}, and
+##'           \code{\link{scatterPlot.predCVSTmodel}}. }
+##'     \item{Updated \code{\link{predict.STmodel}} to compute temporal
+##'           averages, and return both prediction and variance of the
+##'           averages. Both for Gaussian and log-Gaussian data.}
+##'   }
+##'   \item{1.1.6}{Upates: sparse-Matrices and temporal basis functions}
+##'   \itemize{
+##'     \item{Allows for sparse matrices in \code{\link{makeSigmaB}} and
+##'           \code{\link{makeSigmaNu}}; this reduces the memory footprint and
+##'           execution time for \code{\link{loglikeST}},
+##'           \code{\link{predict.STmodel}}, and \code{\link{estimate.STmodel}}.}
+##'     \item{Added function that does regression estimates of the
+##'           beta-coefficients: \code{\link{estimateBetaFields}}.}
+##'     \item{Altered computation of CV-statistics in \code{\link{SVDsmoothCV}}.}
+##'     \item{Added \code{\link{boxplot.SVDcv}} for illustration of CV-statistics
+##'           from \code{\link{SVDsmoothCV}}.}
+##'     \item{Replaced \code{\link{updateSTdataTrend}} with
+##'           \code{\link{updateTrend.STdata}} and
+##'           \code{\link{updateTrend.STmodel}} that also allows for temporal 
+##'           trends defined using functions.}
+##'     \item{Updated \code{\link{SVDsmooth}}, \code{\link{SVDsmoothCV}}, and
+##'           \code{\link{calcSmoothTrends}} to return both the trend and the
+##'           smoothing function used to compute the trends, simplifying
+##'           interpolation at unobserved time-points.}
+##'     \item{Updated example data-sets.}
+##'     \item{Added options for computation of temporal averages
+##'           (incl. variances) to \code{\link{predict.STmodel}} and
+##'           \code{\link{predictCV.STmodel}}.}
+##'   }
+##'   \item{1.1.5}{Major bug fixes:}
+##'   \itemize{
+##'     \item{In \code{\link{predict.STmodel}}, predictions now \emph{always}
+##'           uses the trend given in \code{object}, ignoring the trend object
+##'           in \code{STdata}. Prediction at dates in \code{STdata} are
+##'           computed using the smoothing function that defines the trend; see
+##'           \code{\link{updateTrend.STmodel}} for details.}
+##'     \item{In \code{\link{summary.predCVSTmodel}}, code previously divided by
+##'           the wrong variance when computing adjusted R2 using the
+##'           \code{pred.naive} option.}
+##'     \item{In \code{\link{summary.predCVSTmodel}}, code previously
+##'           returned statistics even for dates without observations when
+##'           using \code{by.date=TRUE}.}
+##'     \item{In \code{\link{plot.STdata}} and \code{\link{plot.STmodel}} code
+##'           now accounts for missing time-points when computing acf and pacf.}
+##'   }
+##'   \item{1.1.4}{Added plot funcions/Minor fixes:}
+##'   \itemize{
+##'     \item{Added \code{\link{scatterPlot.STdata}},
+##'           \code{\link{scatterPlot.STmodel}}, 
+##'           and \code{\link{scatterPlot.predCVSTmodel}} for plotting
+##'           observations/residuals against covariates.}
+##'     \item{Added \code{\link{plot.mcmcSTmodel}},
+##'           \code{\link{density.mcmcSTmodel}}, and
+##'           \code{\link{plot.density.mcmcSTmodel}} for plotting of MCMC
+##'           results.}
+##'     \item{Added \code{\link{qqnorm.STdata}}, \code{\link{qqnorm.STmodel}},
+##'           and \code{\link{qqnorm.predCVSTmodel}} for plotting of data and
+##'           CV-prediction results.}
+##'     \item{Added a \code{restart} option to \code{\link{estimate.STmodel}}
+##'           allowing for restarts of optimisation in cases on bad
+##'           optimisation.}
+##'   }
+##'   \item{1.1.3}{Minor changes/Bug fixes:}
+##'   \itemize{
+##'     \item{Fixed stupid misstake in \code{\link{predictNaive}} that caused
+##'           computations to take unnecessarily long.}
+##'   }
 ##'   \item{1.1.2}{Minor changes/Bug fixes:}
 ##'   \itemize{
 ##'     \item{Fixed a bug in \code{\link{SVDsmooth}}, that caused the values in
@@ -69,7 +145,7 @@
 ##'   \itemize{
 ##'     \item{Changed the return of the variances for \code{beta} in
 ##'           \code{\link{predict.STmodel}}.}
-##'     \item{Reduced the memory footprint of \code{\link{predict.STmodel}}.´}
+##'     \item{Reduced the memory footprint of \code{\link{predict.STmodel}}.}
 ##'     \item{Error checks in \code{\link{c.STmodel}} and
 ##'           \code{\link{predict.STmodel}}, combination of \code{STmodel}
 ##'           objects with different covariate scaling is \strong{NOT}

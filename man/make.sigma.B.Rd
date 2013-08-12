@@ -166,7 +166,7 @@
 
   \item{calc.F.times.X}{\code{\link{calc.FX}}}
   \item{calc.smooth.trends}{\code{\link{calcSmoothTrends}}
-  and \code{\link{updateSTdataTrend}}}
+  and \code{\link{updateTrend}}}
   \item{calc.tF.mat.F}{\code{\link{calc.tFXF}}}
   \item{calc.tF.times.mat}{\code{\link{calc.tFX}}, see also
   \code{\link{expandF}}.}
@@ -180,8 +180,12 @@
   also \code{\link{updateCovf}} and
   \code{\link{processLocation}}.} \item{CVbasics}{Included
   in \code{\link{estimateCV.STmodel}}.}
-  \item{CVresiduals.qqnorm}{TODO}
-  \item{CVresiduals.scatter}{TODO}
+  \item{CVresiduals.qqnorm}{\code{\link{qqnorm.STdata}},
+  \code{\link{qqnorm.STmodel}}, or
+  \code{\link{qqnorm.predCVSTmodel}}}
+  \item{CVresiduals.scatter}{\code{\link{scatterPlot.STdata}},
+  \code{\link{scatterPlot.STmodel}}, or
+  \code{\link{scatterPlot.predCVSTmodel}}}
 
   \item{default.LUR.list}{\code{\link{processLUR}}}
   \item{default.ST.list}{\code{\link{processST}}}

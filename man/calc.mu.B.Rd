@@ -74,14 +74,6 @@ cbind(X[[1]] \%*\% alpha[[1]], X[[2]] \%*\% alpha[[2]])
     stop("calc.mu.B: Results not equal")
   }
 }
-
-##...and for real data, first load some data
-data(mesa.model)
-data(est.mesa.model)
-##Get estimated parameters
-x <- coef(est.mesa.model)$par
-##compute average beta-fields
-calc.mu.B(mesa.model$LUR, loglikeSTgetPars(x, mesa.model)$alpha)
 }
 \author{
   Johan Lindström and Adam Szpiro
