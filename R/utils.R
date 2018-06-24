@@ -35,7 +35,7 @@
 ##' 
 ##' @seealso Similar to \code{\link[base:inherits]{inherits}}
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' @family object checking utilities
 ##' @export
 stCheckClass <- function(x, what, name="Object"){
@@ -66,7 +66,7 @@ stCheckClass <- function(x, what, name="Object"){
 ##'   ##check for non-existant names
 ##'   try( stCheckFields(mesa.model$locations, c("ID","x","test")) )
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' @family object checking utilities
 ##' @export
 stCheckFields <- function(x, what, name="Object"){
@@ -109,7 +109,7 @@ stCheckFields <- function(x, what, name="Object"){
 ##'   mesa.model$obs$date <- NULL
 ##'   try( stCheckObs( mesa.model$obs ) )
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' @family object checking utilities
 ##' @export
 stCheckObs <- function(obs){
@@ -160,7 +160,7 @@ stCheckObs <- function(obs){
 ##'   ##ID:s infered from rownames (1-25)
 ##'   str(tmp)
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' @family object checking utilities
 ##' @export
 stCheckCovars <- function(covars, ID.unique=character(0)){
@@ -222,7 +222,7 @@ stCheckCovars <- function(covars, ID.unique=character(0)){
 ##'   ##require non-existant site
 ##'   try( stCheckSTcovars( mesa.model$ST.all, date.unique=1 ) )
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' @family object checking utilities
 ##' @export
 stCheckSTcovars <- function(ST, ID.unique=character(0), date.unique=integer(0)){
@@ -315,7 +315,7 @@ stCheckSTcovars <- function(ST, ID.unique=character(0), date.unique=integer(0)){
 ##'
 ##' @example Rd_examples/Ex_convertCharToDate.R
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' @family utility functions
 ##' @export
 convertCharToDate <- function(x){
@@ -350,7 +350,7 @@ convertCharToDate <- function(x){
 ##' @examples
 ##'  defaultList(list(a=1,b=4), list(a=3,c="a",d=4))
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' @family utility functions
 ##' @export
 defaultList <- function(x, prototype=list()){

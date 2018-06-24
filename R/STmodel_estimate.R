@@ -103,9 +103,10 @@
 ##' 
 ##' @example Rd_examples/Ex_estimate_STmodel.R
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' @family STmodel methods
 ##' @family estimateSTmodel methods
+##' @importFrom stats optim
 ##' @method estimate STmodel
 ##' @export
 estimate.STmodel <- function(object, x, x.fixed=NULL, type="p",
@@ -319,7 +320,7 @@ estimate.STmodel <- function(object, x, x.fixed=NULL, type="p",
 ##' @param ... Ignored additional arguments.
 ##' @return Nothing
 ##'
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##'
 ##' @examples
 ##'   ##load data
@@ -384,7 +385,7 @@ print.estimateSTmodel <- function(x, ...){
 ##' @param ... Ignored additional arguments.
 ##' @return Estimated parameters.
 ##'
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##'
 ##' @examples
 ##'   ##load data

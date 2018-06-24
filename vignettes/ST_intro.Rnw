@@ -124,6 +124,7 @@ included in the package.
 <<echo=FALSE>>=
 ##initial set-up: load libraries
 library(SpatioTemporal)
+library(Matrix)
 library(plotrix) 
 library(maps)
 @ 
@@ -1175,6 +1176,7 @@ To get started we load the package, along with a few additional packages and the
 data used in this example:
 <<>>=
 library(SpatioTemporal)
+library(Matrix)
 library(plotrix) 
 library(maps)
 data(mesa.data.raw, package="SpatioTemporal")

@@ -231,6 +231,7 @@ measured for $\Sexpr{dim(mesa.data.raw$obs)[1]}$ 2-week periods.
 First load the package, along with a few additional packages need by the tutorial:
 <<>>=
 library(SpatioTemporal)
+library(Matrix)
 library(plotrix) 
 library(maps)
 @ 

@@ -37,11 +37,11 @@
 ##'
 ##' @example Rd_examples/Ex_simulate_STmodel.R
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' 
 ##' @family STmodel methods
+##' @importFrom stats rnorm
 ##' @importFrom stats simulate
-##' @importFrom MASS mvrnorm
 ##' @method simulate STmodel
 ##' @export
 simulate.STmodel <- function(object, nsim=1, seed=NULL, x, nugget.unobs=0, ...){
@@ -130,7 +130,7 @@ simulate.STmodel <- function(object, nsim=1, seed=NULL, x, nugget.unobs=0, ...){
   for(j in 1:dimensions$m){
     Ind <- (1:dimensions$n) + (j-1)*dimensions$n
     if( class(Rsigma.B)=="try-error" ){
-      B[,j,] <-  t( mvrnorm(n=nsim, mu=mu.B[Ind], Sigma=sigma.B[Ind,Ind]) )
+      B[,j,] <-  t( MASS::mvrnorm(n=nsim, mu=mu.B[Ind], Sigma=sigma.B[Ind,Ind]) )
     }else{
       R <- t(Rsigma.B[Ind,Ind])
       B[,j,] <- matrix(mu.B[Ind], dimensions$n, nsim) + 
@@ -165,7 +165,7 @@ simulate.STmodel <- function(object, nsim=1, seed=NULL, x, nugget.unobs=0, ...){
   }
   ##simulate data from the nu fields
   if( class(Rsigma.nu)=="try-error" ){
-    e <- t( mvrnorm(n=dim(F)[1]*nsim, mu=rep(0,dim(X)[2]), Sigma=sigma.nu) )
+    e <- t( MASS::mvrnorm(n=dim(F)[1]*nsim, mu=rep(0,dim(X)[2]), Sigma=sigma.nu) )
   }else{
     ##simulate from the residuals
     e <- rnorm( prod(dim(X)) )

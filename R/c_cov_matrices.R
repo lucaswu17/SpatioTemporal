@@ -3,7 +3,9 @@
 #####################################################
 ##Functions in this file:
 ## makeSigmaB     EX:ok
+## diffSigmaB     TODO
 ## makeSigmaNu    EX:ok
+## diffSigmaNu    TODO
 ## parsCovFuns    EX:ok
 ## namesCovFuns   EX:ok
 ## evalCovFuns    EX:ok
@@ -30,20 +32,26 @@
 ##'   to determine which covariances should have an added nugget (collocated
 ##'   sites).
 ##' @param sparse If \code{TRUE}, return a block diagonal sparse matrix, see
-##'   \code{\link[Matrix:bdiag]{bdiag}}.
+##'   \code{\link[spam:bdiag.spam]{bdiag.spam}}.
+##' @param diff Vector with two components indicating with respect to which
+##'   parameter(s) that first and/or second derivatives should be
+##'   computed. E.g. \code{diff=c(0,0)} indicates no derivatives,
+##'   \code{diff=c(1,0)} indicates first derivative wrt the first parameter,
+##'   \code{diff=c(1,2)} indicates second cross derivative wrt the first and
+##'   second parameters, etc.
 ##' @return Block covariance matrix of size \code{dim(dist)*n.blocks}.
 ##' 
 ##' @example Rd_examples/Ex_makeSigmaB.R
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' @family block matrix functions
 ##' @family covariance functions
-##' @export
 ##' @import Matrix
-##' @useDynLib SpatioTemporal C_makeSigmaB
+##' @export
 makeSigmaB <- function(pars, dist, type="exp", nugget=0,
                        symmetry=dim(dist)[1]==dim(dist)[2],
-                       ind2.to.1=1:dim(dist)[2], sparse=FALSE){
+                       ind2.to.1=1:dim(dist)[2], sparse=FALSE,
+                       diff=0){
   if( !is.list(pars) ){
     ##pars not a list, assuming that we only have one block
     pars <- list(pars)
@@ -60,15 +68,23 @@ makeSigmaB <- function(pars, dist, type="exp", nugget=0,
   ##call C-code, internal error-checking
   tmp <- .Call(C_makeSigmaB, type, pars, nugget, dist,
                as.integer(symmetry), as.integer(ind2.to.1),
-               as.integer(sparse))
+               as.integer(sparse), as.integer(diff),
+               PACKAGE="SpatioTemporal")
   if( sparse ){
     if(symmetry){
       tmp <- lapply(tmp, forceSymmetric)
     }
-    tmp <- Matrix::bdiag(tmp)
+    tmp <- bdiag(tmp)
+##    tmp <- do.call(spam::bdiag.spam, tmp)
   }
   return( tmp )
 }##function makeSigmaB
+
+#diffSigmaB <- function(pars, dist, type="exp", nugget=0,
+#                       symmetry=dim(dist)[1]==dim(dist)[2],
+#                       ind2.to.1=1:dim(dist)[2], sparse=FALSE,
+#                       diff=0){
+#}
 
 
 ##' Function that creates a block covariance matrix with unequally
@@ -91,7 +107,7 @@ makeSigmaB <- function(pars, dist, type="exp", nugget=0,
 ##'   resulting covariance matrix will be symmetric.
 ##' @param blocks1,blocks2 Vectors with the size(s) of each of the
 ##'   diagonal blocks, usually \code{\link{mesa.model}$nt}. If \code{symmetry=TRUE}
-##'   and then \code{blocks2} defaults to \code{blocks1} if missing.
+##'   then \code{blocks2} defaults to \code{blocks1} if missing.
 ##' @param ind1,ind2 Vectors indicating the location of each element in the
 ##'   covariance matrix, used to index the \code{dist}-matrix to
 ##'   determine the distance between locations, usually
@@ -102,23 +118,28 @@ makeSigmaB <- function(pars, dist, type="exp", nugget=0,
 ##'   \code{symmetry=FALSE} to determine which covariances should have an
 ##'   added nugget (collocated sites).
 ##' @param sparse If \code{TRUE}, return a block diagonal sparse matrix, see
-##'   \code{\link[Matrix:bdiag]{bdiag}}.
+##'   \code{\link[spam:bdiag.spam]{bdiag.spam}}.
+##' @param diff Vector with two components indicating with respect to which
+##'   parameter(s) that first and/or second derivatives should be
+##'   computed. E.g. \code{diff=c(0,0)} indicates no derivatives,
+##'   \code{diff=c(1,0)} indicates first derivative wrt the first parameter,
+##'   \code{diff=c(1,2)} indicates second cross derivative wrt the first and
+##'   second parameters, etc.
 ##' @return Block covariance matrix of size
 ##'   \code{length(ind1)}-by-\code{length(ind2)}.
 ##' 
 ##' @example Rd_examples/Ex_makeSigmaNu.R
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' @family block matrix functions
 ##' @family covariance functions
-##' @export
 ##' @import Matrix
-##' @useDynLib SpatioTemporal C_makeSigmaNu
+##' @export
 makeSigmaNu <- function(pars, dist, type="exp", nugget=0, random.effect=0,
                         symmetry=dim(dist)[1]==dim(dist)[2],
                         blocks1=dim(dist)[1], blocks2=dim(dist)[2],
                         ind1=1:dim(dist)[1], ind2=1:dim(dist)[2], 
-                        ind2.to.1=1:dim(dist)[2], sparse=FALSE){
+                        ind2.to.1=1:dim(dist)[2], sparse=FALSE, diff=0){
   if( missing(blocks2) && symmetry ){
     blocks2 <- blocks1
   }
@@ -129,15 +150,17 @@ makeSigmaNu <- function(pars, dist, type="exp", nugget=0, random.effect=0,
   tmp <- .Call(C_makeSigmaNu, type, pars, nugget, random.effect, dist,
                as.integer(blocks1), as.integer(blocks2),
                as.integer(ind1), as.integer(ind2), as.integer(ind2.to.1),
-               as.integer(symmetry), as.integer(sparse))
+               as.integer(symmetry), as.integer(sparse), as.integer(diff),
+               PACKAGE="SpatioTemporal")
   if( sparse ){
     ##order differs agains makeSigmaB,
     ##sigmaNu often has more and smaller blocks -> this option is faster
-    tmp <- Matrix::bdiag(tmp)
+    tmp <- bdiag(tmp)
     if(symmetry && isTRUE(all.equal(blocks1,blocks2)) &&
        isTRUE(all.equal(ind1,ind2)) ){
       tmp <- forceSymmetric(tmp)
     }
+##    tmp <- do.call(spam::bdiag.spam, tmp)
   }
   return( tmp )
 }##function makeSigmaNu
@@ -161,22 +184,21 @@ makeSigmaNu <- function(pars, dist, type="exp", nugget=0, random.effect=0,
 ##'   ##non existant covariance function
 ##'   parsCovFuns("bad.name")
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' @family covariance functions
 ##' @export
-##' @useDynLib SpatioTemporal C_cov_pars
 parsCovFuns <- function(type = namesCovFuns(), list=FALSE){
   if( length(type)==0 ){
     stop("'type' has to be of length>0")
   }
   ##special case for length one type
   if( length(type)==1 && !list){
-    return( .Call(C_cov_pars, type[1]) )
+    return( .Call(C_cov_pars, type[1], PACKAGE="SpatioTemporal") )
   }
   ##o.w. return a list of possible names
   par.names <- vector("list", length(type))
   for(i in 1:length(type)){
-    tmp <- .Call(C_cov_pars, type[i])
+    tmp <- .Call(C_cov_pars, type[i], PACKAGE="SpatioTemporal")
     if( !is.null(tmp) ){
       par.names[[i]] <- tmp
     }
@@ -214,7 +236,7 @@ parsCovFuns <- function(type = namesCovFuns(), list=FALSE){
 ##'           besselK( (d*sqrt(8*shape)/range), shape ) } }
 ##'   \item{\code{cauchy}}{Cauchy covariance: 
 ##'     \deqn{ \frac{\sigma^2}{(1 + (d/\rho)^2)^{\nu}}}{sill *
-##'           (1 + (d/range)^2) ^ -shape)} }
+##'           (1 + (d/range)^2) ^ -shape} }
 ##'   \item{\code{iid}}{IID covariance, i.e. zero matrix 
 ##'     since nugget is added afterwards. \deqn{0}{0}}
 ##' }
@@ -225,13 +247,12 @@ parsCovFuns <- function(type = namesCovFuns(), list=FALSE){
 ##' @examples
 ##'   namesCovFuns()
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' @family covariance functions
 ##' @export
-##' @useDynLib SpatioTemporal C_cov_names
 namesCovFuns <- function(){
   ##call C-function that returns a list of available covariance functions
-  return( .Call(C_cov_names) )
+  return( .Call(C_cov_names, PACKAGE="SpatioTemporal") )
 }##function namesCovFuns
 
 
@@ -243,17 +264,23 @@ namesCovFuns <- function(){
 ##' @param pars Parameter for the covariance function, see
 ##'   \code{\link{parsCovFuns}}.
 ##' @param d Vector/matrix for which to compute the covariance function.
+##' @param diff Vector with two components indicating with respect to which
+##'   parameter(s) that first and/or second derivatives should be
+##'   computed. E.g. \code{diff=c(0,0)} indicates no derivatives,
+##'   \code{diff=c(1,0)} indicates first derivative wrt the first parameter,
+##'   \code{diff=c(1,2)} indicates second cross derivative wrt the first and
+##'   second parameters, etc.
 ##' @return Covariance function computed for all elements in d.
 ##' 
 ##' @example Rd_examples/Ex_evalCovFuns.R
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' @family covariance functions
 ##' @export
-##' @useDynLib SpatioTemporal C_cov_simple
-evalCovFuns <- function(type="exp", pars=c(1,1), d=seq(0,10,length.out=100)){
+evalCovFuns <- function(type="exp", pars=c(1,1), d=seq(0,10,length.out=100), diff=c(0,0)){
   ##call C-code, internal error-checking
-  cov <- .Call(C_cov_simple, type, pars, d)
+  cov <- .Call(C_cov_simple, type, pars, d, as.integer(diff),
+               PACKAGE="SpatioTemporal")
   if( is.array(d) ){
     cov <- array(cov, dim(d))
   }else{
@@ -271,11 +298,10 @@ evalCovFuns <- function(type="exp", pars=c(1,1), d=seq(0,10,length.out=100)){
 ##' 
 ##' @example Rd_examples/Ex_crossDist.R
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' @family covariance functions
 ##' @family basic linear algebra
 ##' @export
-##' @useDynLib SpatioTemporal C_dist
 crossDist <- function(coord1, coord2=coord1){
   if( missing(coord2) ){
     symmetric <- TRUE
@@ -289,5 +315,6 @@ crossDist <- function(coord1, coord2=coord1){
   storage.mode(coord2) <- "double"
   
   ##call C-code, internal error-checking
-  return( .Call(C_dist, coord1, coord2, as.integer(symmetric)) )
+  return( .Call(C_dist, coord1, coord2, as.integer(symmetric),
+                PACKAGE="SpatioTemporal") )
 }

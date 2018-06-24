@@ -48,9 +48,12 @@
 ##' 
 ##' @example Rd_examples/Ex_updateCovf.R
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' @family STmodel functions
 ##' @family covariance functions
+##' @importFrom stats as.formula
+##' @importFrom stats model.frame
+##' @importFrom stats model.matrix
 ##' @export
 updateCovf <- function(STmodel, cov.beta=STmodel$cov.beta,
                        cov.nu=STmodel$cov.nu){
@@ -163,7 +166,7 @@ updateCovf <- function(STmodel, cov.beta=STmodel$cov.beta,
 ##' @return \code{STdata} with added fields \code{LUR}, or \code{ST} and
 ##'   \code{ST.all}.
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 createLUR <- function(STdata, LUR.list){
   ##check class belonging
   stCheckClass(STdata, "STdata", name="STdata")

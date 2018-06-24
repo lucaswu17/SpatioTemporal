@@ -28,7 +28,7 @@
 ##' 
 ##' @example Rd_examples/Ex_genGradient.R
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' 
 ##' @family numerical derivatives
 ##' @export
@@ -123,7 +123,7 @@ genHessian <- function(x, func, h=1e-3){
 ##' 
 ##' @example Rd_examples/Ex_loglikeSTGrad.R
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' 
 ##' @family likelihood functions
 ##' @family numerical derivatives

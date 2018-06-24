@@ -25,72 +25,255 @@
 //given inputs n, and pointers to parameters and distance matrix
 //it will compute the covariance function for all n elements in dist and
 //return them in the PREALLOCATED array cov.
-void exp_cov(int n, double* par, double* dist, double* cov){
+void exp_cov(int n, double* par, double* dist, double* cov, int* diff){
   //extract parameters
   int i;
   double range = par[0];
   double sill = par[1];
-  for(i=0; i<n; i++){
-    cov[i] = sill*exp(-dist[i]/range);
+  double C1 = 0;
+  if( diff[0]==0 && diff[1]==0 ){
+    //f(d)
+    for(i=0; i<n; i++){
+      cov[i] = sill*exp(-dist[i]/range);
+    }
+  }else if(diff[1]==0){
+    if( diff[0]==1 ){
+      //f'_range(d)
+      C1 = sill/R_pow_di(range, 2);
+      for(i=0; i<n; i++){
+        cov[i] = C1*dist[i]*exp(-dist[i]/range);
+      }
+    }else{
+      //f'_sill(d)
+      for(i=0; i<n; i++){
+        cov[i] = exp(-dist[i]/range);
+      }
+    }
+  }else{
+    if( diff[0]==1 && diff[1]==1 ){
+      //f''_range(d)
+      C1 = sill/R_pow_di(range, 4);
+      for(i=0; i<n; i++){
+        cov[i] = exp(-dist[i]/range) * C1 * dist[i] * (dist[i]-2*range);
+      }
+    }else if( diff[0]==2 && diff[1]==1 ){
+      //f''_range,sill(d)
+      C1 = R_pow_di(range, 2);
+      for(i=0; i<n; i++){
+        cov[i] = dist[i]*exp(-dist[i]/range)/C1;
+      }
+    }else{
+      //f''_sill(d)
+      memset( cov, 0, n*sizeof(double) );
+    }
   }
   return;
 }
 
 /* DOUBLE EXPONENTIAL/GAUSSIAN COVARIANCE FUNCTION */
-void exp2_cov(int n, double* par, double* dist, double* cov){
+void exp2_cov(int n, double* par, double* dist, double* cov, int* diff){
   //extract parameters
   int i;
-  double range2 = par[0]*par[0];
+  double range = par[0];
+  double range2 = range*range;
   double sill = par[1];
-  for(i=0; i<n; i++){
-    cov[i] = sill*exp(-dist[i]*dist[i]/range2);
+  double C1=0;
+  if( diff[0]==0 && diff[1]==0 ){
+    //f(d)
+    for(i=0; i<n; i++){
+      cov[i] = sill*exp(-dist[i]*dist[i]/range2);
+    }
+  }else if(diff[1]==0){
+    if( diff[0]==1 ){
+      //f'_range(d)
+      C1 = 2*sill/R_pow_di(range, 3);
+      for(i=0; i<n; i++){
+        cov[i] = C1*dist[i]*dist[i]*exp(-dist[i]*dist[i]/range2);
+      }
+    }else{
+      //f'_sill(d)
+      for(i=0; i<n; i++){
+        cov[i] = exp(-dist[i]*dist[i]/range2);
+      }
+    }
+  }else{
+    if( diff[0]==1 && diff[1]==1 ){
+      //f''_range(d)
+      C1 = 2*sill/R_pow_di(range, 6);
+      for(i=0; i<n; i++){
+        cov[i] = exp(-dist[i]*dist[i]/range2) * C1*dist[i]*dist[i] *
+          (2*dist[i]*dist[i] - 3*range2);
+      }
+    }else if( diff[0]==2 && diff[1]==1 ){
+      //f''_range,sill(d)
+      C1 = 2/(range2*range);
+      for(i=0; i<n; i++){
+        cov[i] = C1*dist[i]*dist[i]*exp(-dist[i]*dist[i]/range2);
+      }
+    }else{
+      //f''_sill(d)
+      memset( cov, 0, n*sizeof(double) );
+    }
   }
+
   return;
 }
 
 /* CUBIC COVARIANCE FUNCTION */
-void cubic_cov(int n, double* par, double* dist, double* cov){
+void cubic_cov(int n, double* par, double* dist, double* cov, int* diff){
   //extract parameters
   int i;
   double range = par[0];
   double sill = par[1];
   double frac, frac2, frac3, frac5, frac7;
   memset( cov, 0, n*sizeof(double) );
-  for(i=0; i<n; i++){
-    frac = dist[i]/range;
-    if( frac<1 ){
-      frac2 = R_pow_di(frac, 2);
-      frac3 = R_pow_di(frac, 3);
-      frac5 = R_pow_di(frac, 5);
-      frac7 = R_pow_di(frac, 7);
-      cov[i] = 1.0 - (7.0*frac2 - 8.75*frac3 + 3.5*frac5 - 0.75*frac7);
-      cov[i] *= sill;
+
+  if( diff[0]==0 && diff[1]==0 ){
+    //f(d)
+    for(i=0; i<n; i++){
+      frac = dist[i]/range;
+      if( frac<1 ){
+        frac2 = R_pow_di(frac, 2);
+        frac3 = R_pow_di(frac, 3);
+        frac5 = R_pow_di(frac, 5);
+        frac7 = R_pow_di(frac, 7);
+        cov[i] = 1.0 - (7.0*frac2 - 8.75*frac3 + 3.5*frac5 - 0.75*frac7);
+        cov[i] *= sill;
+      }
+    }
+  }else if(diff[1]==0){
+    if( diff[0]==1 ){
+      //f'_range(d)
+      for(i=0; i<n; i++){
+        frac = dist[i]/range;
+        if( frac<1 ){
+          frac2 = R_pow_di(frac, 2)/range;
+          frac3 = R_pow_di(frac, 3)/range;
+          frac5 = R_pow_di(frac, 5)/range;
+          frac7 = R_pow_di(frac, 7)/range;
+          cov[i] = 14.0*frac2 - 26.25*frac3 + 17.5*frac5 - 5.25*frac7;
+          cov[i] *= sill;
+        }
+      }
+    }else{
+      //f'_sill(d)
+      for(i=0; i<n; i++){
+        frac = dist[i]/range;
+        if( frac<1 ){
+          frac2 = R_pow_di(frac, 2);
+          frac3 = R_pow_di(frac, 3);
+          frac5 = R_pow_di(frac, 5);
+          frac7 = R_pow_di(frac, 7);
+          cov[i] = 1.0 - (7.0*frac2 - 8.75*frac3 + 3.5*frac5 - 0.75*frac7);
+        }
+      }
+    }
+  }else{
+    if( diff[0]==1 && diff[1]==1 ){
+      //f''_range(d)
+      for(i=0; i<n; i++){
+        frac = dist[i]/range;
+        if( frac<1 ){
+          frac2 = R_pow_di(frac, 2) / R_pow_di(range, 2);
+          frac3 = R_pow_di(frac, 3) / R_pow_di(range, 2);
+          frac5 = R_pow_di(frac, 5) / R_pow_di(range, 2);
+          frac7 = R_pow_di(frac, 7) / R_pow_di(range, 2);
+          cov[i] = -42.0*frac2 + 105.0*frac3 - 105.0*frac5 + 42.0*frac7;
+          cov[i] *= sill;
+        }
+      }
+    }else if( diff[0]==2 && diff[1]==1 ){
+      //f''_range,sill(d)
+      for(i=0; i<n; i++){
+        frac = dist[i]/range;
+        if( frac<1 ){
+          frac2 = R_pow_di(frac, 2)/range;
+          frac3 = R_pow_di(frac, 3)/range;
+          frac5 = R_pow_di(frac, 5)/range;
+          frac7 = R_pow_di(frac, 7)/range;
+          cov[i] = 14.0*frac2 - 26.25*frac3 + 17.5*frac5 - 5.25*frac7;
+        }
+      }
+    }else{
+      //f''_sill(d), zero second derivative already set above
     }
   }
+  
   return;
 }
 
 /* SPHERICAL COVARIANCE FUNCTION */
-void spherical_cov(int n, double* par, double* dist, double* cov){
+void spherical_cov(int n, double* par, double* dist, double* cov, int* diff){
   //extract parameters
   int i;
   double range = par[0];
   double sill = par[1];
   double frac, frac3;
   memset( cov, 0, n*sizeof(double) );
-  for(i=0; i<n; i++){
-    frac = dist[i]/range;
-    if( frac<1 ){
-      frac3 = R_pow_di(frac, 3);
-      cov[i] = 1.0 - 1.5*frac + 0.5*frac3;
-      cov[i] *= sill;
+  if( diff[0]==0 && diff[1]==0 ){
+    //f(d)
+    for(i=0; i<n; i++){
+      frac = dist[i]/range;
+      if( frac<1 ){
+        frac3 = R_pow_di(frac, 3);
+        cov[i] = 1.0 - 1.5*frac + 0.5*frac3;
+        cov[i] *= sill;
+      }
+    }
+  }else if(diff[1]==0){
+    if( diff[0]==1 ){
+      //f'_range(d)
+      for(i=0; i<n; i++){
+        frac = dist[i]/range;
+        if( frac<1 ){
+          frac3 = R_pow_di(frac, 3)/range;
+          frac /= range;
+          cov[i] = 1.5*frac - 1.5*frac3;
+          cov[i] *= sill;
+        }
+      }
+    }else{
+      //f'_sill(d)
+      for(i=0; i<n; i++){
+        frac = dist[i]/range;
+        if( frac<1 ){
+          frac3 = R_pow_di(frac, 3);
+          cov[i] = 1.0 - 1.5*frac + 0.5*frac3;
+        }
+      }
+    }
+  }else{
+    if( diff[0]==1 && diff[1]==1 ){
+      //f''_range(d)
+      for(i=0; i<n; i++){
+        frac = dist[i]/range;
+        if( frac<1 ){
+          frac3 = R_pow_di(frac, 3) / R_pow_di(range, 2);
+          frac /= R_pow_di(range, 2);
+          cov[i] = -3.0*frac + 6.0*frac3;
+          cov[i] *= sill;
+        }
+      }
+    }else if( diff[0]==2 && diff[1]==1 ){
+      //f''_range,sill(d)
+      for(i=0; i<n; i++){
+        frac = dist[i]/range;
+        if( frac<1 ){
+          frac3 = R_pow_di(frac, 3)/range;
+          frac /= range;
+          cov[i] = 1.5*frac - 1.5*frac3;
+        }
+      }
+    }else{
+      //f''_sill(d), zero second derivative already set above
     }
   }
+
   return;
 }
 
 /* MATERN COVARIANCE FUNCTION */
-void matern_cov(int n, double* par, double* dist, double* cov){
+void matern_cov(int n, double* par, double* dist, double* cov, int* diff){
   //extract parameters
   int i;
   double sill = par[1];
@@ -100,36 +283,109 @@ void matern_cov(int n, double* par, double* dist, double* cov){
   //log of normalising constant sill / (2^(nu-1)*gamma(nu))
   double log_norm = log(sill) - (shape-1)*log(2) - lgammafn(shape);
   double tmp, log_value;
-  for(i=0; i<n; i++){
-    if( dist[i]==0 ){
-      cov[i] = sill;
-    }else{
-      tmp = scaled_range*dist[i];
-      //recall that R bessel returns exp(x)*K_nu(x)
-      //so we want log( exp(x)*K_nu(x)*exp(-x) ) = log( exp(x)*K_nu(x) ) - x
-      log_value = log_norm + shape*log(tmp) + log(bessel_k(tmp, shape, 2)) - tmp;
-      //transform back to non-log scale.
-      cov[i] = exp( log_value );
+
+  if( diff[0]==0 && diff[1]==0 ){
+    //f(d)
+    for(i=0; i<n; i++){
+      if( dist[i]==0 ){
+        cov[i] = sill;
+      }else{
+        tmp = scaled_range*dist[i];
+        //recall that R bessel returns exp(x)*K_nu(x)
+        //so we want log( exp(x)*K_nu(x)*exp(-x) ) = log( exp(x)*K_nu(x) ) - x
+        log_value = log_norm + shape*log(tmp) + log(bessel_k(tmp, shape, 2)) - tmp;
+        //transform back to non-log scale.
+        cov[i] = exp( log_value );
+      }
     }
+  }else{
+    error("Analytical derivatives not available for Matern covariance.");
   }
   return;
 }
 
 /* CAUCHY COVARIANCE FUNCTION */
-void cauchy_cov(int n, double* par, double* dist, double* cov){
+void cauchy_cov(int n, double* par, double* dist, double* cov, int* diff){
   //extract parameters
   int i;
-  double range2 = par[0]*par[0];
+  double range = par[0];
+  double range2 = range*range;
   double sill = par[1];
   double shape = par[2];
-  for(i=0; i<n; i++){
-    cov[i] = sill * R_pow(1 + dist[i]*dist[i]/range2, -shape);
+  double C1 = 0;
+  double C2 = 0;
+
+  if( diff[0]==0 && diff[1]==0 ){
+    //f(d)
+    for(i=0; i<n; i++){
+      cov[i] = sill * R_pow(1 + dist[i]*dist[i]/range2, -shape);
+    }
+  }else if(diff[1]==0){
+    if( diff[0]==1 ){
+      //f'_range(d)
+      C1 = 2*sill*shape / R_pow_di(range,3);
+      for(i=0; i<n; i++){
+        cov[i] =  C1 * dist[i]*dist[i] * R_pow(1 + dist[i]*dist[i]/range2, -shape-1);
+      }
+    }else if( diff[0]==2 ){
+      //f'_sill(d)
+      for(i=0; i<n; i++){
+        cov[i] = R_pow(1 + dist[i]*dist[i]/range2, -shape);
+      }
+    }else{
+      //f'_shape(d)
+      for(i=0; i<n; i++){
+        cov[i] = -sill * R_pow(1 + dist[i]*dist[i]/range2, -shape) *
+          log(1 + dist[i]*dist[i]/range2);
+      }
+    }
+  }else{
+    if( diff[0]==1 && diff[1]==1 ){
+      //f''_range(d)
+      C1 = 4*sill*shape*(shape+1) / R_pow_di(range,6);
+      C2 = -6*sill*shape / R_pow_di(range,4);
+      for(i=0; i<n; i++){
+        cov[i] =  C1 * R_pow_di(dist[i], 4) *
+          R_pow(1 + dist[i]*dist[i]/range2, -shape-2) +
+          C2 * dist[i]*dist[i] * R_pow(1 + dist[i]*dist[i]/range2, -shape-1);
+      }
+    }else if( diff[0]==2 && diff[1]==1 ){
+      //f''_range,sill(d)
+      C1 = 2*shape / R_pow_di(range,3);
+      for(i=0; i<n; i++){
+        cov[i] =  C1 * dist[i]*dist[i] * R_pow(1 + dist[i]*dist[i]/range2, -shape-1);
+      }
+    }else if( diff[0]==3 && diff[1]==1 ){
+      //f''_range,shape(d)
+      C1 = 2*sill / R_pow_di(range,3);
+      for(i=0; i<n; i++){
+        cov[i] =  C1 * dist[i]*dist[i] *
+          R_pow(1 + dist[i]*dist[i]/range2, -shape-1) *
+          (1 - shape * log(1 + dist[i]*dist[i]/range2));
+      }
+    }else if( diff[0]==2 && diff[1]==2 ){
+      //f''_sill(d), zero second derivative zero
+      memset( cov, 0, n*sizeof(double) );
+    }else if( diff[0]==3 && diff[1]==2 ){
+      //f''_sill,shape(d)
+      for(i=0; i<n; i++){
+        cov[i] = - R_pow(1 + dist[i]*dist[i]/range2, -shape) *
+          log(1 + dist[i]*dist[i]/range2);
+      }
+    }else{
+      //f''_shape,shape(d)
+      for(i=0; i<n; i++){
+        cov[i] = sill * R_pow(1 + dist[i]*dist[i]/range2, -shape) *
+          log(1 + dist[i]*dist[i]/range2) * log(1 + dist[i]*dist[i]/range2);
+      }
+    }
   }
+  
   return;
 }
 
 /* IID COVARIANCE FUNCTION (0 matrix, since nugget is added later*/
-void iid_cov(int n, double* par, double* dist, double* cov){
+void iid_cov(int n, double* par, double* dist, double* cov, int* diff){
   memset( cov, 0, n*sizeof(double) );
   return;
 }
@@ -168,7 +424,7 @@ SEXP cov_names_range_sill_shape(){
 //First lets define a struct containing the two function pointers
 typedef struct 
 {
-  void (*cov)(int, double*, double*, double*);
+  void (*cov)(int, double*, double*, double*, int*);
   SEXP (*cov_names)();
 } cov_funs_struct;
 
@@ -222,7 +478,8 @@ cov_funs_struct selectCov(const char* cov_type){
 //  indicator if the matrix is symmetric.
 void computeCovarianceBlock(cov_funs_struct cov_funs, double* pars,
                             double random, double* dist, double* covf,
-                            int n1, int n2, int n_offset, int symmetric){
+                            int n1, int n2, int n_offset, int symmetric,
+                            int* diff){
   //loop variables.
   int i, j;
   //total offset is n1+n_offset
@@ -233,7 +490,7 @@ void computeCovarianceBlock(cov_funs_struct cov_funs, double* pars,
     //1) symmetric (also require n1==n2)
     //compute covariance for the upper right half if the i:th column
     for(i=0; i<n2; ++i){
-      cov_funs.cov(i+1, pars, dist+i*n1, covf+i*n_offset_tot);
+      cov_funs.cov(i+1, pars, dist+i*n1, covf+i*n_offset_tot, diff);
     }
     //Use symmetry to fill in the lower left half
     for(i=0; i<n2; ++i){
@@ -245,12 +502,12 @@ void computeCovarianceBlock(cov_funs_struct cov_funs, double* pars,
     //2) non-symmetric, n_offset!=0
     //compute covariance for the i:th column
     for(i=0; i<n2; ++i){
-      cov_funs.cov(n1, pars, dist+i*n1, covf+i*n_offset_tot);
+      cov_funs.cov(n1, pars, dist+i*n1, covf+i*n_offset_tot, diff);
     }
   }else{
     //3) non-symmetric, n_offset==0 
     //compute everything at once.
-    cov_funs.cov(n1*n2, pars, dist, covf);
+    cov_funs.cov(n1*n2, pars, dist, covf, diff);
   }//if( symmetric!=0 && n1==n2 ){...}else if( n_offset!=0 ){...}else{...}
   
   //if random effect is non-zero, add to all elements in the block
@@ -322,7 +579,7 @@ int max_create_cov(int* vec, int n){
 }
 
 void checkCovarianceFunAndPars(cov_funs_struct cov_funs, const char* cov_type,
-                               int n_pars){
+                               int n_pars, int* diff){
   //valid covariance function?
   if( cov_funs.cov==NULL || cov_funs.cov_names==NULL ){
     error("Unknown covariance specification: 'type' = %s",
@@ -333,12 +590,38 @@ void checkCovarianceFunAndPars(cov_funs_struct cov_funs, const char* cov_type,
     error("Expected %d parameter(s), but length(pars) = %d",
           n_pars, length(cov_funs.cov_names()));
   }
+  if( diff!=NULL ){ //TODO, drop NULL check
+    //check that diff parameters are reasonable
+    if( diff[0]<0 || diff[0]>n_pars || diff[1]<0 || diff[1]>n_pars ){
+      error("Elements in diff must be between 0 and %d; are: %d,%d",
+            n_pars, diff[0], diff[1]);
+    }
+  }
 }//checkCovarianceFunAndPars(...)
+
+/* COMMON HELPER FUNCTIONS AND STRUCTS */
+//extract information regarding differentiation (into pre allocated 2-element vector)
+void extractDiffInfo(SEXP diffR, int* diff){
+  diff[0] = INTEGER(diffR)[0];
+  if( length(diffR)>1 ){
+    int d1 = INTEGER(diffR)[1];
+    //ensure that diff[0] >= diff[1]
+    if( d1 > diff[0] ){
+      diff[1] = diff[0];
+      diff[0] = d1;
+    }else{
+      diff[1] = d1;
+    }
+  }else{
+    diff[1] = 0;
+  }
+}
+
 
 /* R INTERFACE FUNCTIONS FOR COMPUTING COVARIANCES */
 //simple covariance function that just computes values for
 //all elements in the given distance matrix/vector
-SEXP C_cov_simple(SEXP cov_typeR, SEXP parsR, SEXP distR){
+SEXP C_cov_simple(SEXP cov_typeR, SEXP parsR, SEXP distR, SEXP diffR){
 
   //get covariance function name from R variable
   const char* cov_type = CHAR( STRING_ELT(cov_typeR,0) );
@@ -348,19 +631,23 @@ SEXP C_cov_simple(SEXP cov_typeR, SEXP parsR, SEXP distR){
   //number of elements in distance matrix
   int n = length(distR);
   int n_pars = length(parsR);
+  //extract differentiation flags
+  int diff[2];
+  extractDiffInfo(diffR, diff);
+  
   //return variable
   SEXP resultR;
   //figure out the function pointers
   cov_funs_struct cov_funs = selectCov(cov_type);
 
   //check if covariance function is valid
-  checkCovarianceFunAndPars(cov_funs, cov_type, n_pars);
+  checkCovarianceFunAndPars(cov_funs, cov_type, n_pars, diff);
   
   //allocate memory for return value
   PROTECT( resultR = allocMatrix(REALSXP, n, 1) );
 
   //compute covariance function
-  cov_funs.cov(n, pars, dist, REAL(resultR));
+  cov_funs.cov(n, pars, dist, REAL(resultR), diff);
 
   //return values
   UNPROTECT(1); /* resultR */
@@ -368,8 +655,8 @@ SEXP C_cov_simple(SEXP cov_typeR, SEXP parsR, SEXP distR){
 }//C_cov_simple(...)
 
 //compute block cross-covariance matrix for Sigma_B
-SEXP C_makeSigmaB(SEXP cov_typeR, SEXP parsR, SEXP nuggetR,
-                  SEXP distR, SEXP symmetryR, SEXP ind2_to_1R, SEXP sparseR){
+SEXP C_makeSigmaB(SEXP cov_typeR, SEXP parsR, SEXP nuggetR, SEXP distR,
+                  SEXP symmetryR, SEXP ind2_to_1R, SEXP sparseR, SEXP diffR){
   //EXTRACT PARAMETERS FROM R CALL
   int n_blocks = length(cov_typeR);
   double* nugget = REAL(nuggetR);
@@ -386,16 +673,29 @@ SEXP C_makeSigmaB(SEXP cov_typeR, SEXP parsR, SEXP nuggetR,
   //first dimension locations, used for non-symmetric case to determine
   //if we need a nugget
   int* ind2_to_1 = INTEGER(ind2_to_1R);
+  //extract differentiation flags
+  int diff[2];
+  extractDiffInfo(diffR, diff);
+  
+  //loop variables
+  int i, j, k, offset, col_offset, n_blocks_tmp;
+  //number of parameters (in each block) and flags for where diff happens
+  int n_pars;
+  int d1 = -1;
+  int d2 = -1;
+  
   //pointer to list of variables,
   //THIS USES VARIABLE LENGTH ARRAYS, ASSUMING A C99 COMPLIANT COMPILER!!
   double* pars[n_blocks];
   cov_funs_struct cov_funs[n_blocks];
-
-  //loop variables
-  int i, j, k, offset, col_offset, n_blocks_tmp;
+  int* diff_all[n_blocks];
+  for(i=0; i<n_blocks; ++i){
+    diff_all[i] = Calloc(2, int);
+  }
 
   //return variables
-  double *result, *result_all;
+  double *result;
+  double *result_all = NULL;
   double* result_part[n_blocks];
   SEXP resultR, result_partR;
 
@@ -413,13 +713,26 @@ SEXP C_makeSigmaB(SEXP cov_typeR, SEXP parsR, SEXP nuggetR,
   }
   //extract covariance functions, pointers to parameters and number of parameters
   for(i=0; i<n_blocks; ++i){
+    n_pars = length(VECTOR_ELT(parsR, i));
+    //check if diff is for this block (diff>0 since we want to exclude 0)
+    if( diff[0]>0 && diff[0]<=n_pars ){
+      diff_all[i][0] = diff[0];
+      d1=i;
+    }
+    if( diff[1]>0 && diff[1]<=n_pars ){
+      diff_all[i][1] = diff[1];
+      d2=i;
+    }
     //extract covariance function and parameters
     cov_funs[i] = selectCov(CHAR( STRING_ELT(cov_typeR,i) ));
     pars[i] = REAL( VECTOR_ELT(parsR, i) );
     //check that we're getting the right number of parameters
     checkCovarianceFunAndPars(cov_funs[i], CHAR(STRING_ELT(cov_typeR,i)),
-                              length(VECTOR_ELT(parsR, i)) );
-  }
+                              n_pars, diff_all[i] );
+    //adjust diff for possibly matching next block(s)
+    diff[0] = diff[0]-n_pars;
+    diff[1] = diff[1]-n_pars;
+  }//for(i=0; i<n_blocks; ++i)
 
   if( sparse!=0 ){
     //allocate memory for return list of matrices
@@ -445,8 +758,13 @@ SEXP C_makeSigmaB(SEXP cov_typeR, SEXP parsR, SEXP nuggetR,
     n_blocks_tmp = n_blocks;
   }//if( sparse!=0 ){...}else{...}
 
-  //loop over the blocks
-  for(i=0; i<n_blocks; ++i){
+  //loop over the blocks, if d1!=d2 we have second derivatives wrt different
+  //blocks, i.e. just return zero
+  for(i=0; i<n_blocks && (d1==d2 || d2==-1); ++i){
+    if(d1!=-1 && d1!=i){
+      //compute derivatives (d1 != -1) but all blocks except d1==i are non-zero.
+      continue;
+    }
     if( sparse!=0 ){
       result = result_part[i];
       offset = 0;
@@ -455,9 +773,9 @@ SEXP C_makeSigmaB(SEXP cov_typeR, SEXP parsR, SEXP nuggetR,
       offset = i*(n1*n2*n_blocks + n1);
     }
     computeCovarianceBlock(cov_funs[i], pars[i], 0, dist, result + offset,
-                           n1, n2, col_offset, symmetry);
-    //add nugget (if non-zero)
-    if( nugget[i]!=0 ){
+                           n1, n2, col_offset, symmetry, diff_all[i]);
+    //add nugget (if non-zero, and no derivatives)
+    if( nugget[i]!=0 && d1==-1){
       if( symmetry!=0 ){
         //symmetric add to all the diagonals
         for(j=0; j<n1; ++j){
@@ -475,6 +793,11 @@ SEXP C_makeSigmaB(SEXP cov_typeR, SEXP parsR, SEXP nuggetR,
       }//if( symmetry!=0 ){...}else{...}
     }//if( nugget[i]!=0 )
   }//for(i=0; i<n_blocks; ++i)
+
+  //Free the memory allocated for diff
+  for(i=0; i<n_blocks; ++i){
+    Free( diff_all[i] );
+  }
   
   if( sparse!=0 ){
     UNPROTECT(1+n_blocks); /* resultR + list components*/
@@ -487,7 +810,8 @@ SEXP C_makeSigmaB(SEXP cov_typeR, SEXP parsR, SEXP nuggetR,
 //compute block cross-covariance matrix for Sigma_nu
 SEXP C_makeSigmaNu(SEXP cov_typeR, SEXP parsR, SEXP nuggetR, SEXP randomR,
                    SEXP distR, SEXP blocks1R, SEXP blocks2R, SEXP ind1R,
-                   SEXP ind2R, SEXP ind2_to_1R, SEXP symmetryR, SEXP sparseR){
+                   SEXP ind2R, SEXP ind2_to_1R, SEXP symmetryR,
+                   SEXP sparseR, SEXP diffR){
   //EXTRACT PARAMETERS FROM R CALL
   //get covariance function name from R variable
   const char* cov_type = CHAR( STRING_ELT(cov_typeR,0) );
@@ -520,6 +844,9 @@ SEXP C_makeSigmaNu(SEXP cov_typeR, SEXP parsR, SEXP nuggetR, SEXP randomR,
   int symmetry = *INTEGER(symmetryR);
   //return sparse form (i.e. list of blocks)?
   int sparse = *INTEGER(sparseR);
+  //extract differentiation flags
+  int diff[2];
+  extractDiffInfo(diffR, diff);
   
   //loop variables
   int i, j, i_block;
@@ -529,7 +856,8 @@ SEXP C_makeSigmaNu(SEXP cov_typeR, SEXP parsR, SEXP nuggetR, SEXP randomR,
   int n1_block, n2_block;
   
   //return variables
-  double *result, *covf;
+  double *result = NULL;
+  double *covf;
   SEXP resultR, result_partR;
 
   //check dimensions of cov_type, random_effect and nugget
@@ -544,7 +872,7 @@ SEXP C_makeSigmaNu(SEXP cov_typeR, SEXP parsR, SEXP nuggetR, SEXP randomR,
     error("Setting the symmetry flag requires a square distance matrix.");
   }
   //check if covariance function is valid
-  checkCovarianceFunAndPars(cov_funs, cov_type, length(parsR));
+  checkCovarianceFunAndPars(cov_funs, cov_type, length(parsR), diff);
   //check dimensions of blocks
   if( n_blocks!=length(blocks2R) ){
     error("length(blocks1)!=length(blocks2)");
@@ -576,9 +904,9 @@ SEXP C_makeSigmaNu(SEXP cov_typeR, SEXP parsR, SEXP nuggetR, SEXP randomR,
   //Compute the (cross-)covariance matrix for all locations.
   covf = Calloc(n1*n2, double);
   computeCovarianceBlock(cov_funs, pars, random, dist,
-                         covf, n1, n2, 0, symmetry);
-  //add nugget (unless length=1 and 0)
-  if( !(n_nugget!=1 && nugget[0]==0) ){
+                         covf, n1, n2, 0, symmetry, diff);
+  //add nugget (whens length!=1 or nugget!=0, and no diff)
+  if( (n_nugget!=1 || nugget[0]!=0) && diff[0]==0){
     if( symmetry!=0 ){
       //symmetric add to the diagonal
       for(i=0; i<n1; ++i){

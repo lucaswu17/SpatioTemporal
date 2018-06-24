@@ -129,7 +129,7 @@
 ##' 
 ##' @example Rd_examples/Ex_predict_STmodel.R
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' 
 ##' @family STmodel methods
 ##' @family predictSTmodel methods
@@ -359,7 +359,7 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
     Fobs <- expandF(object$F, object$obs$idx, n.loc=dimensions$n.obs)
   
     ##Create the Xtilde = [M FX] matrix
-    Xtilde <- as.matrix( Fobs %*% Matrix::bdiag(object$LUR) )
+    Xtilde <- as.matrix( Fobs %*% bdiag(object$LUR) )
     ##Add the spatio-temporal covariate (if it exists)
     if( dimensions$L!=0 ){
       Xtilde <- cbind(object$ST, Xtilde)
@@ -568,7 +568,7 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
   ##extract sparse matrices
   Funobs <- expandF(Funobs, idx.unobs, n.loc=N.unobs)
   ##compute LUR times the temporal trends [M F*X] for unobserved
-  Xtilde.unobs <- as.matrix( Funobs %*% Matrix::bdiag(STdata$LUR.all) )
+  Xtilde.unobs <- as.matrix( Funobs %*% bdiag(STdata$LUR.all) )
   if( dimensions$L!=0 ){
     Xtilde.unobs <- cbind(ST.unobs, Xtilde.unobs)
   }
@@ -577,7 +577,7 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
 ### COMPUTE BETA FIELDS ###
   ##compute LUR*alpha (mean values for the beta fields)
   out$beta <- list()
-  out$beta$mu <- matrix(Matrix::bdiag(STdata$LUR.all) %*% out$pars$alpha.E,
+  out$beta$mu <- matrix(bdiag(STdata$LUR.all) %*% out$pars$alpha.E,
                         ncol=length(STdata$LUR.all))
   colnames(out$beta$mu) <- names(STdata$LUR.all)
   rownames(out$beta$mu) <- rownames( STdata$LUR.all[[1]] )
@@ -615,7 +615,7 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
 
     ##contribution from REML estimate
     if( out$opts$type=="r" ){
-      var.beta.REML <- (cBind(rep(0,dimensions$L), Matrix::bdiag(STdata$LUR.all)) -
+      var.beta.REML <- (cBind(rep(0,dimensions$L), bdiag(STdata$LUR.all)) -
                         sigma.B.C %*% (t(Fobs)%*%iSoo.Xtilde))
       var.beta.REML <- as.matrix(var.beta.REML)
       if( out$opts$beta.covar ){
@@ -1018,7 +1018,7 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
 ##' @param ... Ignored additional arguments.
 ##' @return Nothing
 ##'
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##'
 ##' @examples
 ##'   ##load data
@@ -1027,6 +1027,7 @@ predict.STmodel <- function(object, x, STdata=NULL, Nmax=1000, only.pars=FALSE,
 ##'   
 ##' 
 ##' @family predictSTmodel methods
+##' @importFrom utils str
 ##' @method print predictSTmodel
 ##' @export
 print.predictSTmodel <- function(x, ...){
@@ -1156,7 +1157,7 @@ print.predictSTmodel <- function(x, ...){
 ##'
 ##' @example Rd_examples/Ex_plot_predictSTmodel.R
 ##'
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' 
 ##' @family predictSTmodel methods
 ##' @method plot predictSTmodel

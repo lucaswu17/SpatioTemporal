@@ -14,40 +14,41 @@ options(width=60, continue="  ")
 
 
 ###################################################
-### code chunk number 3: ST_tutorial.Rnw:232-235
+### code chunk number 3: ST_tutorial.Rnw:232-236
 ###################################################
 library(SpatioTemporal)
+library(Matrix)
 library(plotrix) 
 library(maps)
 
 
 ###################################################
-### code chunk number 4: ST_tutorial.Rnw:247-249
+### code chunk number 4: ST_tutorial.Rnw:248-250
 ###################################################
 data(mesa.data.raw, package="SpatioTemporal")
 str(mesa.data.raw,1)
 
 
 ###################################################
-### code chunk number 5: ST_tutorial.Rnw:261-262
+### code chunk number 5: ST_tutorial.Rnw:262-263
 ###################################################
 head(mesa.data.raw$X)
 
 
 ###################################################
-### code chunk number 6: ST_tutorial.Rnw:276-277
+### code chunk number 6: ST_tutorial.Rnw:277-278
 ###################################################
 mesa.data.raw$obs[1:6,1:5]
 
 
 ###################################################
-### code chunk number 7: ST_tutorial.Rnw:290-291
+### code chunk number 7: ST_tutorial.Rnw:291-292
 ###################################################
 mesa.data.raw$lax.conc.1500[1:6,1:5]
 
 
 ###################################################
-### code chunk number 8: ST_tutorial.Rnw:303-313
+### code chunk number 8: ST_tutorial.Rnw:304-314
 ###################################################
 ##matrix of observations
 obs <- mesa.data.raw$obs
@@ -62,13 +63,13 @@ mesa.data <- createSTdata(obs, covars, SpatioTemporal=ST.list,
 
 
 ###################################################
-### code chunk number 9: ST_tutorial.Rnw:326-327
+### code chunk number 9: ST_tutorial.Rnw:327-328
 ###################################################
 names(mesa.data)
 
 
 ###################################################
-### code chunk number 10: ST_tutorial.Rnw:332-333
+### code chunk number 10: ST_tutorial.Rnw:333-334
 ###################################################
 head(mesa.data$covars)
 
@@ -92,7 +93,7 @@ head(mesa.data$covars)
 
 
 ###################################################
-### code chunk number 12: ST_tutorial.Rnw:382-383
+### code chunk number 12: ST_tutorial.Rnw:383-384
 ###################################################
 ###Plot the locations, see \autoref&fig:map;
 par(mfrow=c(1,1))
@@ -110,59 +111,59 @@ legend("bottomleft", c("AQS","FIXED"), pch=24, bty="n",
 
 
 ###################################################
-### code chunk number 13: ST_tutorial.Rnw:392-394
+### code chunk number 13: ST_tutorial.Rnw:393-395
 ###################################################
 head(mesa.data$trend)
 head(mesa.data$trend.fnc)
 
 
 ###################################################
-### code chunk number 14: ST_tutorial.Rnw:405-407
+### code chunk number 14: ST_tutorial.Rnw:406-408
 ###################################################
 cbind(mesa.data$trend.fnc(mesa.data$trend$date[1:5]), 
       mesa.data$trend[1:5,])
 
 
 ###################################################
-### code chunk number 15: ST_tutorial.Rnw:418-419
+### code chunk number 15: ST_tutorial.Rnw:419-420
 ###################################################
 range(mesa.data$trend$date)
 
 
 ###################################################
-### code chunk number 16: ST_tutorial.Rnw:426-427
+### code chunk number 16: ST_tutorial.Rnw:427-428
 ###################################################
 head(mesa.data$obs)
 
 
 ###################################################
-### code chunk number 17: ST_tutorial.Rnw:454-456
+### code chunk number 17: ST_tutorial.Rnw:455-457
 ###################################################
 dim(mesa.data$SpatioTemp)
 mesa.data$SpatioTemp[1:5,1:5,,drop=FALSE]
 
 
 ###################################################
-### code chunk number 18: ST_tutorial.Rnw:480-481
+### code chunk number 18: ST_tutorial.Rnw:481-482
 ###################################################
 str(dimnames(mesa.data$SpatioTemp))
 
 
 ###################################################
-### code chunk number 19: ST_tutorial.Rnw:485-487 (eval = FALSE)
+### code chunk number 19: ST_tutorial.Rnw:486-488 (eval = FALSE)
 ###################################################
 ## as.character(sort(unique(c(mesa.data$obs$date,
 ##     mesa.data$trend$date))))
 
 
 ###################################################
-### code chunk number 20: ST_tutorial.Rnw:491-492
+### code chunk number 20: ST_tutorial.Rnw:492-493
 ###################################################
 dimnames(mesa.data$SpatioTemp)[[3]]
 
 
 ###################################################
-### code chunk number 21: ST_tutorial.Rnw:500-501
+### code chunk number 21: ST_tutorial.Rnw:501-502
 ###################################################
 print(mesa.data)
 
@@ -176,7 +177,7 @@ print(mesa.data)
 
 
 ###################################################
-### code chunk number 23: ST_tutorial.Rnw:532-533
+### code chunk number 23: ST_tutorial.Rnw:533-534
 ###################################################
 ###Plot when observations occurr, see \autoref&fig:time_space;
 par(mfcol=c(1,1), mar=c(4.3,4.3,1,1))
@@ -184,28 +185,28 @@ plot(mesa.data, "loc")
 
 
 ###################################################
-### code chunk number 24: ST_tutorial.Rnw:549-551
+### code chunk number 24: ST_tutorial.Rnw:550-552
 ###################################################
 LUR <-  list(~log10.m.to.a1+s2000.pop.div.10000+km.to.coast,
              ~km.to.coast, ~km.to.coast)
 
 
 ###################################################
-### code chunk number 25: ST_tutorial.Rnw:555-557
+### code chunk number 25: ST_tutorial.Rnw:556-558
 ###################################################
 cov.beta <- list(covf="exp", nugget=FALSE)
 cov.nu <- list(covf="exp", nugget=~type)
 
 
 ###################################################
-### code chunk number 26: ST_tutorial.Rnw:571-573
+### code chunk number 26: ST_tutorial.Rnw:572-574
 ###################################################
 locations <- list(coords=c("x","y"), long.lat=c("long","lat"), 
   others="type")
 
 
 ###################################################
-### code chunk number 27: ST_tutorial.Rnw:580-586
+### code chunk number 27: ST_tutorial.Rnw:581-587
 ###################################################
 mesa.model <- createSTmodel(mesa.data, LUR=LUR, 
                             ST="lax.conc.1500",
@@ -216,7 +217,7 @@ print(mesa.model)
 
 
 ###################################################
-### code chunk number 28: ST_tutorial.Rnw:603-607
+### code chunk number 28: ST_tutorial.Rnw:604-608
 ###################################################
 cov.beta2 <- list(covf=c("exp","exp2","iid"), 
                   nugget=c(FALSE,FALSE,TRUE))
@@ -225,60 +226,60 @@ print(mesa.model2)
 
 
 ###################################################
-### code chunk number 29: ST_tutorial.Rnw:619-621
+### code chunk number 29: ST_tutorial.Rnw:620-622
 ###################################################
 model.dim <- loglikeSTdim(mesa.model)
 str(model.dim)
 
 
 ###################################################
-### code chunk number 30: ST_tutorial.Rnw:632-634
+### code chunk number 30: ST_tutorial.Rnw:633-635
 ###################################################
 x.init <- cbind(c( rep(2, model.dim$nparam.cov-1), 0),
                 c( rep(c(1,-3), model.dim$m+1), -3, 0))
 
 
 ###################################################
-### code chunk number 31: ST_tutorial.Rnw:650-652
+### code chunk number 31: ST_tutorial.Rnw:651-653
 ###################################################
 rownames(x.init) <- loglikeSTnames(mesa.model, all=FALSE)
 x.init
 
 
 ###################################################
-### code chunk number 32: ST_tutorial.Rnw:657-659 (eval = FALSE)
+### code chunk number 32: ST_tutorial.Rnw:658-660 (eval = FALSE)
 ###################################################
 ## est.mesa.model <- estimate(mesa.model, x.init, 
 ##                            type="p", hessian.all=TRUE)
 
 
 ###################################################
-### code chunk number 33: ST_tutorial.Rnw:662-663
+### code chunk number 33: ST_tutorial.Rnw:663-664
 ###################################################
 data(est.mesa.model, package="SpatioTemporal")
 
 
 ###################################################
-### code chunk number 34: ST_tutorial.Rnw:693-695
+### code chunk number 34: ST_tutorial.Rnw:694-696
 ###################################################
 loglikeST(est.mesa.model$res.best$par, mesa.model)
 est.mesa.model$res.best$value
 
 
 ###################################################
-### code chunk number 35: ST_tutorial.Rnw:702-703
+### code chunk number 35: ST_tutorial.Rnw:703-704
 ###################################################
 print(est.mesa.model)
 
 
 ###################################################
-### code chunk number 36: ST_tutorial.Rnw:718-719
+### code chunk number 36: ST_tutorial.Rnw:719-720
 ###################################################
 names(est.mesa.model)
 
 
 ###################################################
-### code chunk number 37: ST_tutorial.Rnw:726-729
+### code chunk number 37: ST_tutorial.Rnw:727-730
 ###################################################
 names(est.mesa.model$res.best)
 names(est.mesa.model$res.all[[1]])
@@ -286,38 +287,38 @@ names(est.mesa.model$res.all[[2]])
 
 
 ###################################################
-### code chunk number 38: ST_tutorial.Rnw:773-774
+### code chunk number 38: ST_tutorial.Rnw:774-775
 ###################################################
 coef(est.mesa.model, pars="cov")[,1:2]
 
 
 ###################################################
-### code chunk number 39: ST_tutorial.Rnw:796-798 (eval = FALSE)
+### code chunk number 39: ST_tutorial.Rnw:797-799 (eval = FALSE)
 ###################################################
 ## pred.mesa.model <- predict(mesa.model, est.mesa.model, 
 ##                            pred.var=TRUE)
 
 
 ###################################################
-### code chunk number 40: ST_tutorial.Rnw:801-802
+### code chunk number 40: ST_tutorial.Rnw:802-803
 ###################################################
 data(pred.mesa.model, package="SpatioTemporal")
 
 
 ###################################################
-### code chunk number 41: ST_tutorial.Rnw:806-807
+### code chunk number 41: ST_tutorial.Rnw:807-808
 ###################################################
 names(pred.mesa.model)
 
 
 ###################################################
-### code chunk number 42: ST_tutorial.Rnw:810-811
+### code chunk number 42: ST_tutorial.Rnw:811-812
 ###################################################
 print(pred.mesa.model)
 
 
 ###################################################
-### code chunk number 43: ST_tutorial.Rnw:861-862
+### code chunk number 43: ST_tutorial.Rnw:862-863
 ###################################################
 beta <- estimateBetaFields(mesa.model)
 
@@ -341,7 +342,7 @@ beta <- estimateBetaFields(mesa.model)
 
 
 ###################################################
-### code chunk number 45: ST_tutorial.Rnw:890-891
+### code chunk number 45: ST_tutorial.Rnw:891-892
 ###################################################
 par(mfrow=c(2,2), mar=c(3.3,3.3,1.5,1), mgp=c(2,1,0), pty="s")
 for(i in 1:3){
@@ -373,7 +374,7 @@ for(i in 1:3){
 
 
 ###################################################
-### code chunk number 47: ST_tutorial.Rnw:931-932
+### code chunk number 47: ST_tutorial.Rnw:932-933
 ###################################################
 par(mfrow=c(4,1),mar=c(2.5,2.5,2,.5))
 for(i in c(1,10,17,22)){
@@ -387,20 +388,20 @@ for(i in c(1,10,17,22)){
 
 
 ###################################################
-### code chunk number 48: ST_tutorial.Rnw:947-949
+### code chunk number 48: ST_tutorial.Rnw:948-950
 ###################################################
 Ind.cv <- createCV(mesa.model, groups=10, min.dist=.1)
 Ind.cv[1:10]
 
 
 ###################################################
-### code chunk number 49: ST_tutorial.Rnw:961-962
+### code chunk number 49: ST_tutorial.Rnw:962-963
 ###################################################
 table(Ind.cv)
 
 
 ###################################################
-### code chunk number 50: ST_tutorial.Rnw:975-982
+### code chunk number 50: ST_tutorial.Rnw:976-983
 ###################################################
 n.obs <- table(mesa.model$obs$ID)
 ID1 <- names( n.obs[n.obs>270] )
@@ -412,21 +413,21 @@ Ind.cv2 <- createCV(mesa.model, groups=10,
 
 
 ###################################################
-### code chunk number 51: ST_tutorial.Rnw:985-987
+### code chunk number 51: ST_tutorial.Rnw:986-988
 ###################################################
 colSums(Ind.cv1)
 colSums(Ind.cv2)
 
 
 ###################################################
-### code chunk number 52: ST_tutorial.Rnw:990-992
+### code chunk number 52: ST_tutorial.Rnw:991-993
 ###################################################
 Ind.cv.final <- Ind.cv1 | Ind.cv2
 colSums(Ind.cv.final)
 
 
 ###################################################
-### code chunk number 53: ST_tutorial.Rnw:995-998
+### code chunk number 53: ST_tutorial.Rnw:996-999
 ###################################################
 table(Ind.cv)
 ##easier if we sort by number of observations in each group
@@ -434,20 +435,20 @@ rbind(sort(table(Ind.cv)), sort(colSums(Ind.cv.final)))
 
 
 ###################################################
-### code chunk number 54: ST_tutorial.Rnw:1002-1004
+### code chunk number 54: ST_tutorial.Rnw:1003-1005
 ###################################################
 ID.cv <- sapply(split(mesa.model$obs$ID, Ind.cv),unique)
 print(ID.cv)
 
 
 ###################################################
-### code chunk number 55: ST_tutorial.Rnw:1009-1010
+### code chunk number 55: ST_tutorial.Rnw:1010-1011
 ###################################################
 mesa.model$D.beta[ID.cv[[10]],ID.cv[[10]]]
 
 
 ###################################################
-### code chunk number 56: ST_tutorial.Rnw:1023-1029
+### code chunk number 56: ST_tutorial.Rnw:1024-1030
 ###################################################
 I.col <- apply(sapply(ID.cv,
                       function(x) mesa.model$locations$ID
@@ -470,7 +471,7 @@ print(I.col)
 
 
 ###################################################
-### code chunk number 58: ST_tutorial.Rnw:1045-1046
+### code chunk number 58: ST_tutorial.Rnw:1046-1047
 ###################################################
 par(mfrow=c(1,1))
 plot(mesa.model$locations$long,
@@ -482,81 +483,81 @@ map("county", "california", col="#FFFF0055",
 
 
 ###################################################
-### code chunk number 59: ST_tutorial.Rnw:1074-1076 (eval = FALSE)
+### code chunk number 59: ST_tutorial.Rnw:1075-1077 (eval = FALSE)
 ###################################################
 ## x.init <- coef(est.mesa.model, pars="cov")[,c("par","init")]
 ## est.cv.mesa <- estimateCV(mesa.model, x.init, Ind.cv)
 
 
 ###################################################
-### code chunk number 60: ST_tutorial.Rnw:1079-1080
+### code chunk number 60: ST_tutorial.Rnw:1080-1081
 ###################################################
 data(est.cv.mesa, package="SpatioTemporal")
 
 
 ###################################################
-### code chunk number 61: ST_tutorial.Rnw:1084-1085
+### code chunk number 61: ST_tutorial.Rnw:1085-1086
 ###################################################
 print(est.cv.mesa)
 
 
 ###################################################
-### code chunk number 62: ST_tutorial.Rnw:1095-1096
+### code chunk number 62: ST_tutorial.Rnw:1096-1097
 ###################################################
 head( coef(est.cv.mesa) )
 
 
 ###################################################
-### code chunk number 63: ST_tutorial.Rnw:1117-1118 (eval = FALSE)
+### code chunk number 63: ST_tutorial.Rnw:1118-1119 (eval = FALSE)
 ###################################################
 ## pred.cv.mesa <- predictCV(mesa.model, est.cv.mesa, LTA=TRUE)
 
 
 ###################################################
-### code chunk number 64: ST_tutorial.Rnw:1121-1122
+### code chunk number 64: ST_tutorial.Rnw:1122-1123
 ###################################################
 data(pred.cv.mesa, package="SpatioTemporal")
 
 
 ###################################################
-### code chunk number 65: ST_tutorial.Rnw:1127-1129
+### code chunk number 65: ST_tutorial.Rnw:1128-1130
 ###################################################
 print(pred.cv.mesa)
 names(pred.cv.mesa)
 
 
 ###################################################
-### code chunk number 66: ST_tutorial.Rnw:1133-1134
+### code chunk number 66: ST_tutorial.Rnw:1134-1135
 ###################################################
 str(pred.cv.mesa$pred.obs)
 
 
 ###################################################
-### code chunk number 67: ST_tutorial.Rnw:1138-1139
+### code chunk number 67: ST_tutorial.Rnw:1139-1140
 ###################################################
 str(pred.cv.mesa$pred.all,1)
 
 
 ###################################################
-### code chunk number 68: ST_tutorial.Rnw:1143-1144
+### code chunk number 68: ST_tutorial.Rnw:1144-1145
 ###################################################
 names(pred.mesa.model)
 
 
 ###################################################
-### code chunk number 69: ST_tutorial.Rnw:1148-1149
+### code chunk number 69: ST_tutorial.Rnw:1149-1150
 ###################################################
 str(pred.cv.mesa$pred.LTA)
 
 
 ###################################################
-### code chunk number 70: ST_tutorial.Rnw:1153-1154
+### code chunk number 70: ST_tutorial.Rnw:1154-1155
 ###################################################
 summary(pred.cv.mesa)
 
 
 ###################################################
-### code chunk number 71: ST_tutorial.Rnw:1172-1175
+### code chunk number 71: ST_tutorial.Rnw:1173-1176
 ###################################################
 I.season <- as.factor(as.POSIXlt(pred.cv.mesa$pred.obs$date)$mon+1)
 levels(I.season) <- c(rep("Winter",2), rep("Spring",3), 
@@ -564,7 +565,7 @@ levels(I.season) <- c(rep("Winter",2), rep("Spring",3),
 
 
 ###################################################
-### code chunk number 72: ST_tutorial.Rnw:1179-1180
+### code chunk number 72: ST_tutorial.Rnw:1180-1181
 ###################################################
 table(I.season)
 
@@ -581,7 +582,7 @@ table(I.season)
 
 
 ###################################################
-### code chunk number 74: ST_tutorial.Rnw:1202-1203
+### code chunk number 74: ST_tutorial.Rnw:1203-1204
 ###################################################
 par(mfrow=c(1,2), mar=c(3,2,1,1), pty="s")
 qqnorm(pred.cv.mesa, col=I.season, line=2)
@@ -621,7 +622,7 @@ legend("bottomright", legend=as.character(levels(I.season)),
 
 
 ###################################################
-### code chunk number 77: ST_tutorial.Rnw:1255-1256
+### code chunk number 77: ST_tutorial.Rnw:1256-1257
 ###################################################
 par(mfcol=c(2,1),mar=c(4.5,4.5,2,2))
 scatterPlot(pred.cv.mesa, trend=1, group=I.season, col=c(2:5,1), 
@@ -634,7 +635,7 @@ legend("topleft", levels(I.season), col=c(2:5), pch=1, cex=.75)
 
 
 ###################################################
-### code chunk number 78: ST_tutorial.Rnw:1263-1264
+### code chunk number 78: ST_tutorial.Rnw:1264-1265
 ###################################################
 par(mfcol=c(1,2),mar=c(4.5,4.5,2,2))
 scatterPlot(pred.cv.mesa, covar="log10.m.to.a1", group=I.season, 
@@ -650,14 +651,14 @@ scatterPlot(pred.cv.mesa, covar="log10.m.to.a1", group=I.season,
 
 
 ###################################################
-### code chunk number 79: ST_tutorial.Rnw:1302-1304
+### code chunk number 79: ST_tutorial.Rnw:1303-1305
 ###################################################
 ##clean up
 rm(list=ls())
 
 
 ###################################################
-### code chunk number 80: ST_tutorial.Rnw:1312-1320
+### code chunk number 80: ST_tutorial.Rnw:1313-1321
 ###################################################
 ##libraries
 library(SpatioTemporal)
@@ -670,7 +671,7 @@ data(est.mesa.model)
 
 
 ###################################################
-### code chunk number 81: ST_tutorial.Rnw:1326-1331
+### code chunk number 81: ST_tutorial.Rnw:1327-1332
 ###################################################
 mesa.data.raw$obs <- 
   mesa.data.raw$obs[,!(colnames(mesa.data.raw$obs) %in%
@@ -680,7 +681,7 @@ mesa.data <- with(mesa.data.raw,
 
 
 ###################################################
-### code chunk number 82: ST_tutorial.Rnw:1335-1338
+### code chunk number 82: ST_tutorial.Rnw:1336-1339
 ###################################################
 mesa.data.org <- mesa.data
 T <- with(mesa.data$trend, seq(min(date), max(date), by=7))
@@ -688,14 +689,14 @@ mesa.data <- updateTrend(mesa.data, n.basis=2, extra.dates=T)
 
 
 ###################################################
-### code chunk number 83: ST_tutorial.Rnw:1344-1346
+### code chunk number 83: ST_tutorial.Rnw:1345-1347
 ###################################################
 print(mesa.data)
 print(mesa.data.org)
 
 
 ###################################################
-### code chunk number 84: ST_tutorial.Rnw:1349-1358
+### code chunk number 84: ST_tutorial.Rnw:1350-1359
 ###################################################
 par(mfrow=c(2,1), mar=c(2,2,2,1))
 plot(mesa.data$trend$date, mesa.data$trend$V1, 
@@ -709,7 +710,7 @@ points(mesa.data.org$trend$date, mesa.data.org$trend$V2,
 
 
 ###################################################
-### code chunk number 85: ST_tutorial.Rnw:1365-1373
+### code chunk number 85: ST_tutorial.Rnw:1366-1374
 ###################################################
 mesa.model.1 <- createSTmodel(mesa.data,
   LUR=mesa.model$LUR.list, cov.beta=mesa.model$cov.beta, 
@@ -722,41 +723,41 @@ mesa.model.2 <- createSTmodel(mesa.data.org,
 
 
 ###################################################
-### code chunk number 86: ST_tutorial.Rnw:1376-1378
+### code chunk number 86: ST_tutorial.Rnw:1377-1379
 ###################################################
 print(mesa.model.1)
 print(mesa.model.2)
 
 
 ###################################################
-### code chunk number 87: ST_tutorial.Rnw:1381-1383
+### code chunk number 87: ST_tutorial.Rnw:1382-1384
 ###################################################
 str(loglikeSTdim(mesa.model.1))
 str(loglikeSTdim(mesa.model.2))
 
 
 ###################################################
-### code chunk number 88: ST_tutorial.Rnw:1386-1388
+### code chunk number 88: ST_tutorial.Rnw:1387-1389
 ###################################################
 dim(mesa.model.1$trend)
 dim(mesa.model.2$trend)
 
 
 ###################################################
-### code chunk number 89: ST_tutorial.Rnw:1399-1400
+### code chunk number 89: ST_tutorial.Rnw:1400-1401
 ###################################################
 x <- coef(est.mesa.model, pars="cov")$par
 
 
 ###################################################
-### code chunk number 90: ST_tutorial.Rnw:1404-1406
+### code chunk number 90: ST_tutorial.Rnw:1405-1407
 ###################################################
 E.1 <- predict(mesa.model.1, x, pred.var=FALSE)
 E.2 <- predict(mesa.model.2, x, pred.var=FALSE)
 
 
 ###################################################
-### code chunk number 91: ST_tutorial.Rnw:1411-1415
+### code chunk number 91: ST_tutorial.Rnw:1412-1416
 ###################################################
 colnames(E.1$EX)
 str(E.1$EX)
@@ -765,19 +766,19 @@ str(E.2$EX)
 
 
 ###################################################
-### code chunk number 92: ST_tutorial.Rnw:1418-1419
+### code chunk number 92: ST_tutorial.Rnw:1419-1420
 ###################################################
 range(E.1$EX[rownames(E.2$EX),colnames(E.2$EX)] - E.2$EX)
 
 
 ###################################################
-### code chunk number 93: ST_tutorial.Rnw:1423-1424
+### code chunk number 93: ST_tutorial.Rnw:1424-1425
 ###################################################
 E.3 <- predict(mesa.model.2, x, STdata=mesa.data, pred.var=FALSE)
 
 
 ###################################################
-### code chunk number 94: ST_tutorial.Rnw:1430-1433
+### code chunk number 94: ST_tutorial.Rnw:1431-1434
 ###################################################
 colnames(E.3$EX)
 str(E.3$EX)
@@ -785,13 +786,13 @@ all.equal(E.3,E.1)
 
 
 ###################################################
-### code chunk number 95: ST_tutorial.Rnw:1435-1436
+### code chunk number 95: ST_tutorial.Rnw:1436-1437
 ###################################################
 stopifnot( all.equal(E.3,E.1) )
 
 
 ###################################################
-### code chunk number 96: ST_tutorial.Rnw:1446-1449
+### code chunk number 96: ST_tutorial.Rnw:1447-1450
 ###################################################
 LTA <- with(mesa.model.1$trend, split(date,as.POSIXlt(date)$year+1900))
 str(LTA)
@@ -799,7 +800,7 @@ lapply(LTA[1:3], range)
 
 
 ###################################################
-### code chunk number 97: ST_tutorial.Rnw:1453-1456
+### code chunk number 97: ST_tutorial.Rnw:1454-1457
 ###################################################
 ID <- mesa.model.1$locations$ID
 LTA <- rep(list(LTA), length(ID))
@@ -807,39 +808,39 @@ names(LTA) <- ID
 
 
 ###################################################
-### code chunk number 98: ST_tutorial.Rnw:1460-1461
+### code chunk number 98: ST_tutorial.Rnw:1461-1462
 ###################################################
 E.1.LTA <- predict(mesa.model.1, x, pred.var=FALSE, LTA=LTA)
 
 
 ###################################################
-### code chunk number 99: ST_tutorial.Rnw:1465-1466
+### code chunk number 99: ST_tutorial.Rnw:1466-1467
 ###################################################
 head(E.1.LTA$LTA)
 
 
 ###################################################
-### code chunk number 100: ST_tutorial.Rnw:1477-1479
+### code chunk number 100: ST_tutorial.Rnw:1478-1480
 ###################################################
 E.1.LTA.alt <- sapply(split(E.1$EX[,1], as.POSIXlt(rownames(E.1$EX))$year),mean)
 cbind(E.1.LTA.alt, E.1.LTA$LTA$EX[1:11])
 
 
 ###################################################
-### code chunk number 101: ST_tutorial.Rnw:1481-1482
+### code chunk number 101: ST_tutorial.Rnw:1482-1483
 ###################################################
 stopifnot( max(abs(E.1.LTA.alt- E.1.LTA$LTA$EX[1:11]))<1e-14 )
 
 
 ###################################################
-### code chunk number 102: ST_tutorial.Rnw:1486-1488
+### code chunk number 102: ST_tutorial.Rnw:1487-1489
 ###################################################
 ##clean up
 rm(list=ls())
 
 
 ###################################################
-### code chunk number 103: ST_tutorial.Rnw:1499-1507
+### code chunk number 103: ST_tutorial.Rnw:1500-1508
 ###################################################
 ##Load libraries
 library(SpatioTemporal)
@@ -852,21 +853,21 @@ data(est.mesa.model)
 
 
 ###################################################
-### code chunk number 104: ST_tutorial.Rnw:1513-1515
+### code chunk number 104: ST_tutorial.Rnw:1514-1516
 ###################################################
 x <- coef(est.mesa.model)$par
 sim.data <- simulate(mesa.model, nsim=4, x=x)
 
 
 ###################################################
-### code chunk number 105: ST_tutorial.Rnw:1518-1520
+### code chunk number 105: ST_tutorial.Rnw:1519-1521
 ###################################################
 names(sim.data)
 str(sim.data,1)
 
 
 ###################################################
-### code chunk number 106: ST_tutorial.Rnw:1527-1534
+### code chunk number 106: ST_tutorial.Rnw:1528-1535
 ###################################################
 mesa.data.sim <- list()
 for(i in 1:length(sim.data$obs)){
@@ -878,7 +879,7 @@ for(i in 1:length(sim.data$obs)){
 
 
 ###################################################
-### code chunk number 107: ST_tutorial.Rnw:1540-1545
+### code chunk number 107: ST_tutorial.Rnw:1541-1546
 ###################################################
 data(mesa.data.raw)
 mesa.data.raw$X <- mesa.data.raw$X[mesa.data.raw$X[,"ID"]=="60590001",]
@@ -888,7 +889,7 @@ mesa.data <- createSTdata(obs=NULL, covars=mesa.data.raw$X,
 
 
 ###################################################
-### code chunk number 108: ST_tutorial.Rnw:1551-1555
+### code chunk number 108: ST_tutorial.Rnw:1552-1556
 ###################################################
 E <- list()
 for(i in 1:length(sim.data$obs)){
@@ -897,7 +898,7 @@ for(i in 1:length(sim.data$obs)){
 
 
 ###################################################
-### code chunk number 109: ST_tutorial.Rnw:1564-1573
+### code chunk number 109: ST_tutorial.Rnw:1565-1574
 ###################################################
 par(mfrow=c(2,2),mar=c(2.5,2.5,2,.5))
 for(i in 1:4){
@@ -911,14 +912,14 @@ for(i in 1:4){
 
 
 ###################################################
-### code chunk number 110: ST_tutorial.Rnw:1577-1579
+### code chunk number 110: ST_tutorial.Rnw:1578-1580
 ###################################################
 ##clean up
 rm(list=ls())
 
 
 ###################################################
-### code chunk number 111: ST_tutorial.Rnw:1588-1594
+### code chunk number 111: ST_tutorial.Rnw:1589-1595
 ###################################################
 library(SpatioTemporal)
 library(plotrix) 
@@ -929,7 +930,7 @@ data(est.mesa.model)
 
 
 ###################################################
-### code chunk number 112: ST_tutorial.Rnw:1605-1609
+### code chunk number 112: ST_tutorial.Rnw:1606-1610
 ###################################################
 ##parameters
 x <- coef(est.mesa.model)
@@ -938,33 +939,33 @@ H <- est.mesa.model$res.best$hessian.all
 
 
 ###################################################
-### code chunk number 113: ST_tutorial.Rnw:1612-1614 (eval = FALSE)
+### code chunk number 113: ST_tutorial.Rnw:1613-1615 (eval = FALSE)
 ###################################################
 ## MCMC.mesa.model <- MCMC(mesa.model, x$par, N = 2500, 
 ##                         Hessian.prop = H)
 
 
 ###################################################
-### code chunk number 114: ST_tutorial.Rnw:1617-1618
+### code chunk number 114: ST_tutorial.Rnw:1618-1619
 ###################################################
 data(MCMC.mesa.model)
 
 
 ###################################################
-### code chunk number 115: ST_tutorial.Rnw:1624-1626
+### code chunk number 115: ST_tutorial.Rnw:1625-1627
 ###################################################
 print(MCMC.mesa.model)
 names(MCMC.mesa.model)
 
 
 ###################################################
-### code chunk number 116: ST_tutorial.Rnw:1629-1630
+### code chunk number 116: ST_tutorial.Rnw:1630-1631
 ###################################################
 summary(MCMC.mesa.model)
 
 
 ###################################################
-### code chunk number 117: ST_tutorial.Rnw:1636-1640
+### code chunk number 117: ST_tutorial.Rnw:1637-1641
 ###################################################
 par(mfrow=c(4,1),mar=c(2,2,2.5,.5))
 for(i in c(4,9,13,15)){
@@ -973,7 +974,7 @@ for(i in c(4,9,13,15)){
 
 
 ###################################################
-### code chunk number 118: ST_tutorial.Rnw:1646-1653
+### code chunk number 118: ST_tutorial.Rnw:1647-1654
 ###################################################
 dens <- density(MCMC.mesa.model, estSTmodel=x)
 

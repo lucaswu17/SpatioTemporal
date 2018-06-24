@@ -171,6 +171,11 @@ internalPlotFixArgs <- function(args, default=NULL, add=NULL){
 ###########################################################################
 ## Parts of S3 plot that are common for predictSTmodel and predCVSTmodel ##
 ###########################################################################
+##' @importFrom graphics abline
+##' @importFrom graphics lines
+##' @importFrom graphics points
+##' @importFrom graphics polygon
+##' @importFrom stats qnorm
 internalPlotPredictions <- function(plot.type, ID, pred, obs, col, pch, cex,
                                     lty, lwd, p, add, transform=NULL, ...){
   ##compute the quantile
@@ -456,6 +461,8 @@ createSTmodelInternalDistance <- function(STmodel){
 ########################################################################
 ## Common helper functions for S3 qqnorm.STdata/STmodel/predCVSTmodel ##
 ########################################################################
+##' @importFrom graphics abline
+##' @importFrom stats qqline
 internalQQnormPlot <- function(Y, ID, main, group, col, norm, line, ...){
   ##check inputs, first ID
   ID.unique <- unique(Y$ID)
@@ -512,6 +519,9 @@ internalQQnormPlot <- function(Y, ID, main, group, col, norm, line, ...){
 #############################################################################
 ## Common helper functions for S3 scatterPlot.STdata/STmodel/predCVSTmodel ##
 #############################################################################
+##' @importFrom graphics plot
+##' @importFrom graphics points
+##' @importFrom stats loess.smooth
 internalScatterPlot <- function(obs, covar, trend, data, subset, group, pch,
                                 col, cex, lty, add, smooth.args, ...){
   ##need to specify either covar or trend
@@ -637,6 +647,8 @@ internalSTmodelCreateF <- function(STmodel){
 ###################################################################
 ## Common helper functions for predictCV, computes CV-statistics ##
 ###################################################################
+##' @importFrom stats var
+##' @importFrom stats qnorm
 internalSummaryPredCVSTmodel <- function(pred.struct, EX.names, transform,
                                          opts, I.n, out){
   obs <- transform( pred.struct$obs )

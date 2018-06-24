@@ -89,7 +89,7 @@
 ##' 
 ##' @return Does not return.
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##'
 ##' @export
 make.sigma.B <- function(...){

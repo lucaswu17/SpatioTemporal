@@ -2,16 +2,17 @@
 ### Encoding: ISO8859-1
 
 ###################################################
-### code chunk number 1: ST_intro.Rnw:124-128
+### code chunk number 1: ST_intro.Rnw:124-129
 ###################################################
 ##initial set-up: load libraries
 library(SpatioTemporal)
+library(Matrix)
 library(plotrix) 
 library(maps)
 
 
 ###################################################
-### code chunk number 2: ST_intro.Rnw:678-723
+### code chunk number 2: ST_intro.Rnw:679-724
 ###################################################
 ##load precomputed results
 data(mesa.data.raw, package="SpatioTemporal")
@@ -129,7 +130,7 @@ pred.log.2 <- predict(mesa.model.obs, pars, mesa.data.2,
 
 
 ###################################################
-### code chunk number 5: ST_intro.Rnw:830-834
+### code chunk number 5: ST_intro.Rnw:831-835
 ###################################################
 par(mfcol=c(2,1), mar=c(.5,3.3,2,1), mgp=c(2,1,0))
 ##prediction interval for additional time-points
@@ -194,23 +195,24 @@ legend("topleft", c("Observations",
 
 
 ###################################################
-### code chunk number 6: ST_intro.Rnw:1176-1180
+### code chunk number 6: ST_intro.Rnw:1177-1182
 ###################################################
 library(SpatioTemporal)
+library(Matrix)
 library(plotrix) 
 library(maps)
 data(mesa.data.raw, package="SpatioTemporal")
 
 
 ###################################################
-### code chunk number 7: ST_intro.Rnw:1188-1190
+### code chunk number 7: ST_intro.Rnw:1190-1192
 ###################################################
 mesa.data <- createSTdata(obs=mesa.data.raw$obs, covars=mesa.data.raw$X, 
    SpatioTemporal=list(lax.conc.1500=mesa.data.raw$lax.conc.1500))
 
 
 ###################################################
-### code chunk number 8: ST_intro.Rnw:1208-1209
+### code chunk number 8: ST_intro.Rnw:1210-1211
 ###################################################
 table(mesa.data.raw$X$type)
 
@@ -230,7 +232,7 @@ table(mesa.data.raw$X$type)
 
 
 ###################################################
-### code chunk number 10: ST_intro.Rnw:1236-1237
+### code chunk number 10: ST_intro.Rnw:1238-1239
 ###################################################
 layout(matrix(c(1,2,1,3), 2, 2))
 par(mar=c(2.3,3.3,2,1), mgp=c(2,1,0))
@@ -244,25 +246,25 @@ scatterPlot(mesa.data, covar="km.to.coast", xlab="Distance to coast",
 
 
 ###################################################
-### code chunk number 11: ST_intro.Rnw:1256-1257
+### code chunk number 11: ST_intro.Rnw:1258-1259
 ###################################################
 D <- createDataMatrix(mesa.data)
 
 
 ###################################################
-### code chunk number 12: ST_intro.Rnw:1268-1269
+### code chunk number 12: ST_intro.Rnw:1270-1271
 ###################################################
 SVD.cv <- SVDsmoothCV(D, 0:4)
 
 
 ###################################################
-### code chunk number 13: ST_intro.Rnw:1271-1272 (eval = FALSE)
+### code chunk number 13: ST_intro.Rnw:1273-1274 (eval = FALSE)
 ###################################################
 ## SVD.cv <- SVDsmoothCV(D, 0:4)
 
 
 ###################################################
-### code chunk number 14: ST_intro.Rnw:1277-1278
+### code chunk number 14: ST_intro.Rnw:1279-1280
 ###################################################
 print(SVD.cv)
 
@@ -274,26 +276,26 @@ print(SVD.cv)
 
 
 ###################################################
-### code chunk number 16: ST_intro.Rnw:1294-1296
+### code chunk number 16: ST_intro.Rnw:1296-1298
 ###################################################
 par(mgp=c(2,1,0))
 plot(SVD.cv)
 
 
 ###################################################
-### code chunk number 17: ST_intro.Rnw:1304-1305
+### code chunk number 17: ST_intro.Rnw:1306-1307
 ###################################################
 mesa.data <- updateTrend(mesa.data, n.basis=2)
 
 
 ###################################################
-### code chunk number 18: ST_intro.Rnw:1310-1311
+### code chunk number 18: ST_intro.Rnw:1312-1313
 ###################################################
 smooth.trend <- calcSmoothTrends(mesa.data, n.basis=2, cv=TRUE)
 
 
 ###################################################
-### code chunk number 19: ST_intro.Rnw:1313-1314 (eval = FALSE)
+### code chunk number 19: ST_intro.Rnw:1315-1316 (eval = FALSE)
 ###################################################
 ## smooth.trend <- calcSmoothTrends(mesa.data, n.basis=2, cv=TRUE)
 
@@ -314,7 +316,7 @@ smooth.trend <- calcSmoothTrends(mesa.data, n.basis=2, cv=TRUE)
 
 
 ###################################################
-### code chunk number 21: ST_intro.Rnw:1335-1337
+### code chunk number 21: ST_intro.Rnw:1337-1339
 ###################################################
 par(mar=c(2.1,3.3,2,1), mgp=c(2,1,0))
 mesa.data.cv <- vector("list",  length(smooth.trend$trend.fnc.cv))
@@ -344,7 +346,7 @@ for(i in 1:length(mesa.data.cv)){
 
 
 ###################################################
-### code chunk number 23: ST_intro.Rnw:1369-1370
+### code chunk number 23: ST_intro.Rnw:1371-1372
 ###################################################
 par(mar=c(3.3,3.3,1.5,1), mgp=c(2,1,0))
 layout(matrix(c(1,1,2,2,3,4), 3, 2, byrow=TRUE))
@@ -372,7 +374,7 @@ plot(mesa.data, "pacf", ID="60370113")
 
 
 ###################################################
-### code chunk number 25: ST_intro.Rnw:1400-1401
+### code chunk number 25: ST_intro.Rnw:1402-1403
 ###################################################
 mesa.data.fnc <- updateTrend(mesa.data, fnc=function(x){
   x = 2*pi*as.numeric(x)/365; 
@@ -399,7 +401,7 @@ for(i in c("60370016","60371103")){
 
 
 ###################################################
-### code chunk number 27: ST_intro.Rnw:1443-1444
+### code chunk number 27: ST_intro.Rnw:1445-1446
 ###################################################
 beta.lm <- estimateBetaFields(mesa.data)
 par(mfrow=c(1,2), mar=c(3.3,2.3,1.5,1), mgp=c(2,1,0))
@@ -412,7 +414,7 @@ plotCI(mesa.data$covars$km.to.coast, beta.lm$beta[,2],
 
 
 ###################################################
-### code chunk number 28: ST_intro.Rnw:1458-1461
+### code chunk number 28: ST_intro.Rnw:1460-1463
 ###################################################
 LUR <- list(~log10.m.to.a1+s2000.pop.div.10000+km.to.coast,
             ~km.to.coast, ~km.to.coast)
@@ -420,13 +422,13 @@ cov.beta <- list(covf="exp", nugget=FALSE)
 
 
 ###################################################
-### code chunk number 29: ST_intro.Rnw:1465-1466
+### code chunk number 29: ST_intro.Rnw:1467-1468
 ###################################################
 cov.nu <- list(covf="exp", nugget=~type, random.effect=FALSE)
 
 
 ###################################################
-### code chunk number 30: ST_intro.Rnw:1495-1500
+### code chunk number 30: ST_intro.Rnw:1497-1502
 ###################################################
 locations <- list(coords=c("x","y"), long.lat=c("long","lat"), 
                   others="type")
@@ -436,7 +438,7 @@ mesa.model <- createSTmodel(mesa.data, LUR=LUR, ST="lax.conc.1500",
 
 
 ###################################################
-### code chunk number 31: ST_intro.Rnw:1526-1530
+### code chunk number 31: ST_intro.Rnw:1528-1532
 ###################################################
 dim <- loglikeSTdim(mesa.model)
 x.init <- cbind(c( rep(2, dim$nparam.cov-1), 0),
@@ -445,20 +447,20 @@ rownames(x.init) <- loglikeSTnames(mesa.model, all=FALSE)
 
 
 ###################################################
-### code chunk number 32: ST_intro.Rnw:1533-1534 (eval = FALSE)
+### code chunk number 32: ST_intro.Rnw:1535-1536 (eval = FALSE)
 ###################################################
 ## est.mesa.model <- estimate(mesa.model, x.init, type="p", hessian.all=TRUE)
 
 
 ###################################################
-### code chunk number 33: ST_intro.Rnw:1541-1543
+### code chunk number 33: ST_intro.Rnw:1543-1545
 ###################################################
 data(est.mesa.model, package="SpatioTemporal")
 print(est.mesa.model)
 
 
 ###################################################
-### code chunk number 34: ST_intro.Rnw:1567-1570
+### code chunk number 34: ST_intro.Rnw:1569-1572
 ###################################################
 pred <- predict(mesa.model, est.mesa.model, LTA=TRUE, type="p")
 pred.log <- predict(mesa.model, est.mesa.model, LTA=TRUE,
@@ -466,7 +468,7 @@ pred.log <- predict(mesa.model, est.mesa.model, LTA=TRUE,
 
 
 ###################################################
-### code chunk number 35: ST_intro.Rnw:1572-1575 (eval = FALSE)
+### code chunk number 35: ST_intro.Rnw:1574-1577 (eval = FALSE)
 ###################################################
 ## pred <- predict(mesa.model, est.mesa.model, LTA=TRUE, type="p")
 ## pred.log <- predict(mesa.model, est.mesa.model, LTA=TRUE,
@@ -492,7 +494,7 @@ pred.log <- predict(mesa.model, est.mesa.model, LTA=TRUE,
 
 
 ###################################################
-### code chunk number 37: ST_intro.Rnw:1611-1612
+### code chunk number 37: ST_intro.Rnw:1613-1614
 ###################################################
 par(mfrow=c(2,2), mar=c(3.3,3.3,1.5,1), mgp=c(2,1,0), pty="s")
 for(i in 1:3){
@@ -527,7 +529,7 @@ for(i in 1:3){
 
 
 ###################################################
-### code chunk number 39: ST_intro.Rnw:1642-1643
+### code chunk number 39: ST_intro.Rnw:1644-1645
 ###################################################
 par(mfrow=c(1,2), mar=c(3.3,3.3,1.5,1), mgp=c(2,1,0))
 with(pred$LTA, plotCI(colMeans(D, na.rm=TRUE), EX, uiw=1.96*sqrt(VX.pred),
@@ -544,44 +546,44 @@ abline(0, 1, col="grey")
 
 
 ###################################################
-### code chunk number 40: ST_intro.Rnw:1658-1659
+### code chunk number 40: ST_intro.Rnw:1660-1661
 ###################################################
 Ind.cv <- createCV(mesa.model, groups=10, min.dist=.1)
 
 
 ###################################################
-### code chunk number 41: ST_intro.Rnw:1666-1668
+### code chunk number 41: ST_intro.Rnw:1668-1670
 ###################################################
 ID.cv <- sapply(split(mesa.model$obs$ID, Ind.cv), unique)
 print( sapply(ID.cv, length) )
 
 
 ###################################################
-### code chunk number 42: ST_intro.Rnw:1671-1672
+### code chunk number 42: ST_intro.Rnw:1673-1674
 ###################################################
 table(Ind.cv)
 
 
 ###################################################
-### code chunk number 43: ST_intro.Rnw:1676-1677
+### code chunk number 43: ST_intro.Rnw:1678-1679
 ###################################################
 print(mesa.model$D.beta[ID.cv[[10]],ID.cv[[10]]])
 
 
 ###################################################
-### code chunk number 44: ST_intro.Rnw:1692-1693
+### code chunk number 44: ST_intro.Rnw:1694-1695
 ###################################################
 x.init <- coef(est.mesa.model, pars="cov")[,c("par","init")]
 
 
 ###################################################
-### code chunk number 45: ST_intro.Rnw:1696-1697 (eval = FALSE)
+### code chunk number 45: ST_intro.Rnw:1698-1699 (eval = FALSE)
 ###################################################
 ## est.cv.mesa <- estimateCV(mesa.model, x.init, Ind.cv)
 
 
 ###################################################
-### code chunk number 46: ST_intro.Rnw:1700-1701
+### code chunk number 46: ST_intro.Rnw:1702-1703
 ###################################################
 data(est.cv.mesa, package="SpatioTemporal")
 
@@ -597,7 +599,7 @@ data(est.cv.mesa, package="SpatioTemporal")
 
 
 ###################################################
-### code chunk number 48: ST_intro.Rnw:1716-1717
+### code chunk number 48: ST_intro.Rnw:1718-1719
 ###################################################
 par(mfrow=c(1,1), mar=c(13.5,2.5,.5,.5), las=2)
 with(coef(est.mesa.model, pars="all"), 
@@ -607,7 +609,7 @@ boxplot(est.cv.mesa, "all", boxwex=.4, col="grey", add=TRUE)
 
 
 ###################################################
-### code chunk number 49: ST_intro.Rnw:1728-1732
+### code chunk number 49: ST_intro.Rnw:1730-1734
 ###################################################
 ##pred.cv.mesa <- predictCV(mesa.model, est.cv.mesa, LTA=TRUE)
 data(pred.cv.mesa, package="SpatioTemporal")
@@ -616,7 +618,7 @@ pred.cv.mesa.log <- predictCV(mesa.model, est.cv.mesa,
 
 
 ###################################################
-### code chunk number 50: ST_intro.Rnw:1745-1746
+### code chunk number 50: ST_intro.Rnw:1747-1748
 ###################################################
 summary(pred.cv.mesa.log)
 
@@ -673,7 +675,7 @@ summary(pred.cv.mesa.log)
 
 
 ###################################################
-### code chunk number 52: ST_intro.Rnw:1844-1845
+### code chunk number 52: ST_intro.Rnw:1846-1847
 ###################################################
 par(mar=c(3.3,3.3,1.5,1), mgp=c(2,1,0))
 layout(matrix(c(1,1,2,2,3,4,5,6), 4, 2, byrow=TRUE))

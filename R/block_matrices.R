@@ -22,7 +22,7 @@
 ##' 
 ##' @example Rd_examples/Ex_calc_mu_B.R
 ##' 
-##' @author Johan Lindström and Adam Szpiro
+##' @author Johan Lindstrom and Adam Szpiro
 ##' 
 ##' @family likelihood utility functions
 ##' @family block matrix functions

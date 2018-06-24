@@ -1,5 +1,5 @@
 Package: SpatioTemporal
-Version: 1.1.7
+Version: 1.1.9
 License: GPL-2
 Title: Spatio-Temporal Model Estimation
 Author: Johan Lindstrom, Adam Szpiro, Paul D. Sampson, Silas Bergen, Assaf P.
@@ -7,9 +7,8 @@ Author: Johan Lindstrom, Adam Szpiro, Paul D. Sampson, Silas Bergen, Assaf P.
 Maintainer: Johan Lindstrom <johanl@maths.lth.se>
 Description: Utilities that estimate, predict and cross-validate the
     spatio-temporal model developed for MESA Air.
-Encoding: latin1
-Date: 2013-08-12
-Depends: R (>= 2.12.0), Matrix
+Date: 2018-06-20
+Depends: R (>= 3.5.0), Matrix
 Imports: MASS
 Suggests: maps, plotrix, fields
 Type: Package
@@ -22,7 +21,8 @@ Collate: 'block_matrices.R' 'c_cov_matrices.R' 'c_F_mult.R'
         'STmodel.R' 'STmodel_combine.R' 'STmodel_estimate.R'
         'STmodel_predict.R' 'STmodel_processing.R' 'STmodel_setup.R'
         'STmodel_simulate.R' 'temporal_SVD_incomplete_data.R' 'utils.R'
-Packaged: 2013-08-12 14:13:07 UTC; Administrator
+RoxygenNote: 6.0.1
 NeedsCompilation: yes
+Packaged: 2018-06-22 07:32:49 UTC; Johan
 Repository: CRAN
-Date/Publication: 2013-08-12 16:51:44
+Date/Publication: 2018-06-24 20:19:22 UTC

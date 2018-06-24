@@ -57,8 +57,9 @@
 ##' 
 ##' @example Rd_examples/Ex_processLUR.R
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' @family STmodel functions
+##' @importFrom stats as.formula
 ##' @export
 processLUR <- function(STdata, LUR.in){
   ##check class belonging
@@ -216,7 +217,7 @@ processST <- function(STdata, ST.in){
 ##' 
 ##' @example Rd_examples/Ex_processLocation.R
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' @family STmodel functions
 ##' @export
 processLocation <- function(STdata, locations){

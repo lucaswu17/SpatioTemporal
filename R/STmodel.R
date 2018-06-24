@@ -43,10 +43,11 @@
 ##' 
 ##' @example Rd_examples/Ex_createSTmodel.R
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' @family STmodel methods
 ##' @family STmodel functions
 ##' @family STdata functions
+##' @importFrom stats sd
 ##' @export
 createSTmodel <- function(STdata, LUR=NULL, ST=NULL,
                           cov.beta=list(covf="exp", nugget=FALSE),
@@ -209,7 +210,7 @@ createSTmodel <- function(STdata, LUR=NULL, ST=NULL,
 ##' ##print basic information regarding obs, locations, dates, etc
 ##' print(mesa.model)
 ##'
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' 
 ##' @family STmodel methods
 ##' @method print STmodel
@@ -277,7 +278,7 @@ print.STmodel <- function(x, type=x$locations$type, ...){
 ##' ##Summary of data fields.
 ##' summary(mesa.model)
 ##'
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' 
 ##' @family STmodel methods
 ##' @method summary STmodel
@@ -322,7 +323,7 @@ summary.STmodel <- function(object, type=object$covars$type, ...){
 ##' @param ... Ignored additional arguments.
 ##' @return Nothing
 ##'
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' 
 ##' @family STmodel methods
 ##' @method print summary.STmodel

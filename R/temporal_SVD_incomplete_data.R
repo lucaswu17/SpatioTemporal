@@ -49,9 +49,9 @@
 ##' @references
 ##' M. Fuentes, P. Guttorp, and P. D. Sampson. (2006) Using Transforms to
 ##'  Analyze Space-Time Processes in Statistical methods for spatio-temporal
-##'  systems (B. Finkenstädt, L. Held, V. Isham eds.) 77-150
+##'  systems (B. Finkenstadt, L. Held, V. Isham eds.) 77-150
 ##' 
-##' @author Paul D. Sampson and Johan Lindström
+##' @author Paul D. Sampson and Johan Lindstrom
 ##'
 ##' @example Rd_examples/Ex_SVDmiss.R
 ##' @family SVD for missing data
@@ -179,14 +179,16 @@ SVDmiss <- function(X, niter=25, ncomp=min(4,dim(X)[2]), conv.reldiff=0.001)
 ##' @references
 ##' M. Fuentes, P. Guttorp, and P. D. Sampson. (2006) Using Transforms to
 ##'  Analyze Space-Time Processes in Statistical methods for spatio-temporal
-##'  systems (B. Finkenstädt, L. Held, V. Isham eds.) 77-150
+##'  systems (B. Finkenstadt, L. Held, V. Isham eds.) 77-150
 ##' 
-##' @author Paul D. Sampson and Johan Lindström
+##' @author Paul D. Sampson and Johan Lindstrom
 ##'
 ##' @example Rd_examples/Ex_SVDsmooth.R
 ##' @family SVD for missing data
 ##' @family data matrix
 ##' @family SVDcv methods
+##' @importFrom stats sd
+##' @importFrom stats smooth.spline
 ##' @export
 SVDsmooth <- function(X, n.basis=min(2,dim(X)[2]), date.ind=NULL, scale=TRUE,
                       niter=100, conv.reldiff=0.001, df=NULL, spar=NULL,
@@ -267,6 +269,9 @@ SVDsmooth <- function(X, n.basis=min(2,dim(X)[2]), date.ind=NULL, scale=TRUE,
 }##function SVDsmooth
 
 ##' @rdname SVDsmooth
+##' @importFrom stats extractAIC
+##' @importFrom stats lm
+##' @importFrom stats weighted.mean
 ##' @export
 SVDsmoothCV <- function(X, n.basis, ...){
   ##check number of columns
@@ -394,7 +399,7 @@ SVDsmoothCV <- function(X, n.basis, ...){
 ##'   \item{trend.fnc,trend.fnc.cv}{Functions that produce the content of the above
 ##'        data.frames, see \code{\link{SVDsmooth}}.}
 ##' 
-##' @author Johan Lindström and Paul D. Sampson
+##' @author Johan Lindstrom and Paul D. Sampson
 ##' 
 ##' @example Rd_examples/Ex_calcSmoothTrends.R
 ##' @family SVD for missing data
@@ -464,10 +469,14 @@ calcSmoothTrends <- function(STdata=NULL, obs=STdata$obs$obs,
 ##' @examples
 ##'   ##See SVDsmooth example
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' 
 ##' @family SVDcv methods
 ##' @family SVD for missing data
+##' @importFrom graphics abline
+##' @importFrom graphics lines
+##' @importFrom graphics par
+##' @importFrom graphics points
 ##' @method plot SVDcv
 ##' @export
 plot.SVDcv <- function(x, y=c("all","MSE","R2","AIC","BIC"),
@@ -513,6 +522,7 @@ plot.SVDcv <- function(x, y=c("all","MSE","R2","AIC","BIC"),
 
 ##' @rdname plot.SVDcv
 ##' @importFrom graphics boxplot
+##' @importFrom graphics par
 ##' @method boxplot SVDcv
 ##' @export
 boxplot.SVDcv <- function(x, y=c("all","MSE","R2","AIC","BIC"), ...){
@@ -549,7 +559,7 @@ boxplot.SVDcv <- function(x, y=c("all","MSE","R2","AIC","BIC"), ...){
 ##' @examples
 ##'   ##See SVDsmooth example
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' 
 ##' @family SVDcv methods
 ##' @family SVD for missing data
@@ -622,7 +632,7 @@ summary.SVDcv <- function(object, ...){
 ##' 
 ##' @example Rd_examples/Ex_updateTrend.R
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' @family STdata functions
 ##' @family SVD for missing data
 ##' @method updateTrend STdata
@@ -781,6 +791,7 @@ internalUpdateTrendSmooth <- function(object, n.basis, dates, ...){
 ##############################################
 ## Internal functions for creation of trend ##
 ##############################################
+##' @importFrom stats spline
 internalCreateTrendFnc <- function(trend){
   X.trend <- trend
   Y.trend <- X.trend[,colnames(X.trend)!="date",drop=FALSE]

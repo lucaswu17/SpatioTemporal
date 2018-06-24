@@ -26,14 +26,14 @@
 ##' 
 ##' @example Rd_examples/Ex_calc_tFX.R
 ##' 
-##' @author Johan Lindström and Adam Szpiro
+##' @author Johan Lindstrom and Adam Szpiro
 ##' @family block matrix functions
 ##' @family temporal trend functions
 ##' @export
-##' @useDynLib SpatioTemporal C_calc_tFX
 calc.tFX <- function(F, X, loc.ind, n.loc=max(loc.ind)){
   ##call the c-function, error checking in C-code
-  .Call(C_calc_tFX, X, F, as.integer(n.loc), as.integer(loc.ind))
+  .Call(C_calc_tFX, X, F, as.integer(n.loc), as.integer(loc.ind),
+        PACKAGE="SpatioTemporal")
 }##function calc.tFX
 
 ##' Computes the matrix products between a sparse matrix \code{F}
@@ -55,11 +55,10 @@ calc.tFX <- function(F, X, loc.ind, n.loc=max(loc.ind)){
 ##' 
 ##' @example Rd_examples/Ex_calc_FX.R
 ##' 
-##' @author Johan Lindström and Adam Szpiro
+##' @author Johan Lindstrom and Adam Szpiro
 ##' @family block matrix functions
 ##' @family temporal trend functions
 ##' @export
-##' @useDynLib SpatioTemporal C_calc_F_part_X
 calc.FX <- function(F, LUR, loc.ind){
   ##number of LUR components
   m <- length(LUR)
@@ -78,7 +77,7 @@ calc.FX <- function(F, LUR, loc.ind){
   for(i in 1:m){
     ##call the c-function, some error checking in C-code
     tmp <- .Call(C_calc_F_part_X, LUR[[i]], F[,i], as.integer(loc.ind),
-                 as.integer(p[i]))
+                 as.integer(p[i]), PACKAGE="SpatioTemporal")
     FX[,(Ind+1):(Ind+p[i])] <- tmp
     Ind <- Ind + p[i]
   }
@@ -108,11 +107,10 @@ calc.FX <- function(F, LUR, loc.ind){
 ##' 
 ##' @example Rd_examples/Ex_calc_tFXF.R
 ##' 
-##' @author Johan Lindström and Adam Szpiro
+##' @author Johan Lindstrom and Adam Szpiro
 ##' @family block matrix functions
 ##' @family temporal trend functions
 ##' @export
-##' @useDynLib SpatioTemporal C_calc_tFXF
 calc.tFXF <- function(F, mat, loc.ind, n.blocks=1,
                       block.sizes=rep(dim(mat)[1]/n.blocks,n.blocks),
                       n.loc=max(loc.ind)){
@@ -120,7 +118,8 @@ calc.tFXF <- function(F, mat, loc.ind, n.blocks=1,
   block.sizes <- round(block.sizes)
   ##call the c-function, error checking in C-code
   .Call(C_calc_tFXF, mat, F, as.integer(n.loc),
-        as.integer(loc.ind), as.integer(block.sizes))
+        as.integer(loc.ind), as.integer(block.sizes),
+        PACKAGE="SpatioTemporal")
 }##function calc.tFXF
 
 ##' Computes the quadratic form  between a sparse matrix \code{F} containing the
@@ -143,7 +142,7 @@ calc.tFXF <- function(F, mat, loc.ind, n.blocks=1,
 ##' 
 ##' @example Rd_examples/Ex_calc_FXtF2.R
 ##' 
-##' @author Johan Lindström and Adam Szpiro
+##' @author Johan Lindstrom and Adam Szpiro
 ##' @family block matrix functions
 ##' @family temporal trend functions
 ##' @export
@@ -195,10 +194,10 @@ calc.FXtF2 <- function(F, mat, loc.ind, F2=F, loc.ind2=loc.ind){
 ##' 
 ##' @example Rd_examples/Ex_expandF.R
 ##' 
-##' @author Johan Lindström and Adam Szpiro
+##' @author Johan Lindstrom and Adam Szpiro
 ##' @family temporal trend functions
-##' @export
 ##' @import Matrix
+##' @export
 expandF <- function(F, loc.ind, n.loc=max(loc.ind), sparse=TRUE){
   ##check dimensions
   if( dim(F)[1] != length(loc.ind) ){

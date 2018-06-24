@@ -89,7 +89,7 @@
 ##' 
 ##' @example Rd_examples/Ex_estimateCV_STmodel.R
 ##'
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' @family STmodel methods
 ##' @family cross-validation functions
 ##' @family estCVSTmodel methods
@@ -216,7 +216,7 @@ estimateCV <- function(object, x, Ind.cv, ...){
 ##' ##print basic information for the CV-predictions
 ##' print(est.cv.mesa)
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' 
 ##' @family estCVSTmodel methods
 ##' @method print estCVSTmodel
@@ -263,7 +263,7 @@ print.estCVSTmodel <- function(x, ...){
 ##' ##print basic information for the CV-predictions
 ##' summary(est.cv.mesa)
 ##'
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' 
 ##' @family estCVSTmodel methods
 ##' @method summary estCVSTmodel
@@ -292,7 +292,7 @@ summary.estCVSTmodel <- function(object, ...){
 ##'   \code{\link[base:print]{print.table}}.
 ##' @return Nothing
 ##'
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' 
 ##' @family estCVSTmodel methods
 ##' @method print summary.estCVSTmodel
@@ -324,7 +324,7 @@ print.summary.estCVSTmodel <- function(x, ...){
 ##' @param ... Ignored additional arguments.
 ##' @return Nothing
 ##'
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##'
 ##' @examples
 ##'   ##load data
@@ -368,7 +368,7 @@ coef.estCVSTmodel <- function(object, pars=c("all", "cov", "reg"), ...){
 ##'
 ##' @example Rd_examples/Ex_boxplot_estCVSTmodel.R
 ##'
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' 
 ##' @family estCVSTmodel methods
 ##' @importFrom graphics boxplot

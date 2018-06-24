@@ -327,7 +327,7 @@ predictCV <- function(object, x, Ind.cv, ...){
 ##' ##print basic information for the CV-predictions
 ##' print(pred.cv.mesa)
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' 
 ##' @family predCVSTmodel methods
 ##' @method print predCVSTmodel
@@ -414,7 +414,7 @@ print.predCVSTmodel <- function(x, ...){
 ##' ##basic summary statistics
 ##' summary(pred.cv.mesa)
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' 
 ##' @family predCVSTmodel methods
 ##' @method summary predCVSTmodel
@@ -576,7 +576,7 @@ summary.predCVSTmodel <- function(object, pred.naive=NULL, by.date=FALSE,
 ##'   \code{\link[base:print]{print.table}}.
 ##' @return Nothing
 ##'
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' 
 ##' @family predCVSTmodel methods
 ##' @method print summary.predCVSTmodel

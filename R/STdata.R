@@ -76,7 +76,7 @@
 ##' 
 ##' @example Rd_examples/Ex_createSTdata.R
 ##' 
-##' @author Johan Lindström and Assaf P. Oron
+##' @author Johan Lindstrom and Assaf P. Oron
 ##' @family STdata methods
 ##' @family STdata functions
 ##' @export
@@ -200,7 +200,7 @@ createSTdata <- function(obs, covars, SpatioTemporal=NULL,
 ##' @param ... Ignored additional arguments.
 ##' @return Nothing
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' 
 ##' @family STdata methods
 ##' @method print STdata
@@ -241,7 +241,7 @@ print.STdata <- function(x, type=x$covars$type, ...){
 ##' @param ... Ignored additional arguments. 
 ##' @return A \code{summary.STdata} object.
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' 
 ##' @family STdata methods
 ##' @method summary STdata
@@ -277,7 +277,7 @@ summary.STdata <- function(object, type=object$covars$type, ...){
 ##' @param ... Ignored additional arguments.
 ##' @return Nothing
 ##'
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' 
 ##' @family STdata methods
 ##' @method print summary.STdata
@@ -388,9 +388,16 @@ print.summary.STdata <- function(x, ...){
 ##'
 ##' @example Rd_examples/Ex_plot_STdata.R
 ##' 
-##' @author Johan Lindström and Assaf P. Oron
+##' @author Johan Lindstrom and Assaf P. Oron
 ##' 
 ##' @family STdata methods
+##' @importFrom graphics legend
+##' @importFrom graphics lines
+##' @importFrom graphics points
+##' @importFrom stats acf
+##' @importFrom stats lm
+##' @importFrom stats na.pass
+##' @importFrom stats pacf
 ##' @method plot STdata
 ##' @export
 plot.STdata <- function(x, y=c("obs", "res", "acf", "pacf", "loc", "loc.obs"),
@@ -604,7 +611,7 @@ plot.STdata <- function(x, y=c("obs", "res", "acf", "pacf", "loc", "loc.obs"),
 ##'   \code{\link[stats:qqnorm]{qqnorm}}. 
 ##' @return Nothing
 ##'
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' 
 ##' @example Rd_examples/Ex_qqnorm_STdata.R
 ##' 
@@ -654,7 +661,7 @@ qqnorm.STdata <- function(y, ID="all", main="Q-Q plot for observations",
 ##'
 ##' @example Rd_examples/Ex_scatterPlot_STdata.R
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' @family STdata methods
 ##' @method scatterPlot STdata
 ##' @export
@@ -688,7 +695,7 @@ scatterPlot.STdata <- function(x, covar=NULL, trend=NULL, pch=1, col=1, cex=1,
 ##' @param ... additional parameters
 ##' @return Nothing
 ##' 
-##' @author Johan Lindström
+##' @author Johan Lindstrom
 ##' @export
 scatterPlot <- function(x, ...){
   UseMethod("scatterPlot")
