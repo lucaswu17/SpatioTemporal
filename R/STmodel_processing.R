@@ -105,7 +105,7 @@ updateCovf <- function(STmodel, cov.beta=STmodel$cov.beta,
       cov.nu$nugget <- as.formula("~1", env=.GlobalEnv)
     }else{
       cov.nu$nugget <- FALSE
-      cov.nu$nugget.matrix <- matrix(NULL, dim(covars)[1], 0)
+      cov.nu$nugget.matrix <- matrix(NA, dim(covars)[1], 0)
     }
   }
   if( class(cov.nu$nugget)=="formula" || is.character(cov.nu$nugget) ){
